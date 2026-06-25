@@ -2,7 +2,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 from app.api import app
 from app.trace_model import Trace, ExecPoint, CompileError
-from app.tracer_service import TracerTimeout
+from app.tracer_service import TracerTimeout, TracerError
 
 client = TestClient(app)
 
@@ -25,3 +25,8 @@ def test_trace_timeout():
     with patch("app.api.run_trace", side_effect=TracerTimeout("too slow")):
         r = client.post("/api/trace", json={"code": "while(1){}", "lang": "cpp"})
     assert r.status_code == 503
+
+def test_trace_tracer_error():
+    with patch("app.api.run_trace", side_effect=TracerError("docker failed")):
+        r = client.post("/api/trace", json={"code": "x", "lang": "c"})
+    assert r.status_code == 500
