@@ -7,6 +7,15 @@ RUN sed -i 's|http://archive.ubuntu.com|http://old-releases.ubuntu.com|g; s|http
  && rm -rf /var/lib/apt/lists/*
 
 COPY opt-cpp-backend /opt/tracer
+# Fix 1: force DWARF v2 so the patched Valgrind can parse debug info
+RUN sed -i "s/'-ggdb', '-O0'/'-ggdb', '-gdwarf-2', '-O0'/" /opt/tracer/run_cpp_backend.py
+# Fix 2: add ARM64 frame-pointer (x29) register mapping so DW_OP_breg29 resolves
+#        correctly when evaluating DW_OP_fbreg local-variable locations.
+#        Stock Valgrind 3.11 only mapped r31(SP); r29(FP) was missing → fbGX
+#        evaluation failed → empty locals at every trace step.
+RUN perl -i -0pe \
+    's|(#  elif defined\(VGP_arm64_linux\)\n)(   if \(regno == 31\))|${1}   if (regno == 29) { *a = regs->fp; return True; }  \/\/ x29=FP (pgbovine ARM64 fix)\n${2}|' \
+    /opt/tracer/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
