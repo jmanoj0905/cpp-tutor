@@ -16,6 +16,12 @@ RUN sed -i "s/'-ggdb', '-O0'/'-ggdb', '-gdwarf-2', '-O0'/" /opt/tracer/run_cpp_b
 RUN perl -i -0pe \
     's|(#  elif defined\(VGP_arm64_linux\)\n)(   if \(regno == 31\))|${1}   if (regno == 29) { *a = regs->fp; return True; }  \/\/ x29=FP (pgbovine ARM64 fix)\n${2}|' \
     /opt/tracer/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c
+# Fix 3: on AArch64 there is no dup2 syscall (__NR_dup2=1041 returns ENOSYS);
+#         the real syscall is dup3 (__NR_dup3=24). Redirect VG_(dup2) to dup3
+#         with flags=0 (identical semantics) so guest fd 1 is actually redirected
+#         to /tmp/stdout.txt and per-step stdout is captured into the OPT trace.
+RUN perl -i -pe 's{\Qreturn VG_(do_syscall2)(__NR_dup2, oldfd, newfd);\E}{#if defined(VGP_arm64_linux)\n   return VG_(do_syscall3)(__NR_dup3, oldfd, newfd, 0);\n#else\n   return VG_(do_syscall2)(__NR_dup2, oldfd, newfd);\n#endif}' \
+    /opt/tracer/valgrind-3.11.0/coregrind/m_libcfile.c
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
