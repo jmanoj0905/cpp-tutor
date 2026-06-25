@@ -3,14 +3,15 @@ from unittest.mock import patch, MagicMock
 from app.tracer_service import run_trace, TracerError, TracerTimeout
 from app.trace_model import Trace, CompileError
 
-pytestmark = pytest.mark.docker  # requires built image; skip in unit-only CI
+# The two integration tests below are individually marked `docker` (they run
+# the built image); the pure unit test carries no mark, so `-m "not docker"`
+# selects only it in unit-only CI.
 
 
 # ---------------------------------------------------------------------------
-# Pure unit test — no Docker required; overrides the module-level docker mark
+# Pure unit test — no Docker required.
 # ---------------------------------------------------------------------------
 
-@pytest.mark.no_docker
 def test_non_json_output_includes_exit_code_and_stderr(monkeypatch):
     """TracerError for non-JSON output must include returncode and stderr."""
     fake_proc = MagicMock()
@@ -27,6 +28,7 @@ def test_non_json_output_includes_exit_code_and_stderr(monkeypatch):
     assert "boom" in msg, f"expected stderr snippet in message, got: {msg!r}"
 
 
+@pytest.mark.docker
 def test_run_trace_returns_trace():
     with open("tests/fixtures/pointers.cpp") as f:
         code = f.read()
@@ -35,6 +37,7 @@ def test_run_trace_returns_trace():
     assert len(result.trace) >= 3
     assert any(pt.func_name == "main" for pt in result.trace)
 
+@pytest.mark.docker
 def test_compile_error_is_structured():
     result = run_trace("int main(){ return", "cpp")
     assert isinstance(result, CompileError)
