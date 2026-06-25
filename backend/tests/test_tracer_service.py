@@ -1,8 +1,31 @@
 import pytest
-from app.tracer_service import run_trace, TracerTimeout
+from unittest.mock import patch, MagicMock
+from app.tracer_service import run_trace, TracerError, TracerTimeout
 from app.trace_model import Trace, CompileError
 
 pytestmark = pytest.mark.docker  # requires built image; skip in unit-only CI
+
+
+# ---------------------------------------------------------------------------
+# Pure unit test — no Docker required; overrides the module-level docker mark
+# ---------------------------------------------------------------------------
+
+@pytest.mark.no_docker
+def test_non_json_output_includes_exit_code_and_stderr(monkeypatch):
+    """TracerError for non-JSON output must include returncode and stderr."""
+    fake_proc = MagicMock()
+    fake_proc.stdout = ""
+    fake_proc.stderr = "boom"
+    fake_proc.returncode = 1
+
+    with patch("app.tracer_service.subprocess.run", return_value=fake_proc):
+        with pytest.raises(TracerError) as exc_info:
+            run_trace("int main(){}", "cpp")
+
+    msg = str(exc_info.value)
+    assert "exit 1" in msg, f"expected 'exit 1' in message, got: {msg!r}"
+    assert "boom" in msg, f"expected stderr snippet in message, got: {msg!r}"
+
 
 def test_run_trace_returns_trace():
     with open("tests/fixtures/pointers.cpp") as f:

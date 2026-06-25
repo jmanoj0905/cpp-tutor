@@ -38,7 +38,10 @@ def run_trace(code: str, lang: str,
     try:
         raw = json.loads(out)
     except json.JSONDecodeError as e:
-        raise TracerError(f"tracer produced non-JSON output: {out[:200]}") from e
+        raise TracerError(
+            f"tracer produced non-JSON output (exit {proc.returncode}): "
+            f"{out[:200] or '(empty stdout)'} | stderr: {proc.stderr[:200]}"
+        ) from e
 
     # The OPT backend reports a compile error as a single-point trace whose
     # event is "uncaught_exception" with the compiler message in exception_msg.
