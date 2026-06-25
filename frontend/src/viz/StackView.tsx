@@ -8,7 +8,16 @@ interface Frame {
 
 function renderValue(v: unknown): string {
   if (v === null) return "null";
-  if (Array.isArray(v)) return "…"; // REF/C_DATA — Milestone 2
+  if (Array.isArray(v)) {
+    // OPT C_DATA scalar: ["C_DATA", addr, type, value]
+    if (v[0] === "C_DATA" && v.length === 4) {
+      const val = v[3];
+      if (val === null) return "null";
+      if (typeof val === "object") return "…"; // pointer/struct → Milestone 2
+      return String(val);
+    }
+    return "…"; // REF and other encodings → Milestone 2
+  }
   if (typeof v === "object") return "…";
   return String(v);
 }
