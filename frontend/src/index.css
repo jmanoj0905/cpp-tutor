@@ -45,8 +45,9 @@ body {
   width: 1126px;
   max-width: 100%;
   margin: 0 auto;
-  min-height: 100svh;
-  padding: 0 24px 64px;
+  height: 100svh;
+  padding: 0 24px;
+  overflow: hidden;
 }
 
 /* ── Typography ──────────────────────────────────────────────── */
@@ -75,10 +76,52 @@ p {
 
 /* ── App shell ───────────────────────────────────────────────── */
 .app {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+  height: 100svh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  padding: 16px 0;
 }
+.topbar { display: flex; align-items: center; justify-content: space-between; }
+.topbar h1 { margin: 0; font-size: 32px; }
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  min-height: 0;            /* allow children to shrink + scroll */
+}
+.code-col, .memory-col {
+  min-height: 0;
+  overflow: auto;
+  border: var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+.code-col { padding: 0; }
+.memory-col { padding: 0; display: flex; flex-direction: column; gap: 16px; }
+.memory-col .memory { border: none; border-radius: 0; }
+.memory-col .stdout { margin: 0 18px 18px; }
+.empty-hint { align-items: center; justify-content: center; color: var(--ink-soft); padding: 24px; }
+
+.codepanel { border: none; border-radius: 0; height: 100%; }
+.codepanel .cm-editor { height: 100%; }
+
+.controls { min-height: 0; }
+.stale-note {
+  font-family: var(--mono); font-size: 13px; color: var(--ink);
+  background: rgba(214, 50, 42, 0.1); border: var(--border-thin); border-color: var(--red);
+  border-radius: 10px; padding: 8px 14px; display: inline-block;
+}
+
+/* exec gutter arrows + breakpoint/current line */
+.cm-exec-gutter { width: 20px; }
+.exec-arrow { font-size: 11px; padding: 0 2px; cursor: pointer; }
+.exec-arrow.prev { color: var(--ink-soft); opacity: 0.6; }
+.exec-arrow.current { color: var(--blue); font-weight: 700; }
+.exec-arrow.next { color: var(--ink-soft); }
+.cm-line.cm-current { background: rgba(244, 194, 13, 0.30); }
+.cm-line.cm-bp { box-shadow: inset 4px 0 0 var(--red); }
 
 /* ── Editor ──────────────────────────────────────────────────── */
 .editor {
@@ -147,70 +190,6 @@ p {
   white-space: pre-wrap;
 }
 
-/* ── Visualization grid ──────────────────────────────────────── */
-.viz {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-.left,
-.right {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .viz {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── Code view ───────────────────────────────────────────────── */
-.codeview {
-  font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.7;
-  background: var(--panel);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: 16px 0;
-  margin: 0;
-  overflow-x: auto;
-}
-
-.codeview .line {
-  display: flex;
-  gap: 14px;
-  padding: 0 18px;
-  border-left: 4px solid transparent;
-}
-
-.codeview .line.active {
-  background: var(--yellow);
-  border-left-color: var(--ink);
-}
-
-.codeview .lineno {
-  color: var(--ink-soft);
-  user-select: none;
-  text-align: right;
-  min-width: 22px;
-}
-
-.codeview .line.active .lineno {
-  color: var(--ink);
-  font-weight: 700;
-}
-
-.codeview .src {
-  white-space: pre;
-  color: var(--ink);
-}
-
 /* ── stdout ──────────────────────────────────────────────────── */
 .stdout {
   font-family: var(--mono);
@@ -223,14 +202,6 @@ p {
   margin: 0;
   min-height: 56px;
   white-space: pre-wrap;
-}
-
-/* ── Stack view ──────────────────────────────────────────────── */
-.stack {
-  background: var(--panel);
-  border: var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
 }
 
 .frame {
