@@ -136,6 +136,37 @@ describe("memoryModel", () => {
     expect(v.children?.map((c) => c.displayValue)).toEqual(["7"]);
   });
 
+  it("resolves pointers to stack/global variables (real-backend shape), not just heap", () => {
+    const pt: ExecPoint = {
+      line: 3, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: ["g"],
+      globals: { g: ["C_DATA", "0x600", "int", 99] },
+      heap: {},
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["a", "p", "pg"],
+        encoded_locals: {
+          a: ["C_DATA", "0xFFF000B38", "int", 7],
+          p: ["C_DATA", "0xFFF000B40", "pointer", "0xFFF000B38"],
+          pg: ["C_DATA", "0xFFF000B48", "pointer", "0x600"],
+        },
+      }] as any,
+    };
+    const memory = normalizeMemory(pt);
+    const a = memory.frames[0].cells.find((c) => c.name === "a")!;
+    const p = memory.frames[0].cells.find((c) => c.name === "p")!;
+    const pg = memory.frames[0].cells.find((c) => c.name === "pg")!;
+    const g = memory.globals.find((c) => c.name === "g")!;
+
+    expect(p).toMatchObject({ kind: "reference", unresolved: false, targetAddress: "0xFFF000B38" });
+    expect(p.targetId).toBe(a.id);
+    expect(pg.targetId).toBe(g.id);
+    expect(memory.links.map((l) => [l.fromName, l.targetAddress])).toEqual([
+      ["p", "0xFFF000B38"],
+      ["pg", "0x600"],
+    ]);
+  });
+
   it("normalizes stack frames, globals, heap entries, resolved links, and unresolved references", () => {
     const memory = normalizeMemory(point);
 

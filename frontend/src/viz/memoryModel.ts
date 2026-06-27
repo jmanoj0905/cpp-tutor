@@ -276,16 +276,27 @@ function resolveVectors(
 }
 
 export function normalizeMemory(point: ExecPoint): NormalizedMemory {
+  const rawGlobals = normalizeGlobals(point);
+  const rawFrames = normalizeFrames(point);
   const heapRaw = normalizeHeap(point.heap);
+
   const heapByAddress = new Map(heapRaw.flatMap((cell) => (cell.address ? [[cell.address, cell]] : [])));
 
+  // Pointers commonly target stack/global variables (e.g. `int* p = &a`), not
+  // only the heap. Resolve references against every decoded cell that owns an
+  // address so those pointers draw connector lines too.
+  const addressMap = new Map<string, NormalizedCell>();
+  for (const cell of flattenCells([...rawGlobals, ...rawFrames.flatMap((f) => f.cells), ...heapRaw])) {
+    if (cell.address && !addressMap.has(cell.address)) addressMap.set(cell.address, cell);
+  }
+
   const consumed = new Set<string>();
-  const globals = resolveVectors(resolveReferences(normalizeGlobals(point), heapByAddress), heapByAddress, consumed);
-  const frames = normalizeFrames(point).map((frame) => ({
+  const globals = resolveVectors(resolveReferences(rawGlobals, addressMap), heapByAddress, consumed);
+  const frames = rawFrames.map((frame) => ({
     ...frame,
-    cells: resolveVectors(resolveReferences(frame.cells, heapByAddress), heapByAddress, consumed),
+    cells: resolveVectors(resolveReferences(frame.cells, addressMap), heapByAddress, consumed),
   }));
-  const heap = resolveVectors(resolveReferences(heapRaw, heapByAddress), heapByAddress, consumed)
+  const heap = resolveVectors(resolveReferences(heapRaw, addressMap), heapByAddress, consumed)
     .filter((cell) => !(cell.address && consumed.has(cell.address)));
 
   const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
