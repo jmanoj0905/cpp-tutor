@@ -3,15 +3,16 @@ import type { NormalizedCell } from "./memoryModel";
 
 const COLLAPSE_AT = 8;
 
-export function MemoryCell({ cell }: { cell: NormalizedCell }) {
+export function MemoryCell({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
+  const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
   return (
-    <div className={`cell cell-${cell.kind}`} data-cell-id={cell.id}>
+    <div className={`cell cell-${cell.kind}${hot}`} data-cell-id={cell.id}>
       <div className="cell-head">
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "vector" && cell.kind !== "array" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} />
       </div>
-      {hasChildren(cell) && <Children cell={cell} />}
+      {hasChildren(cell) && <Children cell={cell} highlightedIds={highlightedIds} />}
     </div>
   );
 }
@@ -35,7 +36,7 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell }: { cell: NormalizedCell }) {
+function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
@@ -43,7 +44,7 @@ function Children({ cell }: { cell: NormalizedCell }) {
   const grid = cell.kind === "array" || cell.kind === "vector";
   return (
     <div className={`cell-children ${grid ? "grid" : ""}`}>
-      {shown.map((child) => <MemoryCell key={child.id} cell={child} />)}
+      {shown.map((child) => <MemoryCell key={child.id} cell={child} highlightedIds={highlightedIds} />)}
       {hidden > 0 && (
         <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
       )}

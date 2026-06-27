@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, fireEvent } from "@testing-library/react";
 import { useRef, useEffect, useState } from "react";
+import type { RefObject } from "react";
 import { Connectors } from "../src/viz/Connectors";
 import type { MemoryLink } from "../src/viz/memoryModel";
 
@@ -24,7 +25,7 @@ function Harness({ links }: { links: MemoryLink[] }) {
     <div ref={ref} style={{ position: "relative" }}>
       <span data-port-id="from" />
       <span data-cell-id="to" />
-      {ready && <Connectors containerRef={ref} links={links} stepKey={0} />}
+      {ready && <Connectors containerRef={ref} links={links} stepKey={0} selected={null} onSelect={() => {}} />}
     </div>
   );
 }
@@ -43,5 +44,26 @@ describe("Connectors", () => {
     const links: MemoryLink[] = [{ fromId: "nope", fromName: "x", toId: "gone", targetAddress: "0x9" }];
     const { container } = render(<Harness links={links} />);
     expect(container.querySelectorAll("path.connector").length).toBe(0);
+  });
+
+  it("calls onSelect with the link when a connector is clicked", () => {
+    const onSelect = vi.fn();
+    const containerRef = { current: document.createElement("div") } as RefObject<HTMLDivElement>;
+    // a port + a target so measure() produces one path
+    const port = document.createElement("div");
+    port.setAttribute("data-port-id", "from-1");
+    const target = document.createElement("div");
+    target.setAttribute("data-cell-id", "to-1");
+    containerRef.current.append(port, target);
+    document.body.append(containerRef.current);
+
+    const links = [{ fromId: "from-1", fromName: "p", toId: "to-1", targetAddress: "0x1" }];
+    const { container } = render(
+      <Connectors containerRef={containerRef} links={links} stepKey={1} selected={null} onSelect={onSelect} />,
+    );
+    const hit = container.querySelector(".connector-hit") as SVGPathElement;
+    expect(hit).not.toBeNull();
+    fireEvent.click(hit);
+    expect(onSelect).toHaveBeenCalledWith({ fromId: "from-1", toId: "to-1" });
   });
 });
