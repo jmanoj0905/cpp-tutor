@@ -146,14 +146,28 @@ export function decodeMemoryValue(
       const children = memberEntries.map(([memberName, memberValue]) =>
         decodeMemoryValue(memberValue, memberName, source, childPrefix(idPrefix, name)),
       );
-      return {
-        ...base,
-        kind: "struct",
-        address,
-        type,
-        children,
-        displayValue: type,
-      };
+
+      const ptrs = collectPointerMembers(children);
+      if (isVectorType(type) && ptrs.has("_M_start")) {
+        const startAddress = ptrs.get("_M_start");
+        const finishAddress = ptrs.get("_M_finish");
+        return {
+          ...base, kind: "vector", address, type,
+          elementType: templateArg(type),
+          startAddress, finishAddress,
+          targetAddress: startAddress,
+          displayValue: `vector<${templateArg(type)}>`,
+        };
+      }
+      if (isStringType(type) && ptrs.has("_M_p")) {
+        return {
+          ...base, kind: "string", address, type,
+          startAddress: ptrs.get("_M_p"),
+          displayValue: '""',
+        };
+      }
+
+      return { ...base, kind: "struct", address, type, children, displayValue: type };
     }
 
     return {
@@ -188,24 +202,97 @@ function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
   return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
 }
 
+function isVectorType(type: string): boolean {
+  return /\bvector\s*</.test(type);
+}
+
+function isStringType(type: string): boolean {
+  return /basic_string|\bstring\b/.test(type);
+}
+
+function templateArg(type: string): string {
+  const m = type.match(/<\s*([^,>]+)/);
+  return m ? m[1].trim() : "";
+}
+
+function collectPointerMembers(children: NormalizedCell[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const c of children) {
+    if (c.kind === "reference" && c.targetAddress && !out.has(c.name)) out.set(c.name, c.targetAddress);
+    if (c.children) for (const [k, v] of collectPointerMembers(c.children)) if (!out.has(k)) out.set(k, v);
+  }
+  return out;
+}
+
+function parseAddr(addr?: string | null): number | null {
+  if (!addr) return null;
+  const n = Number.parseInt(addr, 16);
+  return Number.isNaN(n) ? null : n;
+}
+
+function computeVectorSize(start: string | undefined, finish: string | undefined, buffer: NormalizedCell): number {
+  const elems = buffer.children ?? [];
+  const s = parseAddr(start), f = parseAddr(finish);
+  if (s !== null && f !== null && elems.length >= 2) {
+    const e0 = parseAddr(elems[0].address), e1 = parseAddr(elems[1].address);
+    if (e0 !== null && e1 !== null && e1 > e0) {
+      const size = Math.round((f - s) / (e1 - e0));
+      if (size >= 0 && size <= elems.length) return size;
+    }
+  }
+  if (s !== null && f !== null) {
+    if (f === s) return 0;
+  }
+  return elems.length;
+}
+
+function resolveVectors(
+  cells: NormalizedCell[],
+  heapByAddress: Map<string, NormalizedCell>,
+  consumed: Set<string>,
+): NormalizedCell[] {
+  return cells.map((cell) => {
+    const children = cell.children ? resolveVectors(cell.children, heapByAddress, consumed) : cell.children;
+    if (cell.kind === "vector" && cell.startAddress) {
+      const buffer = heapByAddress.get(cell.startAddress);
+      if (buffer) {
+        consumed.add(cell.startAddress);
+        const size = computeVectorSize(cell.startAddress, cell.finishAddress, buffer);
+        const elems = (buffer.children ?? []).slice(0, size).map((c, i) => ({ ...c, name: `[${i}]` }));
+        return { ...cell, children: elems, length: size, displayValue: `vector<${cell.elementType ?? ""}> · ${size}` };
+      }
+      return { ...cell, children, length: 0, displayValue: `vector<${cell.elementType ?? ""}> · 0` };
+    }
+    if (cell.kind === "string" && cell.startAddress) {
+      const buffer = heapByAddress.get(cell.startAddress);
+      if (buffer) {
+        consumed.add(cell.startAddress);
+        const text = (buffer.children ?? []).map((c) => c.displayValue).filter((s) => s !== "0").join("");
+        return { ...cell, children: undefined, displayValue: `"${text}"` };
+      }
+    }
+    return { ...cell, children };
+  });
+}
+
 export function normalizeMemory(point: ExecPoint): NormalizedMemory {
   const heapRaw = normalizeHeap(point.heap);
   const heapByAddress = new Map(heapRaw.flatMap((cell) => (cell.address ? [[cell.address, cell]] : [])));
 
-  const globals = resolveReferences(normalizeGlobals(point), heapByAddress);
+  const consumed = new Set<string>();
+  const globals = resolveVectors(resolveReferences(normalizeGlobals(point), heapByAddress), heapByAddress, consumed);
   const frames = normalizeFrames(point).map((frame) => ({
     ...frame,
-    cells: resolveReferences(frame.cells, heapByAddress),
+    cells: resolveVectors(resolveReferences(frame.cells, heapByAddress), heapByAddress, consumed),
   }));
-  const heap = resolveReferences(heapRaw, heapByAddress);
+  const heap = resolveVectors(resolveReferences(heapRaw, heapByAddress), heapByAddress, consumed)
+    .filter((cell) => !(cell.address && consumed.has(cell.address)));
 
   const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
     .filter((cell) => cell.kind === "reference" && cell.targetId && cell.targetAddress)
     .map((cell) => ({
-      fromId: cell.id,
-      fromName: cell.name,
-      toId: cell.targetId as string,
-      targetAddress: cell.targetAddress as string,
+      fromId: cell.id, fromName: cell.name,
+      toId: cell.targetId as string, targetAddress: cell.targetAddress as string,
     }));
 
   return { globals, frames, heap, links };

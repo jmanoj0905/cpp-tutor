@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { decodeMemoryValue, normalizeMemory } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
+import vectorTrace from "./fixtures/vector-trace.json";
 
 const point: ExecPoint = {
   line: 6,
@@ -101,6 +102,38 @@ describe("memoryModel", () => {
     const targets = memory.links.map((l) => [l.fromName, l.targetAddress]);
     expect(targets).toContainEqual(["ptr", "0xA0"]);
     expect(targets).toContainEqual(["next", "0xB0"]);
+  });
+
+  it("decodes std::vector with size from pointer arithmetic and inlined elements", () => {
+    const steps = (vectorTrace as any).trace as ExecPoint[];
+    const memory = normalizeMemory(steps[steps.length - 1]);
+    const v = memory.frames[0].cells.find((c) => c.name === "v")!;
+    expect(v.kind).toBe("vector");
+    expect(v.length).toBe(3);
+    expect(v.elementType).toBe("int");
+    expect(v.children?.map((c) => c.displayValue)).toEqual(["10", "20", "30"]);
+    expect(memory.heap.find((c) => c.address === "0x5000")).toBeUndefined();
+  });
+
+  it("computes vector size from buffer length when arithmetic is unavailable", () => {
+    const point: ExecPoint = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {},
+      heap: { "0x9000": ["C_ARRAY", "0x9000", ["C_DATA", "0x9000", "int", 7]] },
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["v"],
+        encoded_locals: {
+          v: ["C_STRUCT", "0x10", "std::vector<int>",
+            ["_M_start",  ["C_DATA", "0x10", "pointer", ["REF", "0x9000"]]],
+            ["_M_finish", ["C_DATA", "0x18", "pointer", ["REF", "0x9004"]]]],
+        },
+      }] as any,
+    };
+    const v = normalizeMemory(point).frames[0].cells.find((c) => c.name === "v")!;
+    expect(v.kind).toBe("vector");
+    expect(v.length).toBe(1);
+    expect(v.children?.map((c) => c.displayValue)).toEqual(["7"]);
   });
 
   it("normalizes stack frames, globals, heap entries, resolved links, and unresolved references", () => {
