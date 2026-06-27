@@ -83,7 +83,10 @@ export default function App() {
       if (isCompileError(res)) { setErr(res.message); setTrace(null); return; }
       setTrace(res);
       setStale(false);
-    } catch (e) { setErr((e as Error).message); }
+    } catch (e) {
+      setErr((e as Error).message);
+      setTrace(null);
+    }
   }
 
   return (

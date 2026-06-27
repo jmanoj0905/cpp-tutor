@@ -47,6 +47,7 @@ function execGutter(onToggle: (line: number) => void) {
       if (ln === exec.nextLine) return nextMarker;
       return null;
     },
+    lineMarkerChange: (u) => u.startState.field(panelField) !== u.state.field(panelField),
     domEventHandlers: {
       mousedown(view, line) {
         const ln = view.state.doc.lineAt(line.from).number;
