@@ -324,6 +324,16 @@ p {
   margin-left: auto;
 }
 
+.timeline { display: flex; align-items: center; gap: 12px; width: 100%; }
+.timeline label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.track { position: relative; flex: 1; }
+.track input[type="range"] { width: 100%; display: block; }
+.ticks { position: absolute; inset: 0; pointer-events: none; }
+.tick {
+  position: absolute; top: 50%; width: 3px; height: 14px;
+  transform: translate(-50%, -50%); background: var(--red); border-radius: 2px;
+}
+
 /* ── Memory view ─────────────────────────────────────────────── */
 .memory {
   position: relative;
