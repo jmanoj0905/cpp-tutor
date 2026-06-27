@@ -184,17 +184,22 @@ export function decodeMemoryValue(
   };
 }
 
+function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
+  return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
+}
+
 export function normalizeMemory(point: ExecPoint): NormalizedMemory {
-  const heap = normalizeHeap(point.heap);
-  const heapByAddress = new Map(heap.flatMap((cell) => (cell.address ? [[cell.address, cell]] : [])));
+  const heapRaw = normalizeHeap(point.heap);
+  const heapByAddress = new Map(heapRaw.flatMap((cell) => (cell.address ? [[cell.address, cell]] : [])));
 
   const globals = resolveReferences(normalizeGlobals(point), heapByAddress);
   const frames = normalizeFrames(point).map((frame) => ({
     ...frame,
     cells: resolveReferences(frame.cells, heapByAddress),
   }));
+  const heap = resolveReferences(heapRaw, heapByAddress);
 
-  const links = [...globals, ...frames.flatMap((frame) => frame.cells)]
+  const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
     .filter((cell) => cell.kind === "reference" && cell.targetId && cell.targetAddress)
     .map((cell) => ({
       fromId: cell.id,
@@ -239,10 +244,11 @@ function normalizeHeap(heap: Record<string, unknown>): NormalizedCell[] {
 
 function resolveReferences(cells: NormalizedCell[], heapByAddress: Map<string, NormalizedCell>): NormalizedCell[] {
   return cells.map((cell) => {
-    if (cell.kind !== "reference" || !cell.targetAddress) return cell;
+    const children = cell.children ? resolveReferences(cell.children, heapByAddress) : cell.children;
+    if (cell.kind !== "reference" || !cell.targetAddress) return { ...cell, children };
     const target = heapByAddress.get(cell.targetAddress);
-    if (!target) return { ...cell, unresolved: true };
-    return { ...cell, targetId: target.id, unresolved: false };
+    if (!target) return { ...cell, children, unresolved: true };
+    return { ...cell, children, targetId: target.id, unresolved: false };
   });
 }
 
