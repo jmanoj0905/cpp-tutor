@@ -79,6 +79,30 @@ describe("memoryModel", () => {
     expect(cell.children?.map((c) => [c.name, c.displayValue])).toEqual([["x", "3"], ["y", "4"]]);
   });
 
+  it("derives links from nested struct members and heap-to-heap", () => {
+    const nestedPoint: ExecPoint = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {},
+      heap: {
+        "0xA0": ["C_STRUCT", "0xA0", "Node",
+          ["next", ["C_DATA", "0xA8", "Node *", ["REF", "0xB0"]]]],
+        "0xB0": ["C_DATA", "0xB0", "int", 9],
+      },
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["root"],
+        encoded_locals: {
+          root: ["C_STRUCT", "0x10", "Wrap",
+            ["ptr", ["C_DATA", "0x10", "Node *", ["REF", "0xA0"]]]],
+        },
+      }] as any,
+    };
+    const memory = normalizeMemory(nestedPoint);
+    const targets = memory.links.map((l) => [l.fromName, l.targetAddress]);
+    expect(targets).toContainEqual(["ptr", "0xA0"]);
+    expect(targets).toContainEqual(["next", "0xB0"]);
+  });
+
   it("normalizes stack frames, globals, heap entries, resolved links, and unresolved references", () => {
     const memory = normalizeMemory(point);
 
