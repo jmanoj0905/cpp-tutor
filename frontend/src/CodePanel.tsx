@@ -73,8 +73,8 @@ export function CodePanel({
       doc: value,
       extensions: [
         panelField,
-        lineNumbers(),
         execGutter((ln) => onToggleRef.current(ln)),
+        lineNumbers(),
         cpp(),
         EditorView.decorations.compute([panelField, "doc"], (st) => {
           const { exec: ex, breakpoints: bps } = st.field(panelField);
