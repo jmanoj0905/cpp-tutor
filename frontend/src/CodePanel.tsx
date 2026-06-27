@@ -17,7 +17,13 @@ const panelField = StateField.define<PanelState>({
 });
 
 class ArrowMarker extends GutterMarker {
-  constructor(private glyph: string, private cls: string) { super(); }
+  glyph: string;
+  cls: string;
+  constructor(glyph: string, cls: string) {
+    super();
+    this.glyph = glyph;
+    this.cls = cls;
+  }
   toDOM() {
     const span = document.createElement("span");
     span.textContent = this.glyph;
