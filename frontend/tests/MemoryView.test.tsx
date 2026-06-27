@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryCell } from "../src/viz/MemoryCell";
 import type { NormalizedCell } from "../src/viz/memoryModel";
+import { MemoryView } from "../src/viz/MemoryView";
+import type { ExecPoint } from "../src/types/trace";
 
 function cell(p: Partial<NormalizedCell>): NormalizedCell {
   return { id: "id", name: "n", source: "stack", kind: "scalar", address: null, type: null, displayValue: "", rawValue: null, ...p };
@@ -20,5 +22,20 @@ describe("MemoryCell", () => {
     expect(screen.getByText("vector<int> · 2")).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();
     expect(screen.getByText("20")).toBeDefined();
+  });
+
+  it("renders globals, stack frames by name, and heap sections", () => {
+    const point: ExecPoint = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: ["g"], globals: { g: ["C_DATA", "0x1", "int", 5] },
+      heap: { "0x100": ["C_DATA", "0x100", "int", 7] },
+      stack_to_render: [{ unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["x"], encoded_locals: { x: ["C_DATA", "0x10", "int", 41] } }] as any,
+    };
+    render(<MemoryView point={point} />);
+    expect(screen.getByText("Globals")).toBeDefined();
+    expect(screen.getByText("main")).toBeDefined();
+    expect(screen.getByText("Heap")).toBeDefined();
+    expect(screen.getByText("41")).toBeDefined();
   });
 });
