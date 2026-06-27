@@ -105,14 +105,21 @@ describe("memoryModel", () => {
   });
 
   it("decodes std::vector with size from pointer arithmetic and inlined elements", () => {
+    // Real trace captured from the patched Valgrind backend. The last step
+    // where `v` is still in scope holds all three pushed elements.
     const steps = (vectorTrace as any).trace as ExecPoint[];
-    const memory = normalizeMemory(steps[steps.length - 1]);
+    const step = [...steps].reverse().find(
+      (s) => (s.stack_to_render as any)?.[0]?.encoded_locals?.v,
+    )!;
+    const memory = normalizeMemory(step);
     const v = memory.frames[0].cells.find((c) => c.name === "v")!;
     expect(v.kind).toBe("vector");
     expect(v.length).toBe(3);
     expect(v.elementType).toBe("int");
     expect(v.children?.map((c) => c.displayValue)).toEqual(["10", "20", "30"]);
-    expect(memory.heap.find((c) => c.address === "0x5000")).toBeUndefined();
+    // The heap element buffer was inlined into the vector and removed from the
+    // standalone heap section.
+    expect(memory.heap).toHaveLength(0);
   });
 
   it("computes vector size from buffer length when arithmetic is unavailable", () => {
