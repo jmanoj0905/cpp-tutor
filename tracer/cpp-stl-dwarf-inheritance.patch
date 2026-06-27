@@ -1,0 +1,74 @@
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/readdwarf3.c b/valgrind-3.11.0/coregrind/m_debuginfo/readdwarf3.c
+index cfc9e59..d9c973d 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/readdwarf3.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/readdwarf3.c
+@@ -3454,7 +3454,12 @@ static void parse_type_DIE ( /*MOD*/XArray* /* of TyEnt */ tyents,
+       }
+    }
+ 
+-   if (dtag == DW_TAG_member) {
++   if (dtag == DW_TAG_member || dtag == DW_TAG_inheritance) {
++      /* pgbovine: Treat a C++ base class (DW_TAG_inheritance) as an
++         anonymous member subobject.  It carries the same DW_AT_type and
++         DW_AT_data_member_location attributes as a real member, so the
++         struct walker can descend into base-class fields (e.g. the data
++         of std::vector lives entirely in its _Vector_base base). */
+       /* Acquire member entries for both DW_TAG_structure_type and
+          DW_TAG_union_type.  They differ minorly, in that struct
+          members must have a DW_AT_data_member_location expression
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+index 977ad3e..02c2bc4 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+@@ -787,10 +787,38 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+            TyEnt* field = ML_(TyEnts__index_by_cuOff)(tyents, NULL, fieldR);
+            vg_assert(field && field->tag == Te_Field);
+ 
+-           // TODO: handle unions later, let's just focus on structs for now
+-           vg_assert(field->Te.Field.isStruct);
+-           // TODO: how should we handle nLoc >= 0?
+-           vg_assert(field->Te.Field.nLoc == -1);
++           // pgbovine: work out the field's byte offset from the start of
++           // the containing object. There are two encodings:
++           //   nLoc == -1: a constant offset is stored directly (DWARF4+).
++           //   nLoc  >  0: a DWARF location expression (common with
++           //               -gdwarf-2, where member/base offsets are emitted
++           //               as the 'DW_OP_plus_uconst <off>' block). We decode
++           //               that trivial form here; anything else (unions, or
++           //               offsets needing real expression evaluation) we
++           //               cannot place statically, so we skip the field
++           //               rather than aborting.
++           Word field_offset;
++           if (!field->Te.Field.isStruct) {
++             continue; // union member: skip for now
++           } else if (field->Te.Field.nLoc == -1) {
++             field_offset = field->Te.Field.pos.offset;
++           } else if (field->Te.Field.nLoc > 0
++                      && field->Te.Field.pos.loc != NULL
++                      && field->Te.Field.pos.loc[0] == DW_OP_plus_uconst) {
++             // decode the ULEB128 operand that follows the opcode byte
++             UChar* p = field->Te.Field.pos.loc + 1;
++             Word   end = field->Te.Field.nLoc;
++             ULong  off = 0; Int shift = 0; Word bi = 1;
++             while (bi < end) {
++               UChar b = *p++; bi++;
++               off |= ((ULong)(b & 0x7f)) << shift;
++               shift += 7;
++               if ((b & 0x80) == 0) break;
++             }
++             field_offset = (Word)off;
++           } else {
++             continue; // can't statically place this field; skip it
++           }
+ 
+            if (first_elt) {
+              first_elt = False;
+@@ -798,7 +826,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+              VG_(fprintf)(trace_fp, ",\n  ");
+            }
+ 
+-           Addr field_base_addr = data_addr + field->Te.Field.pos.offset;
++           Addr field_base_addr = data_addr + field_offset;
+            //VG_(printf)("\nFIELD %s offset: %d\n  ",
+            //            field->Te.Field.name,
+            //            (int)field->Te.Field.pos.offset);
