@@ -1,0 +1,29 @@
+{
+  "code": "#include <vector>\nint main(){std::vector<int> v;v.push_back(10);v.push_back(20);v.push_back(30);return 0;}",
+  "trace": [
+    {
+      "line": 6, "event": "step_line", "func_name": "main", "stdout": "",
+      "ordered_globals": [], "globals": {},
+      "heap": {
+        "0x5000": ["C_ARRAY", "0x5000",
+          ["C_DATA", "0x5000", "int", 10],
+          ["C_DATA", "0x5004", "int", 20],
+          ["C_DATA", "0x5008", "int", 30],
+          ["C_DATA", "0x500c", "int", 0]]
+      },
+      "stack_to_render": [{
+        "unique_hash": "main_0x1", "frame_id": "0x1", "func_name": "main",
+        "ordered_varnames": ["v"],
+        "encoded_locals": {
+          "v": ["C_STRUCT", "0x100", "std::vector<int>",
+            ["_M_impl", ["C_STRUCT", "0x100", "std::_Vector_base<int>::_Vector_impl",
+              ["_M_start",          ["C_DATA", "0x100", "pointer", ["REF", "0x5000"]]],
+              ["_M_finish",         ["C_DATA", "0x108", "pointer", ["REF", "0x500c"]]],
+              ["_M_end_of_storage", ["C_DATA", "0x110", "pointer", ["REF", "0x5010"]]]
+            ]]
+          ]
+        }
+      }]
+    }
+  ]
+}
