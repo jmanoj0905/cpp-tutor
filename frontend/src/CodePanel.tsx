@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { EditorState, StateEffect, StateField } from "@codemirror/state";
+import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
 import { EditorView, lineNumbers, gutter, GutterMarker, Decoration } from "@codemirror/view";
 import { cpp } from "@codemirror/lang-cpp";
 
@@ -59,18 +59,20 @@ function execGutter(onToggle: (line: number) => void) {
 }
 
 export function CodePanel({
-  value, onChange, exec, breakpoints, onToggleBreakpoint,
+  value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly,
 }: {
   value: string;
   onChange: (v: string) => void;
   exec: ExecState | null;
   breakpoints: Set<number>;
   onToggleBreakpoint: (line: number) => void;
+  readOnly: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onToggleRef = useRef(onToggleBreakpoint);
+  const readOnlyComp = useRef(new Compartment());
   onChangeRef.current = onChange;
   onToggleRef.current = onToggleBreakpoint;
 
@@ -80,6 +82,10 @@ export function CodePanel({
       doc: value,
       extensions: [
         panelField,
+        readOnlyComp.current.of([
+          EditorView.editable.of(!readOnly),
+          EditorState.readOnly.of(readOnly),
+        ]),
         execGutter((ln) => onToggleRef.current(ln)),
         lineNumbers(),
         cpp(),
@@ -108,6 +114,15 @@ export function CodePanel({
   useEffect(() => {
     view.current?.dispatch({ effects: setPanel.of({ exec, breakpoints }) });
   }, [exec, breakpoints]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: readOnlyComp.current.reconfigure([
+        EditorView.editable.of(!readOnly),
+        EditorState.readOnly.of(readOnly),
+      ]),
+    });
+  }, [readOnly]);
 
   return <div className="editor codepanel" ref={host} />;
 }
