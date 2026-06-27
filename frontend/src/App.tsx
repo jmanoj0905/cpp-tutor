@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Editor } from "./Editor";
 import { CodeView } from "./viz/CodeView";
-import { StackView } from "./viz/StackView";
+import { MemoryView } from "./viz/MemoryView";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { fetchTrace } from "./api/client";
@@ -26,7 +26,7 @@ function Visualized({ trace }: { trace: Trace }) {
       </div>
       <div className="right">
         <pre className="stdout">{player.point.stdout}</pre>
-        <StackView point={player.point} />
+        <MemoryView point={player.point} />
       </div>
     </div>
   );
