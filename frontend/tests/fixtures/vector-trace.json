@@ -1,0 +1,732 @@
+{
+ "code": "#include <vector>\nint main() {\n  int a = 7;\n  int* p = &a;\n  std::vector<int> v;\n  v.push_back(10);\n  v.push_back(20);\n  v.push_back(30);\n  return 0;\n}",
+ "trace": [
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {},
+   "line": 2,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {},
+     "frame_id": "0xFFF000B60",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 2,
+     "ordered_varnames": [],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B60"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {},
+   "line": 3,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {},
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 2,
+     "ordered_varnames": [],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {},
+   "line": 4,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "<UNINITIALIZED>"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 3,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {},
+   "line": 5,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "0xFFF000B38"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "<UNINITIALIZED>"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 4,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {},
+   "line": 6,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "0xFFF000B38"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "0x0"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "0x0"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "0x0"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 6,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {
+    "0x4B92040": [
+     "C_ARRAY",
+     "0x4B92040",
+     [
+      "C_DATA",
+      "0x4B92040",
+      "int",
+      10
+     ]
+    ]
+   },
+   "line": 7,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "0xFFF000B38"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "0x4B92040"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "0x4B92044"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "0x4B92044"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 7,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {
+    "0x4B92090": [
+     "C_ARRAY",
+     "0x4B92090",
+     [
+      "C_DATA",
+      "0x4B92090",
+      "int",
+      10
+     ],
+     [
+      "C_DATA",
+      "0x4B92094",
+      "int",
+      20
+     ]
+    ]
+   },
+   "line": 8,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "0xFFF000B38"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "0x4B92090"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "0x4B92098"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "0x4B92098"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 8,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  },
+  {
+   "event": "step_line",
+   "func_name": "main",
+   "globals": {},
+   "heap": {
+    "0x4B920E0": [
+     "C_ARRAY",
+     "0x4B920E0",
+     [
+      "C_DATA",
+      "0x4B920E0",
+      "int",
+      10
+     ],
+     [
+      "C_DATA",
+      "0x4B920E4",
+      "int",
+      20
+     ],
+     [
+      "C_DATA",
+      "0x4B920E8",
+      "int",
+      30
+     ],
+     [
+      "C_DATA",
+      "0x4B920EC",
+      "int",
+      "<UNINITIALIZED>"
+     ]
+    ]
+   },
+   "line": 9,
+   "ordered_globals": [],
+   "stack_to_render": [
+    {
+     "encoded_locals": {
+      "a": [
+       "C_DATA",
+       "0xFFF000B38",
+       "int",
+       7
+      ],
+      "p": [
+       "C_DATA",
+       "0xFFF000B40",
+       "pointer",
+       "0xFFF000B38"
+      ],
+      "v": [
+       "C_STRUCT",
+       "0xFFF000B48",
+       "vector<int, std::allocator<int> >",
+       [
+        "<anon_field>",
+        [
+         "C_STRUCT",
+         "0xFFF000B48",
+         "_Vector_base<int, std::allocator<int> >",
+         [
+          "_M_impl",
+          [
+           "C_STRUCT",
+           "0xFFF000B48",
+           "_Vector_impl",
+           [
+            "_M_start",
+            [
+             "C_DATA",
+             "0xFFF000B48",
+             "pointer",
+             "0x4B920E0"
+            ]
+           ],
+           [
+            "<anon_field>",
+            [
+             "C_STRUCT",
+             "0xFFF000B48",
+             "allocator<int>",
+             [
+              "<anon_field>",
+              [
+               "C_STRUCT",
+               "0xFFF000B48",
+               "new_allocator<int>"
+              ]
+             ]
+            ]
+           ],
+           [
+            "_M_finish",
+            [
+             "C_DATA",
+             "0xFFF000B50",
+             "pointer",
+             "0x4B920EC"
+            ]
+           ],
+           [
+            "_M_end_of_storage",
+            [
+             "C_DATA",
+             "0xFFF000B58",
+             "pointer",
+             "0x4B920F0"
+            ]
+           ]
+          ]
+         ]
+        ]
+       ]
+      ]
+     },
+     "frame_id": "0xFFF000B10",
+     "func_name": "main",
+     "is_highlighted": true,
+     "is_parent": false,
+     "is_zombie": false,
+     "line": 9,
+     "ordered_varnames": [
+      "a",
+      "p",
+      "v"
+     ],
+     "parent_frame_id_list": [],
+     "unique_hash": "main_0xFFF000B10"
+    }
+   ],
+   "stdout": ""
+  }
+ ]
+}

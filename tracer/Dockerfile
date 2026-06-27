@@ -3,7 +3,7 @@ FROM ubuntu:14.04
 # 14.04 is EOL — repoint apt at the archive so apt-get update works.
 RUN sed -i 's|http://archive.ubuntu.com|http://old-releases.ubuntu.com|g; s|http://security.ubuntu.com|http://old-releases.ubuntu.com|g' /etc/apt/sources.list \
  && apt-get update && apt-get install -y \
-    build-essential autotools-dev automake libc6-dbg python \
+    build-essential autotools-dev automake libc6-dbg python patch \
  && rm -rf /var/lib/apt/lists/*
 
 COPY opt-cpp-backend /opt/tracer
@@ -22,6 +22,17 @@ RUN perl -i -0pe \
 #         to /tmp/stdout.txt and per-step stdout is captured into the OPT trace.
 RUN perl -i -pe 's{\Qreturn VG_(do_syscall2)(__NR_dup2, oldfd, newfd);\E}{#if defined(VGP_arm64_linux)\n   return VG_(do_syscall3)(__NR_dup3, oldfd, newfd, 0);\n#else\n   return VG_(do_syscall2)(__NR_dup2, oldfd, newfd);\n#endif}' \
     /opt/tracer/valgrind-3.11.0/coregrind/m_libcfile.c
+# Fix 4: expand C++ STL containers (std::vector, std::string, ...). Stock
+#        Valgrind's DWARF reader ignores DW_TAG_inheritance, and its struct
+#        walker only accepts constant member offsets. Class types whose data
+#        lives in base classes (std::vector -> _Vector_base -> _Vector_impl)
+#        therefore rendered as empty structs. This patch (a) reads base-class
+#        subobjects as anonymous members and (b) decodes the DW_OP_plus_uconst
+#        member-offset expression that gcc emits under -gdwarf-2. Once the
+#        members are visible, Valgrind's existing pointer-follows-heap logic
+#        emits the element buffer automatically.
+COPY cpp-stl-dwarf-inheritance.patch /tmp/cpp-stl-dwarf-inheritance.patch
+RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-dwarf-inheritance.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
