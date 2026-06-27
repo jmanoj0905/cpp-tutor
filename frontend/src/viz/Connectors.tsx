@@ -2,7 +2,8 @@ import { useLayoutEffect, useState, type RefObject } from "react";
 import type { MemoryLink } from "./memoryModel";
 import { sourcePoint, targetPoint, bezierPath, type Rect } from "./connectorGeometry";
 
-interface Drawn { id: string; d: string }
+interface Drawn { id: string; d: string; fromId: string; toId: string }
+export interface ConnectorSelection { fromId: string; toId: string }
 
 function cssEscape(value: string): string {
   return typeof CSS !== "undefined" && typeof CSS.escape === "function"
@@ -16,11 +17,13 @@ function relRect(el: Element, origin: DOMRect): Rect {
 }
 
 export function Connectors({
-  containerRef, links, stepKey,
+  containerRef, links, stepKey, selected, onSelect,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   links: MemoryLink[];
   stepKey: number;
+  selected: ConnectorSelection | null;
+  onSelect: (link: ConnectorSelection | null) => void;
 }) {
   const [paths, setPaths] = useState<Drawn[]>([]);
 
@@ -36,7 +39,7 @@ export function Connectors({
         const target = container.querySelector(`[data-cell-id="${cssEscape(link.toId)}"]`);
         if (!port || !target) continue;
         const d = bezierPath(sourcePoint(relRect(port, origin)), targetPoint(relRect(target, origin)));
-        drawn.push({ id: `${link.fromId}->${link.toId}`, d });
+        drawn.push({ id: `${link.fromId}->${link.toId}`, d, fromId: link.fromId, toId: link.toId });
       }
       setPaths(drawn);
     };
@@ -54,15 +57,25 @@ export function Connectors({
   }, [containerRef, links, stepKey]);
 
   return (
-    <svg className="connectors" aria-hidden>
+    <svg className="connectors">
       <defs>
         <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
           <path d="M 0 0 L 10 5 L 0 10 z" />
         </marker>
       </defs>
-      {paths.map((p) => (
-        <path key={p.id} className="connector resolved" d={p.d} markerEnd="url(#arrow)" />
-      ))}
+      {paths.map((p) => {
+        const isSel = !!selected && selected.fromId === p.fromId && selected.toId === p.toId;
+        return (
+          <g key={p.id}>
+            <path
+              className="connector-hit"
+              d={p.d}
+              onClick={(e) => { e.stopPropagation(); onSelect({ fromId: p.fromId, toId: p.toId }); }}
+            />
+            <path className={`connector resolved${isSel ? " selected" : ""}`} d={p.d} markerEnd="url(#arrow)" />
+          </g>
+        );
+      })}
     </svg>
   );
 }
