@@ -40,6 +40,7 @@ function Workspace({
             exec={exec}
             breakpoints={breakpoints}
             onToggleBreakpoint={onToggleBreakpoint}
+            readOnly={false}
           />
         </section>
         <section className="memory-col">
@@ -109,7 +110,7 @@ export default function App() {
         : (
           <main className="workspace">
             <section className="code-col">
-              <CodePanel value={code} onChange={onChange} exec={null} breakpoints={breakpoints} onToggleBreakpoint={toggleBreakpoint} />
+              <CodePanel value={code} onChange={onChange} exec={null} breakpoints={breakpoints} onToggleBreakpoint={toggleBreakpoint} readOnly={false} />
             </section>
             <section className="memory-col empty-hint"><p>Click Visualize Execution to trace your code.</p></section>
           </main>
