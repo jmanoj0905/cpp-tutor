@@ -113,7 +113,8 @@ describe("memoryModel", () => {
     )!;
     const memory = normalizeMemory(step);
     const v = memory.frames[0].cells.find((c) => c.name === "v")!;
-    expect(v.kind).toBe("vector");
+    expect(v.kind).toBe("container");
+    expect(v.containerKind).toBe("vector");
     expect(v.length).toBe(3);
     expect(v.elementType).toBe("int");
     expect(v.children?.map((c) => c.displayValue)).toEqual(["10", "20", "30"]);
@@ -138,7 +139,8 @@ describe("memoryModel", () => {
       }] as any,
     };
     const v = normalizeMemory(point).frames[0].cells.find((c) => c.name === "v")!;
-    expect(v.kind).toBe("vector");
+    expect(v.kind).toBe("container");
+    expect(v.containerKind).toBe("vector");
     expect(v.length).toBe(1);
     expect(v.children?.map((c) => c.displayValue)).toEqual(["7"]);
   });
