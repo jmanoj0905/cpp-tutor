@@ -1,11 +1,13 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { arrayDecoder, vectorDecoder, stringDecoder } from "./contiguous";
+import { arrayDecoder, dequeDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 
 // Order matters: more specific patterns first.
+// dequeDecoder before vectorDecoder (distinct type pattern, no overlap).
 // arrayDecoder before vectorDecoder (distinct internals, no overlap).
 // stringDecoder last (matches "string" / "basic_string" but not array/vector).
 export const registry: ContainerDecoder[] = [
+  dequeDecoder,
   arrayDecoder,
   vectorDecoder,
   stringDecoder,
