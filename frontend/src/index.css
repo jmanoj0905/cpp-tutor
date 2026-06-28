@@ -234,25 +234,14 @@ p {
 }
 .frame-cells { display: flex; flex-direction: column; padding: 4px 8px; }
 
-.cell {
-  border: none;
-  border-bottom: 1px solid rgba(26, 26, 26, 0.10);
-  border-radius: 0;
-  padding: 6px 2px;
-  background: transparent;
-  font-family: var(--mono);
-  font-size: 13px;
-}
-.cell:last-child { border-bottom: none; }
-
+/* ── Cells ──────────────────────────────────────────────────── */
+.cell { padding: 4px 2px; font-family: var(--mono); font-size: 12px; }
 .cell-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cell-name { color: var(--ink-soft); }
-.cell-type {
-  font-size: 11px; color: var(--ink-soft);
-  border: 1px solid rgba(26,26,26,0.2); border-radius: 6px; padding: 0 6px;
-}
+.cell-type { font-size: 10px; color: var(--ink-soft); border: var(--border-dotted); padding: 0 4px; }
 .cell-value { color: var(--ink); font-weight: 600; margin-left: auto; }
 .cell-value.summary { font-weight: 700; }
+.cell-note { color: var(--ink-soft); font-style: italic; font-weight: 400; }
 
 .cell-value.ref { position: relative; color: var(--blue); }
 .port {
@@ -260,36 +249,24 @@ p {
   border-radius: 50%; background: var(--blue); vertical-align: middle;
 }
 .cell-value.ref.unresolved { color: var(--red); }
-.cell-value.ref.unresolved .port {
-  background: transparent; border: 2px dashed var(--red);
-}
+.cell-value.ref.unresolved .port { background: transparent; border: 2px dashed var(--red); }
 
-.cell-children { margin-top: 8px; padding-left: 10px; border-left: var(--border-thin); }
-.cell-children.grid {
-  display: flex; flex-wrap: wrap; gap: 6px;
-  border-left: none; padding-left: 0;
-}
-.cell-children.grid .cell { padding: 4px 8px; }
+.cell-children { margin-top: 6px; padding-left: 8px; border-left: var(--border-dotted); }
+.cell-children.grid { display: flex; flex-wrap: wrap; gap: 4px; border-left: none; padding-left: 0; }
+.cell-children.grid .cell { border: var(--border-dotted); padding: 2px 6px; }
+.cell-children.kv { border-left: none; padding-left: 0; }
+.cell-children.kv .cell { border-bottom: var(--border-dotted); }
 
 .more-toggle {
-  font-family: var(--sans); font-size: 12px; color: var(--ink);
-  background: var(--yellow); border: var(--border-thin); border-radius: 8px;
-  padding: 2px 10px; cursor: pointer;
+  font-family: var(--sans); font-size: 11px; color: var(--ink);
+  background: var(--panel); border: var(--border-dotted); padding: 1px 8px; cursor: pointer;
 }
 
-/* connector overlay sits above cells but ignores pointer events except hit paths */
-.connectors {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; overflow: visible;
-}
-.connector { fill: none; stroke-width: 2; }
+/* connectors */
+.connectors { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.connector { fill: none; stroke-width: 1.5; }
 .connector.resolved { stroke: var(--blue); }
-.connector.selected { stroke-width: 4; }
+.connector.selected { stroke-width: 3; }
 .connector-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .connectors marker path { fill: var(--blue); }
-
-.cell.cell-highlight {
-  outline: 3px solid var(--yellow);
-  outline-offset: 1px;
-  box-shadow: 0 0 0 3px rgba(244, 194, 13, 0.35);
-}
+.cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }

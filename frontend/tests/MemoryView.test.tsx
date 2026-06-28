@@ -39,6 +39,25 @@ describe("MemoryCell", () => {
     expect(screen.getByText("41")).toBeDefined();
   });
 
+  it("renders a container cell with its summary and elements", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {},
+      heap: { "0x9000": ["C_ARRAY", "0x9000",
+        ["C_DATA", "0x9000", "int", 7], ["C_DATA", "0x9004", "int", 8]] },
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["v"],
+        encoded_locals: { v: ["C_STRUCT", "0x10", "std::vector<int>",
+          ["_M_start",  ["C_DATA", "0x10", "pointer", ["REF", "0x9000"]]],
+          ["_M_finish", ["C_DATA", "0x18", "pointer", ["REF", "0x9008"]]]] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    expect(container.querySelector(".cell-container")).toBeTruthy();
+    expect(container.textContent).toContain("vector<int>");
+  });
+
   it("renders a stack pane and a heap pane side by side", () => {
     const point = {
       line: 1, event: "step_line", func_name: "main", stdout: "",
