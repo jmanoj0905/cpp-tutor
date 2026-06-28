@@ -256,24 +256,23 @@ p {
   transform: translate(-50%, -50%); background: var(--red);
 }
 
-/* ── Memory view ─────────────────────────────────────────────── */
-.memory {
-  position: relative;
-  background: var(--panel);
-  border: none;
-  border-radius: 0;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+/* ── Memory view: stack | heap ──────────────────────────────── */
+.memory { position: relative; padding: 0; }
+.panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 100%; }
+.stack-pane { border-right: var(--border-dotted); padding: 10px; }
+.heap-pane { padding: 10px; }
+.stack-pane h3, .heap-pane h3 {
+  margin: 0 0 10px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+  color: var(--ink-soft);
 }
-
-.memory-section h3 { margin-bottom: 10px; }
-
-.frame-cells { display: flex; flex-direction: column; gap: 8px; }
-
-.memory-section.frame { border: none; border-radius: 0; }
-.memory-section.frame .frame-cells { padding: 0; gap: 0; }
+.frame { border: var(--border-dotted); margin-bottom: 10px; }
+.frame-current { border-color: var(--blue); border-style: solid; }
+.frame:last-child { margin-bottom: 0; }
+.frame-name {
+  font-family: var(--mono); font-weight: 700; font-size: 11px; text-transform: uppercase;
+  color: var(--blue); padding: 4px 8px; border-bottom: var(--border-dotted);
+}
+.frame-cells { display: flex; flex-direction: column; padding: 4px 8px; }
 
 .cell {
   border: none;
