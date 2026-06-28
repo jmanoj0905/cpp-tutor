@@ -1,0 +1,261 @@
+{
+    "code": "#include <memory>\nint main() {\n  std::unique_ptr<int> up(new int(7));\n  int r = *up;\n  return r;\n}",
+    "trace": [
+        {
+            "line": 2,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 2,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B30",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 2,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B30"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "r": [
+                            "C_DATA",
+                            "0xFFF000B54",
+                            "int",
+                            "<UNINITIALIZED>"
+                        ],
+                        "up": [
+                            "C_STRUCT",
+                            "0xFFF000B58",
+                            "unique_ptr<int, std::default_delete<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B58",
+                                    "__tuple_type",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B58",
+                                            "_Tuple_impl<0ul, int*, std::default_delete<int> >",
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B58",
+                                                    "_Head_base<0ul, int*, false>",
+                                                    [
+                                                        "_M_head_impl",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B30",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 4,
+                    "ordered_varnames": [
+                        "up",
+                        "r"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B30"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "int",
+                        7
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "r": [
+                            "C_DATA",
+                            "0xFFF000B54",
+                            "int",
+                            7
+                        ],
+                        "up": [
+                            "C_STRUCT",
+                            "0xFFF000B58",
+                            "unique_ptr<int, std::default_delete<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B58",
+                                    "__tuple_type",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B58",
+                                            "_Tuple_impl<0ul, int*, std::default_delete<int> >",
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B58",
+                                                    "_Head_base<0ul, int*, false>",
+                                                    [
+                                                        "_M_head_impl",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B30",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "up",
+                        "r"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B30"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "int",
+                        7
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B30",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B30"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B30",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B30"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}

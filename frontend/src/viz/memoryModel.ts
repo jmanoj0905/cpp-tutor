@@ -215,13 +215,17 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
 
   const consumed = new Set<string>();
   const ctx: DecodeCtx = { heapByAddress, consumed };
-  const globals = resolveContainers(resolveReferences(rawGlobals, addressMap), ctx);
-  const frames = rawFrames.map((frame) => ({
-    ...frame,
-    cells: resolveContainers(resolveReferences(frame.cells, addressMap), ctx),
-  }));
-  const heap = resolveContainers(resolveReferences(heapRaw, addressMap), ctx)
-    .filter((cell) => !(cell.address && consumed.has(cell.address)));
+
+  // Run resolveReferences both BEFORE and AFTER resolveContainers.
+  // Smart-pointer decoders (sharedPtrDecoder, etc.) emit a NEW reference cell
+  // DURING resolveContainers — after the first resolveReferences pass already ran —
+  // so their targetId/link would never be computed without the second pass.
+  const resolve = (cells: NormalizedCell[]) =>
+    resolveReferences(resolveContainers(resolveReferences(cells, addressMap), ctx), addressMap);
+
+  const globals = resolve(rawGlobals);
+  const frames = rawFrames.map((frame) => ({ ...frame, cells: resolve(frame.cells) }));
+  const heap = resolve(heapRaw).filter((cell) => !(cell.address && consumed.has(cell.address)));
 
   const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
     .filter((cell) => cell.kind === "reference" && cell.targetId && cell.targetAddress)

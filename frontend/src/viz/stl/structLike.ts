@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder } from "./types";
-import { findMember } from "./helpers";
+import { findMember, findPointer } from "./helpers";
 
 /**
  * Count the number of top-level template arguments in a type string.
@@ -130,3 +130,100 @@ function typeBits(type: string): number {
   const m = type.match(/bitset\s*<\s*(\d+)/);
   return m ? Number.parseInt(m[1], 10) : 0;
 }
+
+// ------------------------------------------------------------------ smart pointers
+// Each decoder emits a `kind:"reference"` cell whose `targetAddress` is the raw
+// pointee address.  The existing resolveReferences + link machinery then draws a
+// connector arrow to the pointee — but only after the memoryModel.ts ordering fix
+// runs resolveReferences again AFTER resolveContainers.
+
+/**
+ * Walk the subtree depth-first and return the first `targetAddress` found on any
+ * reference-kind descendant (or the cell itself).  Used as a fallback when the
+ * primary member lookup fails (e.g. unique_ptr tuple nesting varies by ABI).
+ */
+function firstPointerAddr(cell: NormalizedCell): string | undefined {
+  for (const c of cell.children ?? []) {
+    if (c.kind === "reference" && c.targetAddress) return c.targetAddress;
+    const nested = firstPointerAddr(c);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+/**
+ * std::shared_ptr<T> — libstdc++ layout:
+ *   _M_ptr       → raw pointer to the managed object (the pointee)
+ *   _M_refcount  → _Sp_counted_base carrying _M_use_count
+ *
+ * NOTE: The Valgrind 3.11.0 tracer crashes (DWARF assertion) for any program that
+ * uses std::shared_ptr, so this decoder is exercised via synthetic test data.
+ */
+export const sharedPtrDecoder: ContainerDecoder = {
+  match: (type) => /shared_ptr\s*</.test(type),
+  decode(cell) {
+    const ptr = findPointer(cell, "_M_ptr");
+    if (!ptr || ptr === "0x0") return null;
+    const useCount = findMember(cell, "_M_use_count");
+    const note = useCount ? `use_count: ${useCount.displayValue}` : "shared_ptr";
+    return {
+      ...cell,
+      kind: "reference",
+      containerKind: "shared_ptr",
+      targetAddress: ptr,
+      note,
+      children: undefined,
+      displayValue: `shared_ptr -> ${ptr}`,
+    };
+  },
+};
+
+/**
+ * std::unique_ptr<T, D> — libstdc++ layout:
+ *   _M_t (tuple<pointer, deleter>)
+ *     → _Tuple_impl<0ul,...>
+ *       → _Head_base<0ul, T*, false>
+ *         → _M_head_impl   (the raw pointer, type="pointer")
+ *
+ * Falls back to `firstPointerAddr` for ABI variants where _M_head_impl is absent.
+ * Returns null if no pointer is recoverable (struct fallback).
+ */
+export const uniquePtrDecoder: ContainerDecoder = {
+  match: (type) => /unique_ptr\s*</.test(type),
+  decode(cell) {
+    const ptr = findPointer(cell, "_M_head_impl") ?? firstPointerAddr(cell);
+    if (!ptr || ptr === "0x0") return null;
+    return {
+      ...cell,
+      kind: "reference",
+      containerKind: "unique_ptr",
+      targetAddress: ptr,
+      note: "owns",
+      children: undefined,
+      displayValue: `unique_ptr -> ${ptr}`,
+    };
+  },
+};
+
+/**
+ * std::weak_ptr<T> — same libstdc++ layout as shared_ptr (_M_ptr + _M_refcount).
+ * Does not own the object; use_count is intentionally omitted from the note.
+ *
+ * NOTE: Like shared_ptr, exercised via synthetic test data (tracer crash).
+ */
+export const weakPtrDecoder: ContainerDecoder = {
+  match: (type) => /weak_ptr\s*</.test(type),
+  decode(cell) {
+    const ptr = findPointer(cell, "_M_ptr");
+    if (!ptr || ptr === "0x0") return null;
+    return {
+      ...cell,
+      kind: "reference",
+      containerKind: "weak_ptr",
+      targetAddress: ptr,
+      note: "weak (non-owning)",
+      children: undefined,
+      displayValue: `weak_ptr -> ${ptr}`,
+    };
+  },
+};
