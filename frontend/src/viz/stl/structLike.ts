@@ -3,6 +3,25 @@ import type { ContainerDecoder } from "./types";
 import { findMember } from "./helpers";
 
 /**
+ * Count the number of top-level template arguments in a type string.
+ * E.g. "tuple<int, pair<int,int>, float>" → 3.
+ * Depth-aware: commas inside nested angle-brackets are ignored.
+ */
+function countTopLevelArgs(type: string): number {
+  const lt = type.indexOf("<");
+  const gt = type.lastIndexOf(">");
+  if (lt < 0 || gt <= lt) return 0;
+  const inner = type.slice(lt + 1, gt);
+  let depth = 0, commas = 0;
+  for (const ch of inner) {
+    if (ch === "<") depth++;
+    else if (ch === ">") depth--;
+    else if (ch === "," && depth === 0) commas++;
+  }
+  return commas + 1;
+}
+
+/**
  * Collect all scalar LEAVES under a cell (DFS, left to right).
  * Used by tupleDecoder: the old libstdc++ tuple nests _Tuple_impl/_Head_base
  * chains; _M_head_impl scalars are the actual element values.
@@ -50,15 +69,20 @@ export const pairDecoder: ContainerDecoder = {
  * Scalar leaves are collected in DFS order and renamed [0], [1], ...
  *
  * Tracer limitation (old libstdc++): only _Head_base<0ul> (element 0) appears
- * in the trace; elements at index ≥ 1 are inaccessible. The decoder returns
- * what it finds; if no leaves exist, returns null (struct fallback).
- * Leaf order is in-source order (element [0] is first, as stored in the trace).
+ * in the trace; _Tuple_impl<1ul,...> and later base classes are absent. When the
+ * number of recovered leaves is fewer than the declared arity, we CANNOT render a
+ * faithful container — return null so the generic struct renderer takes over
+ * (same "untraceable → struct fallback" rule applied to list/map/set nodes).
  */
 export const tupleDecoder: ContainerDecoder = {
   match: (type) => /\btuple\s*</.test(type),
   decode(cell) {
     const items = leaves(cell);
     if (items.length === 0) return null;
+    // If the trace omits elements (old tracer), fall back to struct so we don't
+    // display a misleading partial container.
+    const declaredN = countTopLevelArgs(cell.type ?? "");
+    if (declaredN > 0 && items.length < declaredN) return null;
     const children = items.map((c, i) => ({ ...c, name: `[${i}]` }));
     return {
       ...cell,

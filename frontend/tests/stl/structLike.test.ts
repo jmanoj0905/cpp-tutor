@@ -16,13 +16,15 @@ describe("struct-like decoders", () => {
   });
 
   // NOTE: Old libstdc++ tracer only emits _Head_base<0ul> (element 0) for tuple;
-  // _Tuple_impl<1ul,...> and _Tuple_impl<2ul,...> base classes are not in the trace.
-  // Only element [0]=1 is recoverable. Decoder returns what leaves() finds.
-  it("decodes std::tuple (partial: old tracer emits only element 0)", () => {
+  // _Tuple_impl<1ul,...> and _Tuple_impl<2ul,...> base classes are NOT in the trace,
+  // so only 1 of 3 declared elements is recoverable. Per the project rule
+  // (untraceable → struct fallback), tupleDecoder returns null when recovered leaves
+  // are fewer than the declared arity, and the generic struct renderer is used instead.
+  it("tuple falls back to struct when trace is incomplete (old tracer omits elements 1+)", () => {
     const tp = normalizeMemory(last("tp")).frames[0].cells.find((c) => c.name === "tp")!;
-    expect(tp.containerKind).toBe("tuple");
-    // Only leaf from _Head_base<0ul> is visible; values 2 and 3 are not in the trace.
-    expect(tp.children?.map((c) => c.displayValue)).toEqual(["1"]);
+    // Must NOT be a tuple container — it would be misleadingly partial.
+    expect(tp.kind).toBe("struct");
+    expect(tp.containerKind).toBeUndefined();
   });
 
   it("decodes std::bitset as binary string", () => {
