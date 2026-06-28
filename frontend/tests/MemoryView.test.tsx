@@ -38,4 +38,20 @@ describe("MemoryCell", () => {
     expect(screen.getByText("Heap")).toBeDefined();
     expect(screen.getByText("41")).toBeDefined();
   });
+
+  it("renders a stack pane and a heap pane side by side", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {},
+      heap: { "0x100": ["C_DATA", "0x100", "int", 7] },
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["p"],
+        encoded_locals: { p: ["C_DATA", "0x18", "int *", ["REF", "0x100"]] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    expect(container.querySelector(".stack-pane")).toBeTruthy();
+    expect(container.querySelector(".heap-pane")).toBeTruthy();
+  });
 });
