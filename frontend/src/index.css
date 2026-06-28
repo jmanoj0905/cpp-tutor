@@ -89,7 +89,7 @@ p {
   border-bottom: var(--border-dotted); white-space: pre-wrap;
 }
 .mem-region { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
-.empty-hint { align-items: center; justify-content: center; color: var(--ink-soft); }
+.empty-hint { display: flex; align-items: center; justify-content: center; color: var(--ink-soft); }
 
 .codepanel { border: none; border-radius: 0; height: 100%; }
 .codepanel .cm-editor { height: 100%; }
