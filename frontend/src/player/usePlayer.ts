@@ -5,7 +5,10 @@ export function usePlayer(trace: Trace) {
   const total = trace.trace.length;
   const [index, setIndex] = useState(0);
   const clamp = (i: number) => Math.max(0, Math.min(total - 1, i));
-  const goto = useCallback((i: number) => setIndex(clamp(i)), [total]);
+  const goto = useCallback(
+    (i: number) => setIndex(Math.max(0, Math.min(total - 1, i))),
+    [total],
+  );
   const lineAt = (i: number) => (i >= 0 && i < total ? trace.trace[i].line : null);
 
   const hitSteps = useCallback(
