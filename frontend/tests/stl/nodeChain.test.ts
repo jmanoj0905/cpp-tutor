@@ -1,54 +1,80 @@
 // frontend/tests/stl/nodeChain.test.ts
 //
-// Real-trace findings for this old libstdc++:
-//   • Each list node is a C_ARRAY in the heap: [0]=_List_node_base (next/prev ptrs), [1]=value
-//     area showing UNINITIALIZED/UNALLOCATED (int bytes misread as ptr by old tracer).
-//   • The stored int values (1,2,3 / 4,5) are NOT accessible in this trace format.
-//   • We assert containerKind + chain length (structure is walkable), not displayValues.
-//   • last("f") picks step 6 where f._M_next=0x0 (forward_list already empty at that point),
-//     so we use a helper that picks the last step where the heap contains forward_list nodes.
+// Node-container struct-fallback tests.
+//
+// Tracer limitation (verified against real traces): this old libstdc++ tracer
+// does NOT emit node payload values for any node-based container:
+//   - std::list/forward_list nodes: C_ARRAY with two _List_node_base entries;
+//     the value area appears as UNINITIALIZED/UNALLOCATED — int is gone.
+//   - std::map/set nodes: C_ARRAY with only _Rb_tree_node_base (color+parent+
+//     left+right); the key/value slot is absent entirely.
+//   - std::unordered_*/hash nodes: C_ARRAY with _Hash_node_base/_M_nxt only;
+//     the stored value is absent.
+//
+// Per design: these decoders return null, so the cell stays as kind:"struct"
+// (generic struct render). We assert that fallback here.
 
 import { describe, it, expect } from "vitest";
 import { normalizeMemory } from "../../src/viz/memoryModel";
 import type { ExecPoint } from "../../src/types/trace";
-import fixture from "../fixtures/stl/list.json";
+import listFixture from "../fixtures/stl/list.json";
+import treeFixture from "../fixtures/stl/tree.json";
+import hashFixture from "../fixtures/stl/hash.json";
 
-/** Last step where `name` appears in frame locals. */
-const last = (name: string): ExecPoint => {
-  const steps = (fixture as any).trace as ExecPoint[];
+/** Last step in a fixture where `name` appears in frame locals. */
+function lastStep(fixture: { trace: unknown[] }, name: string): ExecPoint {
+  const steps = fixture.trace as ExecPoint[];
   return [...steps].reverse().find(
     (s) => (s.stack_to_render as any)?.[0]?.encoded_locals?.[name],
   )!;
-};
+}
 
-/**
- * Last step where `name` appears in locals AND the heap has more than 3 nodes
- * (i.e. the forward_list nodes are still present alongside the list nodes).
- */
-const lastWithForwardListNodes = (): ExecPoint => {
-  const steps = (fixture as any).trace as ExecPoint[];
-  return [...steps].reverse().find(
-    (s) =>
-      (s.stack_to_render as any)?.[0]?.encoded_locals?.["f"] &&
-      Object.keys((s as any).heap ?? {}).length > 3,
-  )!;
-};
-
-describe("node-chain decoders", () => {
-  it("decodes std::list: containerKind and chain length", () => {
-    const step = last("l");
-    const l = normalizeMemory(step).frames[0].cells.find((c) => c.name === "l")!;
-    expect(l.containerKind).toBe("list");
-    // Chain walk produces 3 children (one per node); int payload not exposed by old tracer.
-    expect(l.children?.length).toBe(3);
+describe("node-chain decoders — struct fallback", () => {
+  it("std::list falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(listFixture as any, "l");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "l")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
   });
 
-  it("decodes std::forward_list: containerKind and chain length", () => {
-    // step 6 shows empty f; use the last step that still has forward_list heap nodes.
-    const step = lastWithForwardListNodes();
-    const f = normalizeMemory(step).frames[0].cells.find((c) => c.name === "f")!;
-    expect(f.containerKind).toBe("forward_list");
-    // Chain walk produces 2 children; int payload not exposed by old tracer.
-    expect(f.children?.length).toBe(2);
+  it("std::forward_list falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(listFixture as any, "f");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "f")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
+  });
+
+  it("std::map falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(treeFixture as any, "m");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "m")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
+  });
+
+  it("std::set falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(treeFixture as any, "s");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "s")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
+  });
+
+  it("std::unordered_map falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(hashFixture as any, "um");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "um")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
+  });
+
+  it("std::unordered_set falls back to struct (tracer omits node payload)", () => {
+    const step = lastStep(hashFixture as any, "us");
+    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "us")!;
+    expect(cell).toBeDefined();
+    expect(cell.kind).toBe("struct");
+    expect((cell as any).containerKind).toBeUndefined();
   });
 });
