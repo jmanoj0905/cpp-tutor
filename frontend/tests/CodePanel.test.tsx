@@ -27,3 +27,22 @@ describe("CodePanel readOnly", () => {
     expect(container.querySelector(".cm-content")?.getAttribute("contenteditable")).toBe("false");
   });
 });
+
+describe("CodePanel exec arrows", () => {
+  it("renders a green marker on just-executed line and red on next line", async () => {
+    const { container } = render(
+      <CodePanel
+        value={"int main(){\n  int a=1;\n  int b=2;\n  return 0;\n}"}
+        onChange={() => {}}
+        exec={{ justExecuted: 2, next: 3 }}
+        readOnly
+        breakpoints={new Set()}
+        onToggleBreakpoint={() => {}}
+      />,
+    );
+    // CodeMirror renders asynchronously; flush a frame.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".exec-arrow.green")).toBeTruthy();
+    expect(container.querySelector(".exec-arrow.red")).toBeTruthy();
+  });
+});

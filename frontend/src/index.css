@@ -94,14 +94,13 @@ p {
 .codepanel { border: none; border-radius: 0; height: 100%; }
 .codepanel .cm-editor { height: 100%; }
 
-/* exec gutter arrows + breakpoint/current line */
-.cm-exec-gutter { width: 20px; }
-.exec-arrow { font-size: 11px; padding: 0 2px; cursor: pointer; }
-.exec-arrow.prev { color: var(--ink-soft); opacity: 0.6; }
-.exec-arrow.current { color: var(--blue); font-weight: 700; }
-.exec-arrow.next { color: var(--ink-soft); }
-.cm-line.cm-current { background: rgba(244, 194, 13, 0.30); }
-.cm-line.cm-bp { box-shadow: inset 4px 0 0 var(--red); }
+/* exec gutter arrows + breakpoint/next line */
+.cm-exec-gutter { width: 18px; }
+.exec-arrow { font-size: 11px; padding: 0 2px; cursor: pointer; font-weight: 700; }
+.exec-arrow.green { color: var(--green); }
+.exec-arrow.red { color: var(--red); }
+.cm-line.cm-next { background: rgba(214, 50, 42, 0.10); }
+.cm-line.cm-bp { box-shadow: inset 3px 0 0 var(--red); }
 
 /* ── Editor ──────────────────────────────────────────────────── */
 .editor {

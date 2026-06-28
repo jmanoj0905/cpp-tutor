@@ -27,12 +27,9 @@ function Workspace({
   onToggleBreakpoint: (line: number) => void;
 }) {
   const player = usePlayer(trace);
-  // Keep old exec shape so CodePanel (unchanged in this commit) stays type-safe
-  const exec = {
-    currentLine: player.point.line,
-    prevLine: player.prevLine,
-    nextLine: player.nextLine,
-  };
+  // OPT C trace: point.line is the line about to execute (next); the previously
+  // displayed line is the one that just executed. Verified manually in Task 3.
+  const exec = { justExecuted: player.prevLine, next: player.point.line };
 
   return (
     <>
