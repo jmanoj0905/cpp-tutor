@@ -1,11 +1,14 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { vectorDecoder } from "./contiguous";
+import { arrayDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 
-// Order matters: more specific patterns first. Decoders added in later tasks
-// are appended here.
+// Order matters: more specific patterns first.
+// arrayDecoder before vectorDecoder (distinct internals, no overlap).
+// stringDecoder last (matches "string" / "basic_string" but not array/vector).
 export const registry: ContainerDecoder[] = [
+  arrayDecoder,
   vectorDecoder,
+  stringDecoder,
 ];
 
 export function decodeContainer(cell: NormalizedCell, ctx: DecodeCtx): NormalizedCell | null {

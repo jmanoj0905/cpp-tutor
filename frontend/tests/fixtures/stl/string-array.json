@@ -1,0 +1,729 @@
+{
+    "code": "#include <string>\n#include <array>\nint main() {\n  std::string s = \"hello world\";   // long enough to defeat SSO\n  std::array<int, 3> a = {7, 8, 9};\n  return (int)s.size() + a[0];\n}",
+    "trace": [
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B20",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B20"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "a": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "array<int, 3ul>",
+                            [
+                                "_M_elems",
+                                [
+                                    "C_ARRAY",
+                                    "0xFFF000B50",
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B50",
+                                        "int",
+                                        "<UNINITIALIZED>"
+                                    ],
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B54",
+                                        "int",
+                                        "<UNINITIALIZED>"
+                                    ],
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B58",
+                                        "int",
+                                        "<UNINITIALIZED>"
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "string",
+                            [
+                                "_M_dataplus",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Alloc_hider",
+                                    [
+                                        "_M_p",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "pointer",
+                                            "0x4B92058"
+                                        ]
+                                    ],
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "allocator<char>",
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "new_allocator<char>"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B20",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "s",
+                        "a"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B20"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "char",
+                        11
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92041",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92042",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92043",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92044",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92045",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92046",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92047",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "char",
+                        11
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92049",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204A",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204B",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204C",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204D",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204E",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204F",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92050",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92051",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92052",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92053",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92054",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92055",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92056",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92057",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92058",
+                        "char",
+                        104
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92059",
+                        "char",
+                        101
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205A",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205B",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205C",
+                        "char",
+                        111
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205D",
+                        "char",
+                        32
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205E",
+                        "char",
+                        119
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205F",
+                        "char",
+                        111
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92060",
+                        "char",
+                        114
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92061",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92062",
+                        "char",
+                        100
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92063",
+                        "char",
+                        0
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "a": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "array<int, 3ul>",
+                            [
+                                "_M_elems",
+                                [
+                                    "C_ARRAY",
+                                    "0xFFF000B50",
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B50",
+                                        "int",
+                                        7
+                                    ],
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B54",
+                                        "int",
+                                        8
+                                    ],
+                                    [
+                                        "C_DATA",
+                                        "0xFFF000B58",
+                                        "int",
+                                        9
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "string",
+                            [
+                                "_M_dataplus",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Alloc_hider",
+                                    [
+                                        "_M_p",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "pointer",
+                                            "0x4B92058"
+                                        ]
+                                    ],
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "allocator<char>",
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "new_allocator<char>"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B20",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "s",
+                        "a"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B20"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "char",
+                        11
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92041",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92042",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92043",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92044",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92045",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92046",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92047",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "char",
+                        11
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92049",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204A",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204B",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204C",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204D",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204E",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204F",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92050",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92051",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92052",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92053",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92054",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92055",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92056",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92057",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92058",
+                        "char",
+                        104
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92059",
+                        "char",
+                        101
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205A",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205B",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205C",
+                        "char",
+                        111
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205D",
+                        "char",
+                        32
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205E",
+                        "char",
+                        119
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205F",
+                        "char",
+                        111
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92060",
+                        "char",
+                        114
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92061",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92062",
+                        "char",
+                        100
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92063",
+                        "char",
+                        0
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B20",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B20"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B20",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B20"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}
