@@ -185,46 +185,6 @@ p {
   white-space: pre-wrap;
 }
 
-.frame {
-  border: var(--border-thin);
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 14px;
-}
-
-.frame:last-child {
-  margin-bottom: 0;
-}
-
-.frame-name {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--blue);
-  background: transparent;
-  padding: 0 0 8px;
-  border-bottom: none;
-}
-
-.frame table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--mono);
-  font-size: 13px;
-}
-
-.frame td {
-  padding: 7px 12px;
-  border-top: 1px solid var(--border);
-  border-top: 1px solid rgba(26, 26, 26, 0.12);
-}
-
-.frame tr:first-child td {
-  border-top: none;
-}
-
 .var-name {
   color: var(--ink-soft);
   width: 40%;
