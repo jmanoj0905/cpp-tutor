@@ -1,0 +1,406 @@
+{
+    "code": "#include <utility>\n#include <tuple>\n#include <bitset>\nint main() {\n  std::pair<int, int> pr = {3, 4};\n  std::tuple<int, int, int> tp = std::make_tuple(1, 2, 3);\n  std::bitset<8> bs(5);   // 0000 0101\n  return pr.first + (int)bs.count();\n}",
+    "trace": [
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 4,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 4,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "bs": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "bitset<8ul>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Base_bitset<1ul>",
+                                    [
+                                        "_M_w",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "_WordT",
+                                            "<UNINITIALIZED>"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "pr": [
+                            "C_STRUCT",
+                            "0xFFF000B40",
+                            "pair<int, int>",
+                            [
+                                "first",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B40",
+                                    "int",
+                                    3
+                                ]
+                            ],
+                            [
+                                "second",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B44",
+                                    "int",
+                                    4
+                                ]
+                            ]
+                        ],
+                        "tp": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "tuple<int, int, int>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_Tuple_impl<0ul, int, int, int>",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B58",
+                                            "_Head_base<0ul, int, false>",
+                                            [
+                                                "_M_head_impl",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "int",
+                                                    "<UNINITIALIZED>"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "pr",
+                        "tp",
+                        "bs"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "bs": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "bitset<8ul>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Base_bitset<1ul>",
+                                    [
+                                        "_M_w",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "_WordT",
+                                            "<UNINITIALIZED>"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "pr": [
+                            "C_STRUCT",
+                            "0xFFF000B40",
+                            "pair<int, int>",
+                            [
+                                "first",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B40",
+                                    "int",
+                                    3
+                                ]
+                            ],
+                            [
+                                "second",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B44",
+                                    "int",
+                                    4
+                                ]
+                            ]
+                        ],
+                        "tp": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "tuple<int, int, int>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_Tuple_impl<0ul, int, int, int>",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B58",
+                                            "_Head_base<0ul, int, false>",
+                                            [
+                                                "_M_head_impl",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "int",
+                                                    1
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [
+                        "pr",
+                        "tp",
+                        "bs"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 8,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "bs": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "bitset<8ul>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Base_bitset<1ul>",
+                                    [
+                                        "_M_w",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "_WordT",
+                                            5
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "pr": [
+                            "C_STRUCT",
+                            "0xFFF000B40",
+                            "pair<int, int>",
+                            [
+                                "first",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B40",
+                                    "int",
+                                    3
+                                ]
+                            ],
+                            [
+                                "second",
+                                [
+                                    "C_DATA",
+                                    "0xFFF000B44",
+                                    "int",
+                                    4
+                                ]
+                            ]
+                        ],
+                        "tp": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "tuple<int, int, int>",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_Tuple_impl<0ul, int, int, int>",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B58",
+                                            "_Head_base<0ul, int, false>",
+                                            [
+                                                "_M_head_impl",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "int",
+                                                    1
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 8,
+                    "ordered_varnames": [
+                        "pr",
+                        "tp",
+                        "bs"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 9,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 9,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 9,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 9,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}

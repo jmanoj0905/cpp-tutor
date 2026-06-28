@@ -3,6 +3,7 @@ import type { ContainerDecoder, DecodeCtx } from "./types";
 import { arrayDecoder, dequeDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 import { forwardListDecoder, hashDecoder, listDecoder, treeDecoder } from "./nodeChain";
 import { stackDecoder, queueDecoder, priorityQueueDecoder } from "./adaptor";
+import { pairDecoder, tupleDecoder, bitsetDecoder } from "./structLike";
 
 // Order matters: more specific patterns first.
 // forwardListDecoder before listDecoder (forward_list regex contains "list").
@@ -37,6 +38,10 @@ export const registry: ContainerDecoder[] = [
   arrayDecoder,
   vectorDecoder,
   stringDecoder,
+  // Struct-like containers: store values directly (no heap indirection).
+  pairDecoder,
+  tupleDecoder,
+  bitsetDecoder,
 ];
 
 export function decodeContainer(cell: NormalizedCell, ctx: DecodeCtx): NormalizedCell | null {
