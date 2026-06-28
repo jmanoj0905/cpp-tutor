@@ -2,12 +2,20 @@ import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
 import { arrayDecoder, dequeDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 import { forwardListDecoder, hashDecoder, listDecoder, treeDecoder } from "./nodeChain";
+import { stackDecoder, queueDecoder, priorityQueueDecoder } from "./adaptor";
 
 // Order matters: more specific patterns first.
 // forwardListDecoder before listDecoder (forward_list regex contains "list").
 // dequeDecoder before vectorDecoder (distinct type pattern, no overlap).
 // arrayDecoder before vectorDecoder (distinct internals, no overlap).
 // stringDecoder last (matches "string" / "basic_string" but not array/vector).
+
+// --- Adaptor containers (stack / queue / priority_queue) ---
+// These wrap an underlying deque (stack/queue) or vector (priority_queue) in
+// member `c`. They must appear BEFORE the bare deque/vector decoders so that
+// "queue<int,...>" matches queueDecoder and not dequeDecoder.
+// priorityQueueDecoder before queueDecoder: priority_queue type string contains
+// "queue", so the more specific pattern must match first.
 
 // --- Node-based containers (struct fallback) ---
 // list/forward_list, map/set/multi*, and unordered_* all decode() -> null,
@@ -18,6 +26,9 @@ import { forwardListDecoder, hashDecoder, listDecoder, treeDecoder } from "./nod
 // hashDecoder before treeDecoder: "unordered_map/set" contains "map"/"set",
 // so the more specific pattern must match first.
 export const registry: ContainerDecoder[] = [
+  priorityQueueDecoder,
+  stackDecoder,
+  queueDecoder,
   hashDecoder,
   treeDecoder,
   forwardListDecoder,
