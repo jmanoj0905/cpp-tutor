@@ -3,7 +3,7 @@ import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/s
 import { EditorView, lineNumbers, gutter, GutterMarker, Decoration } from "@codemirror/view";
 import { cpp } from "@codemirror/lang-cpp";
 
-interface ExecState { currentLine: number; prevLine: number | null; nextLine: number | null }
+interface ExecState { justExecuted: number | null; next: number | null }
 interface PanelState { exec: ExecState | null; breakpoints: Set<number> }
 
 const setPanel = StateEffect.define<PanelState>();
@@ -31,9 +31,8 @@ class ArrowMarker extends GutterMarker {
     return span;
   }
 }
-const prevMarker = new ArrowMarker("▸", "exec-arrow prev");
-const currMarker = new ArrowMarker("▶", "exec-arrow current");
-const nextMarker = new ArrowMarker("▷", "exec-arrow next");
+const greenMarker = new ArrowMarker("▶", "exec-arrow green");  // just executed
+const redMarker = new ArrowMarker("▶", "exec-arrow red");      // next to execute
 
 function execGutter(onToggle: (line: number) => void) {
   return gutter({
@@ -42,9 +41,8 @@ function execGutter(onToggle: (line: number) => void) {
       const { exec } = view.state.field(panelField);
       if (!exec) return null;
       const ln = view.state.doc.lineAt(line.from).number;
-      if (ln === exec.currentLine) return currMarker;
-      if (ln === exec.prevLine) return prevMarker;
-      if (ln === exec.nextLine) return nextMarker;
+      if (ln === exec.next) return redMarker;
+      if (ln === exec.justExecuted) return greenMarker;
       return null;
     },
     lineMarkerChange: (u) => u.startState.field(panelField) !== u.state.field(panelField),
@@ -98,7 +96,7 @@ export function CodePanel({
             list.push({ from: doc.line(line).from, deco: Decoration.line({ class: cls }) });
           };
           for (const bp of bps) add(bp, "cm-bp");
-          if (ex) add(ex.currentLine, "cm-current");
+          if (ex?.next != null) add(ex.next, "cm-next");
           list.sort((a, b) => a.from - b.from);
           return Decoration.set(list.map((r) => r.deco.range(r.from)));
         }),
