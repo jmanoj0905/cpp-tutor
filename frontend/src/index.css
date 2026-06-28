@@ -235,57 +235,25 @@ p {
   font-weight: 500;
 }
 
-/* ── VCR controls ────────────────────────────────────────────── */
-.vcr {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-}
-
+/* ── VCR controls ───────────────────────────────────────────── */
+.vcr { display: flex; flex-direction: column; gap: 8px; }
+.vcr-buttons { display: flex; gap: 6px; }
 .vcr button {
-  font-family: var(--sans);
-  font-weight: 500;
-  font-size: 14px;
-  color: var(--ink);
-  background: var(--panel);
-  border: var(--border-thin);
-  border-radius: 10px;
-  padding: 8px 14px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  font-family: var(--sans); font-size: 13px; color: var(--ink);
+  background: var(--panel); border: var(--border-dotted); border-radius: 0;
+  padding: 5px 10px; cursor: pointer;
 }
-
-.vcr button:hover:not(:disabled) {
-  background: var(--ink);
-  color: #fff;
-}
-
-.vcr button:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.counter {
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--ink);
-  background: var(--yellow);
-  border: var(--border-thin);
-  border-radius: 10px;
-  padding: 7px 14px;
-  margin-left: auto;
-}
-
-.timeline { display: flex; align-items: center; gap: 12px; width: 100%; }
+.vcr button:hover:not(:disabled) { background: var(--ink); color: #fff; }
+.vcr button:disabled { opacity: 0.35; cursor: not-allowed; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); }
+.timeline { display: flex; align-items: center; gap: 10px; width: 100%; }
 .timeline label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .track { position: relative; flex: 1; }
-.track input[type="range"] { width: 100%; display: block; }
+.track input[type="range"] { width: 100%; display: block; accent-color: var(--blue); }
 .ticks { position: absolute; inset: 0; pointer-events: none; }
 .tick {
-  position: absolute; top: 50%; width: 3px; height: 14px;
-  transform: translate(-50%, -50%); background: var(--red); border-radius: 2px;
+  position: absolute; top: 50%; width: 2px; height: 12px;
+  transform: translate(-50%, -50%); background: var(--red);
 }
 
 /* ── Memory view ─────────────────────────────────────────────── */
