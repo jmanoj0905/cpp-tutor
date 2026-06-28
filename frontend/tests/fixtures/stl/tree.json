@@ -1,0 +1,1968 @@
+{
+    "code": "#include <map>\n#include <set>\nint main() {\n  std::map<int, int> m = {{1, 10}, {2, 20}};\n  std::set<int> s = {3, 1, 2};\n  return m.size() + s.size();\n}",
+    "trace": [
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "m": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "map<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "allocator<std::_Rb_tree_node<std::pair<int const, int> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "new_allocator<std::_Rb_tree_node<std::pair<int const, int> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B08",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B08",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B18",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B20",
+                                                            "pointer",
+                                                            "0x4B920B0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_type",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "set<int, std::less<int>, std::allocator<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "allocator<std::_Rb_tree_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "new_allocator<std::_Rb_tree_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B38",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B38",
+                                                            "_Rb_tree_color",
+                                                            2
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "<UNINITIALIZED>"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "<UNINITIALIZED>"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "<UNINITIALIZED>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_type",
+                                                    "<UNINITIALIZED>"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "m",
+                        "s"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B08"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "0x4B920B0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920B0": [
+                    "C_ARRAY",
+                    "0x4B920B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B920C0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B920C8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "m": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "map<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "allocator<std::_Rb_tree_node<std::pair<int const, int> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "new_allocator<std::_Rb_tree_node<std::pair<int const, int> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B08",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B08",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B18",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B20",
+                                                            "pointer",
+                                                            "0x4B920B0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_type",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "set<int, std::less<int>, std::allocator<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "allocator<std::_Rb_tree_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "new_allocator<std::_Rb_tree_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B38",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B38",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x4B92200"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x4B92190"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92120"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_type",
+                                                    3
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "m",
+                        "s"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B08"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "0x4B920B0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920B0": [
+                    "C_ARRAY",
+                    "0x4B920B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B920C0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B920C8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92120": [
+                    "C_ARRAY",
+                    "0x4B92120",
+                    [
+                        "C_STRUCT",
+                        "0x4B92120",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92120",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92128",
+                                "pointer",
+                                "0x4B92200"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92130",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92138",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92140",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92140",
+                                "_Rb_tree_color",
+                                3
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92148",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92150",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92158",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92190": [
+                    "C_ARRAY",
+                    "0x4B92190",
+                    [
+                        "C_STRUCT",
+                        "0x4B92190",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92190",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92198",
+                                "pointer",
+                                "0x4B92200"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B921A0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B921A8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B921B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B921B0",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B921B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B921C0",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B921C8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92200": [
+                    "C_ARRAY",
+                    "0x4B92200",
+                    [
+                        "C_STRUCT",
+                        "0x4B92200",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92200",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92208",
+                                "pointer",
+                                "0xFFF000B38"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92210",
+                                "pointer",
+                                "0x4B92190"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92218",
+                                "pointer",
+                                "0x4B92120"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92220",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92220",
+                                "_Rb_tree_color",
+                                2
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92228",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92230",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92238",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "m": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "map<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "allocator<std::_Rb_tree_node<std::pair<int const, int> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "new_allocator<std::_Rb_tree_node<std::pair<int const, int> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B08",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B08",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B18",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B20",
+                                                            "pointer",
+                                                            "0x4B920B0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_type",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "set<int, std::less<int>, std::allocator<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "allocator<std::_Rb_tree_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "new_allocator<std::_Rb_tree_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B38",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B38",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x4B92200"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x4B92190"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92120"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_type",
+                                                    3
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "m",
+                        "s"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B08"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "0x4B920B0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920B0": [
+                    "C_ARRAY",
+                    "0x4B920B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B920C0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B920C8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92120": [
+                    "C_ARRAY",
+                    "0x4B92120",
+                    [
+                        "C_STRUCT",
+                        "0x4B92120",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92120",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92128",
+                                "pointer",
+                                "0x4B92200"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92130",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92138",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92140",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92140",
+                                "_Rb_tree_color",
+                                3
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92148",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92150",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92158",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92190": [
+                    "C_ARRAY",
+                    "0x4B92190",
+                    [
+                        "C_STRUCT",
+                        "0x4B92190",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92190",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92198",
+                                "pointer",
+                                "0x4B92200"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B921A0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B921A8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B921B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B921B0",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B921B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B921C0",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B921C8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92200": [
+                    "C_ARRAY",
+                    "0x4B92200",
+                    [
+                        "C_STRUCT",
+                        "0x4B92200",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92200",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92208",
+                                "pointer",
+                                "0xFFF000B38"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92210",
+                                "pointer",
+                                "0x4B92190"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92218",
+                                "pointer",
+                                "0x4B92120"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92220",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92220",
+                                "_Rb_tree_color",
+                                2
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92228",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92230",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92238",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "m": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "map<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B00",
+                                                    "allocator<std::_Rb_tree_node<std::pair<int const, int> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B00",
+                                                            "new_allocator<std::_Rb_tree_node<std::pair<int const, int> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B08",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B08",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B18",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B20",
+                                                            "pointer",
+                                                            "0x4B920B0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_type",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "s": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "set<int, std::less<int>, std::allocator<int> >",
+                            [
+                                "_M_t",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Rep_type",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Rb_tree_impl<std::less<int>, true>",
+                                            [
+                                                "_M_key_compare",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "less<int>",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "binary_function<int, int, bool>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B30",
+                                                    "allocator<std::_Rb_tree_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B30",
+                                                            "new_allocator<std::_Rb_tree_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_header",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B38",
+                                                    "_Rb_tree_node_base",
+                                                    [
+                                                        "_M_color",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B38",
+                                                            "_Rb_tree_color",
+                                                            0
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_parent",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x4B92200"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_left",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x4B92190"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_right",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92120"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_node_count",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_type",
+                                                    3
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "m",
+                        "s"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "_Rb_tree_color",
+                                1
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B08"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "0x4B920B0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920B0": [
+                    "C_ARRAY",
+                    "0x4B920B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_Rb_tree_node_base",
+                        [
+                            "_M_color",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "_Rb_tree_color",
+                                0
+                            ]
+                        ],
+                        [
+                            "_M_parent",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ],
+                        [
+                            "_M_left",
+                            [
+                                "C_DATA",
+                                "0x4B920C0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ],
+                        [
+                            "_M_right",
+                            [
+                                "C_DATA",
+                                "0x4B920C8",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92120": [
+                    "C_ARRAY",
+                    "0x4B92120"
+                ],
+                "0x4B92190": [
+                    "C_ARRAY",
+                    "0x4B92190"
+                ],
+                "0x4B92200": [
+                    "C_ARRAY",
+                    "0x4B92200"
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}
