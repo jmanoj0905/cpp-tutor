@@ -17,7 +17,7 @@ describe("MemoryCell", () => {
   });
 
   it("renders a vector header and indexed children", () => {
-    render(<MemoryCell cell={cell({ id: "v", name: "v", kind: "vector", elementType: "int", length: 2, displayValue: "vector<int> · 2",
+    render(<MemoryCell cell={cell({ id: "v", name: "v", kind: "container", containerKind: "vector", elementType: "int", length: 2, displayValue: "vector<int> · 2",
       children: [cell({ id: "v0", name: "[0]", displayValue: "10" }), cell({ id: "v1", name: "[1]", displayValue: "20" })] })} />);
     expect(screen.getByText("vector<int> · 2")).toBeDefined();
     expect(screen.getByText("10")).toBeDefined();

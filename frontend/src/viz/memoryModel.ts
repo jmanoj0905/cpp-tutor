@@ -3,7 +3,7 @@ import { decodeContainer } from "./stl/registry";
 import type { DecodeCtx } from "./stl/types";
 
 export type MemorySource = "stack" | "global" | "heap";
-export type MemoryCellKind = "scalar" | "reference" | "struct" | "array" | "vector" | "string" | "summary" | "container";
+export type MemoryCellKind = "scalar" | "reference" | "struct" | "array" | "summary" | "container";
 
 export interface NormalizedCell {
   id: string;
@@ -20,8 +20,6 @@ export interface NormalizedCell {
   children?: NormalizedCell[];
   length?: number;
   elementType?: string;
-  startAddress?: string;
-  finishAddress?: string;
   containerKind?: string;
   note?: string;
 }

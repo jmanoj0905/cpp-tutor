@@ -104,7 +104,6 @@ p {
 
 /* ── Editor ──────────────────────────────────────────────────── */
 .editor {
-  border: var(--border);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--panel);
@@ -140,7 +139,7 @@ p {
   letter-spacing: 0.3px;
   color: #fff;
   background: var(--blue);
-  border: var(--border);
+  border: var(--border-dotted);
   border-radius: var(--radius);
   padding: 12px 24px;
   cursor: pointer;
@@ -161,7 +160,7 @@ p {
   font-size: 13px;
   color: var(--ink);
   background: rgba(214, 50, 42, 0.1);
-  border: var(--border);
+  border: var(--border-dotted);
   border-color: var(--red);
   border-radius: var(--radius);
   padding: 16px;

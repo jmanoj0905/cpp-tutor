@@ -24,8 +24,10 @@ import { pairDecoder, tupleDecoder, bitsetDecoder, sharedPtrDecoder, uniquePtrDe
 // node payload values (see nodeChain.ts), so rich decode is impossible.
 // These entries serve as the canonical registration point: to enable rich
 // decode when a future tracer emits payloads, implement decode() in nodeChain.ts.
-// hashDecoder before treeDecoder: "unordered_map/set" contains "map"/"set",
-// so the more specific pattern must match first.
+// hashDecoder before treeDecoder: the treeDecoder \b word-boundary already
+// excludes "unordered_map/set" (the char before "map"/"set" is "_", not a
+// word boundary), so hashDecoder first is future-proofing for nested types
+// (e.g. map<int, unordered_map<...>>) rather than a present-day necessity.
 export const registry: ContainerDecoder[] = [
   priorityQueueDecoder,
   stackDecoder,
