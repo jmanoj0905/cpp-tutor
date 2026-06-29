@@ -22,6 +22,10 @@ export function Divider({ onResize }: { onResize: (pct: number) => void }) {
         dragging.current = false;
         e.currentTarget.releasePointerCapture(e.pointerId);
       }}
+      onPointerCancel={(e) => {
+        dragging.current = false;
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }}
     />
   );
 }
