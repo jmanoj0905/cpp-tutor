@@ -10,17 +10,16 @@ import { isCompileError, type Trace } from "./types/trace";
 const SAMPLE = `#include <iostream>
 #include <vector>
 #include <string>
-#include <stack>
+#include <array>
+#include <utility>
 using namespace std;
 int main() {
   vector<int> v = {10, 20, 30};
   string s = "hello";
+  array<int, 3> a = {1, 2, 3};
+  pair<int, int> pr = {7, 8};
   int x = 42;
   int* p = &x;
-  stack<int> st;
-  st.push(1);
-  st.push(2);
-  st.push(3);
   cout << "x=" << x << " *p=" << *p << endl;
   return 0;
 }`;
