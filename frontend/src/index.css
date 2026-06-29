@@ -73,11 +73,13 @@ p {
 .topbar h1 { margin: 0; font-size: 22px; letter-spacing: -0.5px; }
 
 .workspace {
-  flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr;
+  flex: 1 1 auto; display: flex;
   min-height: 0;
 }
-.left-col, .right-col { min-height: 0; display: flex; flex-direction: column; }
-.left-col { border-right: var(--border-dotted); }
+.left-col, .right-col { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.left-col { flex: 0 0 var(--split, 50%); border-right: var(--border-dotted); }
+.right-col { flex: 1 1 0; }
+.divider { flex: 0 0 6px; cursor: col-resize; }
 
 .left-col .codepanel { flex: 1 1 auto; min-height: 0; overflow: auto; }
 .left-col .vcr { flex: 0 0 auto; padding: 8px 12px; border-top: var(--border-dotted); }

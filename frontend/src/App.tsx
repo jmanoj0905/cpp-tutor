@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { CodePanel } from "./CodePanel";
+import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
@@ -25,16 +26,17 @@ int main() {
 }`;
 
 function Workspace({
-  trace, code, breakpoints, onToggleBreakpoint,
+  trace, code, breakpoints, onToggleBreakpoint, onResize,
 }: {
   trace: Trace;
   code: string;
   breakpoints: Set<number>;
   onToggleBreakpoint: (line: number) => void;
+  onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
   // OPT C trace: point.line is the line about to execute (next); the previously
-  // displayed line is the one that just executed. Verified manually in Task 3.
+  // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
 
   return (
@@ -44,6 +46,7 @@ function Workspace({
           breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} />
         <Vcr player={player} breakpoints={breakpoints} />
       </section>
+      <Divider onResize={onResize} />
       <section className="right-col">
         <pre className="stdout-bar">{player.point.stdout}</pre>
         <div className="mem-region">
@@ -60,6 +63,7 @@ export default function App() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
+  const [split, setSplit] = useState(50);
 
   function toggleBreakpoint(line: number) {
     setBreakpoints((prev) => toggleInSet(prev, line));
@@ -98,7 +102,7 @@ export default function App() {
             </button>}
       </header>
       {err && <pre className="error">{err}</pre>}
-      <main className="workspace">
+      <main className="workspace" style={{ "--split": `${split}%` } as CSSProperties}>
         {viewing
           ? <Workspace
               key={trace.code}
@@ -106,6 +110,7 @@ export default function App() {
               code={code}
               breakpoints={breakpoints}
               onToggleBreakpoint={toggleBreakpoint}
+              onResize={setSplit}
             />
           : (<>
               <section className="left-col">
@@ -118,6 +123,7 @@ export default function App() {
                   onToggleBreakpoint={toggleBreakpoint}
                 />
               </section>
+              <Divider onResize={setSplit} />
               <section className="right-col empty-hint">
                 <p>Click Visualize Execution to trace your code.</p>
               </section>

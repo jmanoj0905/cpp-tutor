@@ -2,6 +2,17 @@ import { useEffect, useRef } from "react";
 import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
 import { EditorView, lineNumbers, gutter, GutterMarker, Decoration } from "@codemirror/view";
 import { cpp } from "@codemirror/lang-cpp";
+import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
+
+const cppHighlight = HighlightStyle.define([
+  { tag: [t.keyword, t.controlKeyword, t.operatorKeyword, t.moduleKeyword], color: "#8250df", fontWeight: "bold" },
+  { tag: [t.typeName, t.className, t.namespace], color: "#0e7490" },
+  { tag: [t.number, t.bool, t.null], color: "#b35900" },
+  { tag: [t.string, t.special(t.string), t.character], color: "#0a7d3c" },
+  { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--ink-soft)", fontStyle: "italic" },
+  { tag: t.meta, color: "var(--ink-soft)" },
+]);
 
 interface ExecState { justExecuted: number | null; next: number | null }
 interface PanelState { exec: ExecState | null; breakpoints: Set<number> }
@@ -87,6 +98,7 @@ export function CodePanel({
         execGutter((ln) => onToggleRef.current(ln)),
         lineNumbers(),
         cpp(),
+        syntaxHighlighting(cppHighlight),
         EditorView.decorations.compute([panelField, "doc"], (st) => {
           const { exec: ex, breakpoints: bps } = st.field(panelField);
           const doc = st.doc;
