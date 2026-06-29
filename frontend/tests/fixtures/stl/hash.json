@@ -1,0 +1,1608 @@
+{
+    "code": "#include <unordered_map>\n#include <unordered_set>\nint main() {\n  std::unordered_map<int, int> um = {{1, 100}};\n  std::unordered_set<int> us = {7, 8};\n  return um.size() + us.size();\n}",
+    "trace": [
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "um": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "unordered_map<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Equality<int, std::pair<int const, int>, std::allocator<std::pair<int const, int> >, std::__detail::_Select1st, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B00",
+                                            "pointer",
+                                            "0x4B92040"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B08",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B10",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92090"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B10",
+                                                            "new_allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B18",
+                                            "size_type",
+                                            1
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B20",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B20",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_t",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ],
+                        "us": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Equality<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B30",
+                                            "pointer",
+                                            "0x6400000001"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B38",
+                                            "size_type",
+                                            "<UNINITIALIZED>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B40",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "<UNINITIALIZED>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "allocator<std::__detail::_Hash_node<int, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B40",
+                                                            "new_allocator<std::__detail::_Hash_node<int, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "size_type",
+                                            "<UNINITIALIZED>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "float",
+                                                    "<UNINITIALIZED>"
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_t",
+                                                    "<UNINITIALIZED>"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "um",
+                        "us"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "pointer",
+                        "0xFFF000B10"
+                    ]
+                ],
+                "0x4B92090": [
+                    "C_ARRAY",
+                    "0x4B92090",
+                    [
+                        "C_STRUCT",
+                        "0x4B92090",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92090",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92098",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92098",
+                                "pointer",
+                                "0x6400000001"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "um": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "unordered_map<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Equality<int, std::pair<int const, int>, std::allocator<std::pair<int const, int> >, std::__detail::_Select1st, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B00",
+                                            "pointer",
+                                            "0x4B92040"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B08",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B10",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92090"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B10",
+                                                            "new_allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B18",
+                                            "size_type",
+                                            1
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B20",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B20",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_t",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ],
+                        "us": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Equality<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B30",
+                                            "pointer",
+                                            "0x4B921D0"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B38",
+                                            "size_type",
+                                            5
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B40",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x4B92180"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "allocator<std::__detail::_Hash_node<int, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B40",
+                                                            "new_allocator<std::__detail::_Hash_node<int, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_t",
+                                                    5
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "um",
+                        "us"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "pointer",
+                        "0xFFF000B10"
+                    ]
+                ],
+                "0x4B92090": [
+                    "C_ARRAY",
+                    "0x4B92090",
+                    [
+                        "C_STRUCT",
+                        "0x4B92090",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92090",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92098",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92098",
+                                "pointer",
+                                "0x6400000001"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92130": [
+                    "C_ARRAY",
+                    "0x4B92130",
+                    [
+                        "C_STRUCT",
+                        "0x4B92130",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92130",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92138",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92138",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92180": [
+                    "C_ARRAY",
+                    "0x4B92180",
+                    [
+                        "C_STRUCT",
+                        "0x4B92180",
+                        "__node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92180",
+                                "pointer",
+                                "0x4B92130"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92188",
+                        "__node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92188",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B921D0": [
+                    "C_ARRAY",
+                    "0x4B921D0",
+                    [
+                        "C_DATA",
+                        "0x4B921D0",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921D8",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921E0",
+                        "pointer",
+                        "0x4B92180"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921E8",
+                        "pointer",
+                        "0xFFF000B40"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921F0",
+                        "pointer",
+                        "0x0"
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "um": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "unordered_map<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Equality<int, std::pair<int const, int>, std::allocator<std::pair<int const, int> >, std::__detail::_Select1st, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B00",
+                                            "pointer",
+                                            "0x4B92040"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B08",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B10",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92090"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B10",
+                                                            "new_allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B18",
+                                            "size_type",
+                                            1
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B20",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B20",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_t",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ],
+                        "us": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Equality<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B30",
+                                            "pointer",
+                                            "0x4B921D0"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B38",
+                                            "size_type",
+                                            5
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B40",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x4B92180"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "allocator<std::__detail::_Hash_node<int, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B40",
+                                                            "new_allocator<std::__detail::_Hash_node<int, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_t",
+                                                    5
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "um",
+                        "us"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "pointer",
+                        "0xFFF000B10"
+                    ]
+                ],
+                "0x4B92090": [
+                    "C_ARRAY",
+                    "0x4B92090",
+                    [
+                        "C_STRUCT",
+                        "0x4B92090",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92090",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92098",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92098",
+                                "pointer",
+                                "0x6400000001"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92130": [
+                    "C_ARRAY",
+                    "0x4B92130",
+                    [
+                        "C_STRUCT",
+                        "0x4B92130",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92130",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92138",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92138",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92180": [
+                    "C_ARRAY",
+                    "0x4B92180",
+                    [
+                        "C_STRUCT",
+                        "0x4B92180",
+                        "__node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92180",
+                                "pointer",
+                                "0x4B92130"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92188",
+                        "__node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92188",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B921D0": [
+                    "C_ARRAY",
+                    "0x4B921D0",
+                    [
+                        "C_DATA",
+                        "0x4B921D0",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921D8",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921E0",
+                        "pointer",
+                        "0x4B92180"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921E8",
+                        "pointer",
+                        "0xFFF000B40"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921F0",
+                        "pointer",
+                        "0x0"
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "um": [
+                            "C_STRUCT",
+                            "0xFFF000B00",
+                            "unordered_map<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B00",
+                                            "_Equality<int, std::pair<int const, int>, std::allocator<std::pair<int const, int> >, std::__detail::_Select1st, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B00",
+                                            "pointer",
+                                            "0x4B92040"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B08",
+                                            "size_type",
+                                            2
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B10",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B10",
+                                                            "pointer",
+                                                            "0x4B92090"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B10",
+                                                    "allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B10",
+                                                            "new_allocator<std::__detail::_Hash_node<std::pair<int const, int>, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B18",
+                                            "size_type",
+                                            1
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B20",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B20",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B28",
+                                                    "size_t",
+                                                    2
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B00",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ],
+                        "us": [
+                            "C_STRUCT",
+                            "0xFFF000B30",
+                            "unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >",
+                            [
+                                "_M_h",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "_Hashtable",
+                                    [
+                                        "<anon_field>",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B30",
+                                            "_Equality<int, int, std::allocator<int>, std::__detail::_Identity, std::equal_to<int>, std::hash<int>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, true, true>, true>"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_buckets",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B30",
+                                            "pointer",
+                                            "0x4B921D0"
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bucket_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B38",
+                                            "size_type",
+                                            5
+                                        ]
+                                    ],
+                                    [
+                                        "_M_bbegin",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B40",
+                                            "__before_begin",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "_Hash_node_base",
+                                                    [
+                                                        "_M_nxt",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B40",
+                                                            "pointer",
+                                                            "0x0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B40",
+                                                    "allocator<std::__detail::_Hash_node<int, false> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B40",
+                                                            "new_allocator<std::__detail::_Hash_node<int, false> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ],
+                                    [
+                                        "_M_element_count",
+                                        [
+                                            "C_DATA",
+                                            "0xFFF000B48",
+                                            "size_type",
+                                            0
+                                        ]
+                                    ],
+                                    [
+                                        "_M_rehash_policy",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_Prime_rehash_policy",
+                                            [
+                                                "_M_max_load_factor",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "float",
+                                                    1.0
+                                                ]
+                                            ],
+                                            [
+                                                "_M_next_resize",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "size_t",
+                                                    5
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ],
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B30",
+                                    "__allow_copy_cons<true>"
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "um",
+                        "us"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "pointer",
+                        "0x0"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "pointer",
+                        "0xFFF000B10"
+                    ]
+                ],
+                "0x4B92090": [
+                    "C_ARRAY",
+                    "0x4B92090",
+                    [
+                        "C_STRUCT",
+                        "0x4B92090",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92090",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92098",
+                        "_Hash_node_base",
+                        [
+                            "_M_nxt",
+                            [
+                                "C_DATA",
+                                "0x4B92098",
+                                "pointer",
+                                "0x6400000001"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B921D0": [
+                    "C_ARRAY",
+                    "0x4B921D0"
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000AA0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000AA0"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}

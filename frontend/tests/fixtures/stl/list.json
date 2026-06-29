@@ -1,0 +1,1428 @@
+{
+    "code": "#include <list>\n#include <forward_list>\nint main() {\n  std::list<int> l = {1, 2, 3};\n  std::forward_list<int> f = {4, 5};\n  return l.size();\n}",
+    "trace": [
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 3,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 4,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "f": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "forward_list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Fwd_list_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Fwd_list_impl",
+                                            [
+                                                "_M_head",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "_Fwd_list_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "<UNINITIALIZED>"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::_Fwd_list_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::_Fwd_list_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "l": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_List_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_List_impl",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "_List_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_prev",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92100"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "allocator<std::_List_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B50",
+                                                            "new_allocator<std::_List_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "l",
+                        "f"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92050",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920A0": [
+                    "C_ARRAY",
+                    "0x4B920A0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920A0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920A0",
+                                "pointer",
+                                "0x4B92100"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920A8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92100": [
+                    "C_ARRAY",
+                    "0x4B92100",
+                    [
+                        "C_STRUCT",
+                        "0x4B92100",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92100",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92108",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92110",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92110",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92118",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "f": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "forward_list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Fwd_list_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Fwd_list_impl",
+                                            [
+                                                "_M_head",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "_Fwd_list_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x4B92160"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::_Fwd_list_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::_Fwd_list_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "l": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_List_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_List_impl",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "_List_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_prev",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92100"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "allocator<std::_List_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B50",
+                                                            "new_allocator<std::_List_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "l",
+                        "f"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92050",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920A0": [
+                    "C_ARRAY",
+                    "0x4B920A0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920A0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920A0",
+                                "pointer",
+                                "0x4B92100"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920A8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92100": [
+                    "C_ARRAY",
+                    "0x4B92100",
+                    [
+                        "C_STRUCT",
+                        "0x4B92100",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92100",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92108",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92110",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92110",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92118",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92160": [
+                    "C_ARRAY",
+                    "0x4B92160",
+                    [
+                        "C_STRUCT",
+                        "0x4B92160",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92160",
+                                "pointer",
+                                "0x4B921B0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92168",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92168",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B921B0": [
+                    "C_ARRAY",
+                    "0x4B921B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B921B0",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B921B0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B921B8",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B921B8",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 5,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "f": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "forward_list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Fwd_list_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Fwd_list_impl",
+                                            [
+                                                "_M_head",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "_Fwd_list_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x4B92160"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::_Fwd_list_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::_Fwd_list_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "l": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_List_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_List_impl",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "_List_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_prev",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92100"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "allocator<std::_List_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B50",
+                                                            "new_allocator<std::_List_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "l",
+                        "f"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92050",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920A0": [
+                    "C_ARRAY",
+                    "0x4B920A0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920A0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920A0",
+                                "pointer",
+                                "0x4B92100"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920A8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92100": [
+                    "C_ARRAY",
+                    "0x4B92100",
+                    [
+                        "C_STRUCT",
+                        "0x4B92100",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92100",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92108",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92110",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92110",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92118",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92160": [
+                    "C_ARRAY",
+                    "0x4B92160",
+                    [
+                        "C_STRUCT",
+                        "0x4B92160",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92160",
+                                "pointer",
+                                "0x4B921B0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92168",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92168",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B921B0": [
+                    "C_ARRAY",
+                    "0x4B921B0",
+                    [
+                        "C_STRUCT",
+                        "0x4B921B0",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B921B0",
+                                "pointer",
+                                "0x0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B921B8",
+                        "_Fwd_list_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B921B8",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 6,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "f": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "forward_list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Fwd_list_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Fwd_list_impl",
+                                            [
+                                                "_M_head",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "_Fwd_list_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B48",
+                                                            "pointer",
+                                                            "0x0"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::_Fwd_list_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::_Fwd_list_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "l": [
+                            "C_STRUCT",
+                            "0xFFF000B50",
+                            "list<int, std::allocator<int> >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B50",
+                                    "_List_base<int, std::allocator<int> >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B50",
+                                            "_List_impl",
+                                            [
+                                                "_M_node",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "_List_node_base",
+                                                    [
+                                                        "_M_next",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B50",
+                                                            "pointer",
+                                                            "0x4B92040"
+                                                        ]
+                                                    ],
+                                                    [
+                                                        "_M_prev",
+                                                        [
+                                                            "C_DATA",
+                                                            "0xFFF000B58",
+                                                            "pointer",
+                                                            "0x4B92100"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B50",
+                                                    "allocator<std::_List_node<int> >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B50",
+                                                            "new_allocator<std::_List_node<int> >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "l",
+                        "f"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_STRUCT",
+                        "0x4B92040",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92040",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92048",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92050",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92050",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92058",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B920A0": [
+                    "C_ARRAY",
+                    "0x4B920A0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920A0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920A0",
+                                "pointer",
+                                "0x4B92100"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920A8",
+                                "pointer",
+                                "0x4B92040"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B920B0",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B920B0",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B920B8",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ],
+                "0x4B92100": [
+                    "C_ARRAY",
+                    "0x4B92100",
+                    [
+                        "C_STRUCT",
+                        "0x4B92100",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92100",
+                                "pointer",
+                                "0xFFF000B50"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92108",
+                                "pointer",
+                                "0x4B920A0"
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92110",
+                        "_List_node_base",
+                        [
+                            "_M_next",
+                            [
+                                "C_DATA",
+                                "0x4B92110",
+                                "pointer",
+                                "<UNINITIALIZED>"
+                            ]
+                        ],
+                        [
+                            "_M_prev",
+                            [
+                                "C_DATA",
+                                "0x4B92118",
+                                "pointer",
+                                "<UNALLOCATED>"
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "step_line",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        },
+        {
+            "line": 7,
+            "event": "return",
+            "func_name": "main",
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10"
+                }
+            ],
+            "heap": {},
+            "globals": {},
+            "ordered_globals": [],
+            "stdout": ""
+        }
+    ]
+}

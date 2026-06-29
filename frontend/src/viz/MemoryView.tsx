@@ -9,31 +9,38 @@ export function MemoryView({ point }: { point: ExecPoint }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<ConnectorSelection | null>(null);
 
-  // selection is per-step; drop it whenever the step changes
   useEffect(() => { setSelected(null); }, [point]);
-
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
 
   return (
     <div className="memory" ref={containerRef} onClick={() => setSelected(null)}>
-      {memory.globals.length > 0 && (
-        <section className="memory-section">
-          <h3>Globals</h3>
-          <div className="frame-cells">{memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}</div>
+      <div className="panes">
+        <section className="stack-pane">
+          <h3>Stack</h3>
+          {memory.globals.length > 0 && (
+            <div className="frame">
+              <div className="frame-name">Globals</div>
+              <div className="frame-cells">
+                {memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}
+              </div>
+            </div>
+          )}
+          {memory.frames.map((frame, i) => (
+            <div className={`frame${i === memory.frames.length - 1 ? " frame-current" : ""}`} key={frame.id}>
+              <div className="frame-name">{frame.name}</div>
+              <div className="frame-cells">
+                {frame.cells.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}
+              </div>
+            </div>
+          ))}
         </section>
-      )}
-      {memory.frames.map((frame) => (
-        <section className="memory-section frame" key={frame.id}>
-          <div className="frame-name">{frame.name}</div>
-          <div className="frame-cells">{frame.cells.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}</div>
-        </section>
-      ))}
-      {memory.heap.length > 0 && (
-        <section className="memory-section">
+        <section className="heap-pane">
           <h3>Heap</h3>
-          <div className="frame-cells">{memory.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}</div>
+          <div className="frame-cells">
+            {memory.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} />)}
+          </div>
         </section>
-      )}
+      </div>
       <Connectors
         containerRef={containerRef}
         links={memory.links}
