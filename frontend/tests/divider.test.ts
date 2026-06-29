@@ -19,4 +19,7 @@ describe("splitFromPointer", () => {
   it("accounts for rect.left offset", () => {
     expect(splitFromPointer(700, rect(200, 1000))).toBe(50);
   });
+  it("returns 50 when the rect has zero width", () => {
+    expect(splitFromPointer(0, rect(0, 0))).toBe(50);
+  });
 });

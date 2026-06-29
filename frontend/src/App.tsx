@@ -35,6 +35,8 @@ function Workspace({
   onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
+  // OPT C trace: point.line is the line about to execute (next); the previously
+  // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
 
   return (
