@@ -9,7 +9,7 @@ export function MemoryCell({ cell, highlightedIds }: { cell: NormalizedCell; hig
     <div className={`cell cell-${cell.kind}${hot}`} data-cell-id={cell.id}>
       <div className="cell-head">
         <span className="cell-name">{cell.name}</span>
-        {cell.type && cell.kind !== "vector" && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
+        {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} />
       </div>
       {hasChildren(cell) && <Children cell={cell} highlightedIds={highlightedIds} />}
@@ -22,11 +22,12 @@ function CellValue({ cell }: { cell: NormalizedCell }) {
     return (
       <span className={`cell-value ref ${cell.unresolved ? "unresolved" : ""}`}>
         {cell.displayValue}
+        {cell.note ? <em className="cell-note"> {cell.note}</em> : null}
         <span className="port" data-port-id={cell.id} />
       </span>
     );
   }
-  if (cell.kind === "vector" || cell.kind === "array" || cell.kind === "struct" || cell.kind === "container") {
+  if (cell.kind === "array" || cell.kind === "struct" || cell.kind === "container") {
     return (
       <span className="cell-value summary">
         {cell.displayValue}{cell.note ? <em className="cell-note"> {cell.note}</em> : null}
@@ -46,7 +47,7 @@ function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedI
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
   const hidden = all.length - shown.length;
   const kv = ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
-  const grid = !kv && (cell.kind === "array" || cell.kind === "vector" || cell.kind === "container");
+  const grid = !kv && (cell.kind === "array" || cell.kind === "container");
   return (
     <div className={`cell-children ${kv ? "kv" : grid ? "grid" : ""}`}>
       {shown.map((child) => <MemoryCell key={child.id} cell={child} highlightedIds={highlightedIds} />)}

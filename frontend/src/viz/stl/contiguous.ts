@@ -230,6 +230,7 @@ export const stringDecoder: ContainerDecoder = {
       }
     }
 
+    // TODO: untested — SSO path; this COW tracer never hits it. Awaits a new-libstdc++ fixture.
     // SSO fallback: _M_p lives inside the struct; look for _M_local_buf.
     if (charSlice.length === 0) {
       const local = findMember(cell, "_M_local_buf");
