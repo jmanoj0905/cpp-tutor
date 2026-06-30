@@ -4,6 +4,51 @@ import type { ExecPoint } from "../src/types/trace";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
 
+// vector<int> with 3 elements living in a heap C_ARRAY at 0x9000.
+// element addresses: [0]=0x9000, [1]=0x9004, [2]=0x9008.
+function vectorPoint(): ExecPoint {
+  const elem = (addr: string, val: number) => ["C_DATA", addr, "int", val];
+  return {
+    line: 1, event: "step_line", func_name: "main", stdout: "",
+    ordered_globals: [], globals: {},
+    heap: {
+      "0x9000": ["C_ARRAY", "0x9000", elem("0x9000", 10), elem("0x9004", 20), elem("0x9008", 30)],
+    },
+    stack_to_render: [{
+      func_name: "main", frame_id: "f1", unique_hash: "f1",
+      ordered_varnames: ["v", "p", "it"],
+      encoded_locals: {
+        v: ["C_STRUCT", "0x100", "std::vector<int>",
+          ["_M_impl", ["C_STRUCT", "0x100", "impl",
+            ["_M_start", ["C_DATA", "0x100", "int*", "0x9000"]],
+            ["_M_finish", ["C_DATA", "0x108", "int*", "0x900c"]]]]],
+        p: ["C_DATA", "0x200", "int*", "0x9004"],
+        it: ["C_STRUCT", "0x300", "__gnu_cxx::__normal_iterator<int*, std::vector<int> >",
+          ["_M_current", ["C_DATA", "0x300", "int*", "0x9008"]]],
+      },
+    }],
+  } as unknown as ExecPoint;
+}
+
+describe("pointer/iterator into a container", () => {
+  it("resolves a raw pointer &v[1] to the [1] element cell", () => {
+    const m = normalizeMemory(vectorPoint());
+    const v = m.frames[0].cells.find((c) => c.name === "v")!;
+    const elem1 = v.children!.find((c) => c.name === "[1]")!;
+    const link = m.links.find((l) => l.fromName === "p")!;
+    expect(link).toBeDefined();
+    expect(link.toId).toBe(elem1.id);
+  });
+  it("resolves an iterator to the [2] element cell", () => {
+    const m = normalizeMemory(vectorPoint());
+    const v = m.frames[0].cells.find((c) => c.name === "v")!;
+    const elem2 = v.children!.find((c) => c.name === "[2]")!;
+    const link = m.links.find((l) => l.fromName === "it")!;
+    expect(link).toBeDefined();
+    expect(link.toId).toBe(elem2.id);
+  });
+});
+
 const point: ExecPoint = {
   line: 6,
   event: "step_line",
