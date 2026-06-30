@@ -66,17 +66,26 @@ export const dequeDecoder: ContainerDecoder = {
       return ctx.heapByAddress.get(slot.targetAddress);
     }
 
+    // A deque is empty when start and finish iterators coincide.
+    const isEmpty = startCur === finishCur && startNodeAddr === finishNodeAddr;
+
     if (startNodeAddr === finishNodeAddr) {
       // All elements live in a single chunk: collect [startCur, finishCur).
       const chunk = ctx.heapByAddress.get(startFirstStr);
-      if (!chunk) return null;
-      for (const slot of chunk.children ?? []) {
-        const a = parseAddr(slot.address);
-        if (a !== null && a >= startCur && a < finishCur) {
-          children.push({ ...slot, name: `[${children.length}]` });
+      if (!chunk) {
+        // Empty deques carry no chunk in the heap snapshot — that is fine.
+        // A non-empty deque with a missing chunk means partial data; bail to
+        // the raw struct view rather than claim it is empty.
+        if (!isEmpty) return null;
+      } else {
+        for (const slot of chunk.children ?? []) {
+          const a = parseAddr(slot.address);
+          if (a !== null && a >= startCur && a < finishCur) {
+            children.push({ ...slot, name: `[${children.length}]` });
+          }
         }
+        ctx.consumed.add(startFirstStr);
       }
-      ctx.consumed.add(startFirstStr);
     } else {
       // Start chunk: elements in [startCur, startLast).
       const startChunk = ctx.heapByAddress.get(startFirstStr);
@@ -122,7 +131,9 @@ export const dequeDecoder: ContainerDecoder = {
     // Consume the map array itself.
     if (mapAddr) ctx.consumed.add(mapAddr);
 
-    if (children.length === 0) return null;
+    // Genuinely-empty deque → empty container (not a raw struct dump).
+    // No children + not-empty means we failed to decode; fall back to raw.
+    if (children.length === 0 && !isEmpty) return null;
 
     return {
       ...cell,
