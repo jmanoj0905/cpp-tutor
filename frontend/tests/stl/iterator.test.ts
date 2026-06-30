@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { iteratorDecoder } from "../../src/viz/stl/iterator";
 import type { NormalizedCell } from "../../src/viz/memoryModel";
+import { normalizeMemory } from "../../src/viz/memoryModel";
+import type { ExecPoint } from "../../src/types/trace";
+import iterFixture from "../fixtures/stl/iterator.json";
 
 function refMember(name: string, target: string): NormalizedCell {
   return { id: name, name, source: "stack", kind: "reference", address: "0x1",
@@ -38,5 +41,21 @@ describe("iteratorDecoder", () => {
   });
   it("does not match unrelated types", () => {
     expect(iteratorDecoder.match("std::vector<int>")).toBe(false);
+  });
+});
+
+describe("iterator fixture (real trace)", () => {
+  it("links it and p to a v element cell", () => {
+    const steps = (iterFixture as any).trace as ExecPoint[];
+    const point = [...steps].reverse().find(
+      (s) => (s.stack_to_render as any)?.[0]?.encoded_locals?.it,
+    )!;
+    const m = normalizeMemory(point);
+    const v = m.frames[0].cells.find((c) => c.name === "v")!;
+    const elemIds = new Set((v.children ?? []).map((c) => c.id));
+    const itLink = m.links.find((l) => l.fromName === "it");
+    const pLink = m.links.find((l) => l.fromName === "p");
+    expect(itLink && elemIds.has(itLink.toId)).toBe(true);
+    expect(pLink && elemIds.has(pLink.toId)).toBe(true);
   });
 });
