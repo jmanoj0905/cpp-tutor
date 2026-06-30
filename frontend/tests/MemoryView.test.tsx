@@ -58,6 +58,25 @@ describe("MemoryCell", () => {
     expect(container.textContent).toContain("vector<int>");
   });
 
+  it("renders a rectangular 2D container as aligned matrix rows", () => {
+    const mkRow = (id: string, a: string, b: string, c: string) =>
+      cell({ id, name: id, kind: "container", containerKind: "vector",
+        children: [
+          cell({ id: `${id}0`, name: "[0]", displayValue: a }),
+          cell({ id: `${id}1`, name: "[1]", displayValue: b }),
+          cell({ id: `${id}2`, name: "[2]", displayValue: c }),
+        ] });
+    const m = cell({ id: "m", name: "m", kind: "container", containerKind: "vector",
+      displayValue: "vector<vector<int>> · 2",
+      children: [mkRow("r0", "1", "2", "3"), mkRow("r1", "4", "5", "6")] });
+
+    const { container } = render(<MemoryCell cell={m} />);
+    expect(container.querySelectorAll(".matrix-row").length).toBe(2);
+    // every element still individually addressable for connectors
+    expect(container.querySelector('[data-cell-id="r00"]')).not.toBeNull();
+    expect(container.querySelector('[data-cell-id="r12"]')).not.toBeNull();
+  });
+
   it("renders a stack pane and a heap pane side by side", () => {
     const point = {
       line: 1, event: "step_line", func_name: "main", stdout: "",
