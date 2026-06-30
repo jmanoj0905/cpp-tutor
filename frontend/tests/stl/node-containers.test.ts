@@ -49,4 +49,20 @@ describe("node-based STL containers", () => {
     expect(um.displayValue).toBe("unordered_map<int,int> · 2");
     expect(allPlaceholders(um)).toBe(true);
   });
+
+  it("collapses a populated std::list by walking its node chain", () => {
+    const l = bestCell("l");
+    expect(l.containerKind).toBe("list");
+    expect(l.length).toBe(3);
+    expect(l.displayValue).toBe("list<int> · 3");
+    expect(allPlaceholders(l)).toBe(true);
+  });
+
+  it("renders a default-constructed empty std::list as · 0", () => {
+    const e = bestCell("empty");
+    expect(e.containerKind).toBe("list");
+    expect(e.length).toBe(0);
+    expect(e.children ?? []).toEqual([]);
+    expect(e.displayValue).toBe("list<int> · 0");
+  });
 });

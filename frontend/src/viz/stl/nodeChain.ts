@@ -126,10 +126,21 @@ export const hashDecoder: ContainerDecoder = {
   },
 };
 
-/** std::list — placeholder; real decode added in a later task. */
+/**
+ * std::list — circular doubly-linked list with an inline sentinel header
+ * (_M_impl._M_node). Walk _M_next from the sentinel's first node until the
+ * chain loops back to the sentinel's own address. An empty list's sentinel
+ * points to itself → count 0.
+ */
 export const listDecoder: ContainerDecoder = {
   match: (type) => /\blist\s*</.test(type) && !/forward_list/.test(type),
-  decode: () => null,
+  decode(cell, ctx) {
+    const sentinel = findMember(cell, "_M_node");
+    const sentinelAddr = sentinel?.address ?? undefined;
+    const head = sentinel ? findPointer(sentinel, "_M_next") : undefined;
+    const count = walkChain(head, "_M_next", ctx, sentinelAddr);
+    return nodeContainer(cell, "list", false, count);
+  },
 };
 
 /** std::forward_list — placeholder; real decode added in a later task. */
