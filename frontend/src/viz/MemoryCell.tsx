@@ -63,7 +63,7 @@ function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedI
 
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
   const hidden = all.length - shown.length;
-  const kv = ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
+  const kv = !cell.placeholders && ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
   const grid = !kv && (cell.kind === "array" || cell.kind === "container");
   return (
     <div className={`cell-children ${kv ? "kv" : grid ? "grid" : ""}`}>

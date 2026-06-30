@@ -21,6 +21,9 @@ export interface NormalizedCell {
   length?: number;
   elementType?: string;
   containerKind?: string;
+  /** True when a container's children are opaque "?" placeholders (values not
+   *  recoverable from this tracer); suppresses key/value pair layout. */
+  placeholders?: boolean;
   note?: string;
 }
 

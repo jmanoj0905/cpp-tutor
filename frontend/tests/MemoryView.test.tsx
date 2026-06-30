@@ -58,6 +58,17 @@ describe("MemoryCell", () => {
     expect(container.textContent).toContain("vector<int>");
   });
 
+  it("renders a placeholder map as a grid, not key/value pairs", () => {
+    const { container } = render(<MemoryCell cell={cell({
+      id: "m", name: "m", kind: "container", containerKind: "map",
+      placeholders: true, length: 2, displayValue: "map<int,int> · 2",
+      children: [cell({ id: "m0", name: "[0]", displayValue: "?" }),
+                 cell({ id: "m1", name: "[1]", displayValue: "?" })],
+    })} />);
+    expect(container.querySelector(".cell-children.grid")).toBeTruthy();
+    expect(container.querySelector(".cell-children.kv")).toBeNull();
+  });
+
   it("renders a rectangular 2D container as aligned matrix rows", () => {
     const mkRow = (id: string, a: string, b: string, c: string) =>
       cell({ id, name: id, kind: "container", containerKind: "vector",

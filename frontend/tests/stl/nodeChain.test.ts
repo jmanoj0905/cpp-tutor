@@ -1,6 +1,6 @@
 // frontend/tests/stl/nodeChain.test.ts
 //
-// Node-container struct-fallback tests.
+// Node-container decode tests.
 //
 // Tracer limitation (verified against real traces): this old libstdc++ tracer
 // does NOT emit node payload values for any node-based container:
@@ -11,8 +11,8 @@
 //   - std::unordered_*/hash nodes: C_ARRAY with _Hash_node_base/_M_nxt only;
 //     the stored value is absent.
 //
-// Per design: these decoders return null, so the cell stays as kind:"struct"
-// (generic struct render). We assert that fallback here.
+// list/forward_list/hash: return null → struct fallback (asserted below).
+// map/set: treeDecoder collapses to kind:"container" with placeholder children.
 
 import { describe, it, expect } from "vitest";
 import { normalizeMemory } from "../../src/viz/memoryModel";
@@ -46,20 +46,22 @@ describe("node-chain decoders — struct fallback", () => {
     expect((cell as any).containerKind).toBeUndefined();
   });
 
-  it("std::map falls back to struct (tracer omits node payload)", () => {
+  it("std::map collapses to a placeholder container (treeDecoder)", () => {
     const step = lastStep(treeFixture as any, "m");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "m")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("map");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::set falls back to struct (tracer omits node payload)", () => {
+  it("std::set collapses to a placeholder container (treeDecoder)", () => {
     const step = lastStep(treeFixture as any, "s");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "s")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("set");
+    expect(cell.placeholders).toBe(true);
   });
 
   it("std::unordered_map falls back to struct (tracer omits node payload)", () => {
