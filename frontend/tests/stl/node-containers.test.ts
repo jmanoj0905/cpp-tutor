@@ -41,4 +41,12 @@ describe("node-based STL containers", () => {
     expect(s.displayValue).toBe("set<int> · 3");
     expect(allPlaceholders(s)).toBe(true);
   });
+
+  it("collapses std::unordered_map into a sized container", () => {
+    const um = bestCell("um");
+    expect(um.containerKind).toBe("unordered_map");
+    expect(um.length).toBe(2);
+    expect(um.displayValue).toBe("unordered_map<int,int> · 2");
+    expect(allPlaceholders(um)).toBe(true);
+  });
 });

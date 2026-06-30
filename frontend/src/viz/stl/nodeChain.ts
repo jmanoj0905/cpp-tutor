@@ -109,10 +109,21 @@ export const treeDecoder: ContainerDecoder = {
   },
 };
 
-/** std::unordered_* — placeholder; real decode added in a later task. */
+/**
+ * std::unordered_(map|set|multimap|multiset) — hash table. All nodes are
+ * threaded on one singly-linked list rooted at _M_h._M_bbegin._M_node._M_nxt.
+ * Walk it for the count (and to consume the node chunks); fall back to
+ * _M_element_count when the walk cannot start.
+ */
 export const hashDecoder: ContainerDecoder = {
   match: (type) => /unordered_(multimap|multiset|map|set)\s*</.test(type),
-  decode: () => null,
+  decode(cell, ctx) {
+    const kind = nodeKind(cell.type ?? "");
+    const head = findPointer(cell, "_M_nxt");
+    let count = walkChain(head, "_M_nxt", ctx);
+    if (count === null) count = scalarInt(findMember(cell, "_M_element_count"));
+    return nodeContainer(cell, kind, PAIR_KINDS.has(kind), count);
+  },
 };
 
 /** std::list — placeholder; real decode added in a later task. */
