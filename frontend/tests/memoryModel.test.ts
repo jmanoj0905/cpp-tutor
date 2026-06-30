@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { decodeMemoryValue, normalizeMemory } from "../src/viz/memoryModel";
+import { decodeMemoryValue, normalizeMemory, gridShape } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
+import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
 
 const point: ExecPoint = {
@@ -201,5 +202,45 @@ describe("memoryModel", () => {
       ["gp", "0x100"],
       ["p", "0x100"],
     ]);
+  });
+});
+
+function gcell(p: Partial<NormalizedCell>): NormalizedCell {
+  return { id: "id", name: "n", source: "stack", kind: "scalar", address: null, type: null, displayValue: "", rawValue: null, ...p };
+}
+
+function row(id: string, vals: string[]): NormalizedCell {
+  return gcell({
+    id, name: id, kind: "container", containerKind: "vector",
+    children: vals.map((v, i) => gcell({ id: `${id}-${i}`, name: `[${i}]`, displayValue: v })),
+  });
+}
+
+describe("gridShape", () => {
+  it("returns rows×cols for a rectangular 2D container", () => {
+    const m = gcell({ id: "m", kind: "container", containerKind: "vector",
+      children: [row("r0", ["1", "2", "3"]), row("r1", ["4", "5", "6"])] });
+    expect(gridShape(m)).toEqual({ rows: 2, cols: 3 });
+  });
+  it("returns null for a jagged 2D container", () => {
+    const m = gcell({ id: "m", kind: "container",
+      children: [row("r0", ["1", "2"]), row("r1", ["3", "4", "5"])] });
+    expect(gridShape(m)).toBeNull();
+  });
+  it("returns null for a 1D container (children have no children)", () => {
+    expect(gridShape(row("r0", ["1", "2", "3"]))).toBeNull();
+  });
+  it("returns null for fewer than 2 rows", () => {
+    const m = gcell({ id: "m", kind: "container", children: [row("r0", ["1", "2"])] });
+    expect(gridShape(m)).toBeNull();
+  });
+  it("returns null when the cell is not array/container", () => {
+    const s = gcell({ id: "s", kind: "struct", children: [row("r0", ["1"]), row("r1", ["2"])] });
+    expect(gridShape(s)).toBeNull();
+  });
+  it("returns the outer shape for a 3D container (inner recurses)", () => {
+    const inner = (id: string) => gcell({ id, kind: "container", children: [row(`${id}a`, ["1", "2"]), row(`${id}b`, ["3", "4"])] });
+    const m = gcell({ id: "m", kind: "container", children: [inner("x"), inner("y")] });
+    expect(gridShape(m)).toEqual({ rows: 2, cols: 2 });
   });
 });

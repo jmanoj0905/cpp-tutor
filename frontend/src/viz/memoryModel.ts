@@ -180,6 +180,17 @@ export function decodeMemoryValue(
   };
 }
 
+export function gridShape(cell: NormalizedCell): { rows: number; cols: number } | null {
+  if (cell.kind !== "array" && cell.kind !== "container") return null;
+  const rows = cell.children ?? [];
+  if (rows.length < 2) return null;
+  const cols = rows[0].children?.length ?? 0;
+  if (cols === 0) return null;
+  const rectangular = rows.every((r) => (r.children?.length ?? 0) === cols);
+  if (!rectangular) return null;
+  return { rows: rows.length, cols };
+}
+
 function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
   return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
 }
