@@ -235,9 +235,19 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
   const resolve = (cells: NormalizedCell[]) =>
     resolveReferences(resolveContainers(resolveReferences(cells, addressMap), ctx), addressMap);
 
+  // Resolve the heap FIRST, then re-point heapByAddress at the decoded buffers.
+  // Container decoders (vector/deque/string) inline a heap buffer by address; a
+  // nested container like vector<vector<int>> has buffer elements that are
+  // themselves containers, so the buffer must already be decoded when the outer
+  // container inlines it — otherwise the inner elements render as raw structs.
+  const heapResolved = resolve(heapRaw);
+  for (const cell of heapResolved) {
+    if (cell.address) heapByAddress.set(cell.address, cell);
+  }
+
   const globals = resolve(rawGlobals);
   const frames = rawFrames.map((frame) => ({ ...frame, cells: resolve(frame.cells) }));
-  const heap = resolve(heapRaw).filter((cell) => !(cell.address && consumed.has(cell.address)));
+  const heap = heapResolved.filter((cell) => !(cell.address && consumed.has(cell.address)));
 
   const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
     .filter((cell) => cell.kind === "reference" && cell.targetId && cell.targetAddress)
