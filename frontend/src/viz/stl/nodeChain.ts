@@ -143,10 +143,17 @@ export const listDecoder: ContainerDecoder = {
   },
 };
 
-/** std::forward_list — placeholder; real decode added in a later task. */
+/**
+ * std::forward_list — singly-linked, null-terminated. Head is
+ * _M_impl._M_head._M_next; walk _M_next until 0x0.
+ */
 export const forwardListDecoder: ContainerDecoder = {
   match: (type) => /forward_list\s*</.test(type),
-  decode: () => null,
+  decode(cell, ctx) {
+    const head = findPointer(cell, "_M_next");
+    const count = walkChain(head, "_M_next", ctx);
+    return nodeContainer(cell, "forward_list", false, count);
+  },
 };
 
 // Helpers reused by later tasks (unordered / list / forward_list):

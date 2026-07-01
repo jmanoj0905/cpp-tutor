@@ -65,4 +65,12 @@ describe("node-based STL containers", () => {
     expect(e.children ?? []).toEqual([]);
     expect(e.displayValue).toBe("list<int> · 0");
   });
+
+  it("collapses std::forward_list by walking its node chain", () => {
+    const fl = bestCell("fl");
+    expect(fl.containerKind).toBe("forward_list");
+    expect(fl.length).toBe(3);
+    expect(fl.displayValue).toBe("forward_list<int> · 3");
+    expect(allPlaceholders(fl)).toBe(true);
+  });
 });
