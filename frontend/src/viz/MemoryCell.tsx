@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { NormalizedCell } from "./memoryModel";
+import { gridShape } from "./memoryModel";
 
 const COLLAPSE_AT = 8;
 
@@ -44,9 +45,25 @@ function hasChildren(cell: NormalizedCell): boolean {
 function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
+
+  const shape = gridShape(cell);
+  if (shape) {
+    return (
+      <div className="matrix" style={{ gridTemplateColumns: `repeat(${shape.cols}, auto)` }}>
+        {all.map((rowCell) => (
+          <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
+            {(rowCell.children ?? []).map((el) => (
+              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} />
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
   const hidden = all.length - shown.length;
-  const kv = ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
+  const kv = !cell.placeholders && ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
   const grid = !kv && (cell.kind === "array" || cell.kind === "container");
   return (
     <div className={`cell-children ${kv ? "kv" : grid ? "grid" : ""}`}>

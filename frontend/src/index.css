@@ -258,6 +258,9 @@ p {
 .cell-children.kv { border-left: none; padding-left: 0; }
 .cell-children.kv .cell { border-bottom: var(--border-dotted); }
 
+.matrix { display: grid; gap: 4px; margin-top: 6px; }
+.matrix .cell { border: var(--border-dotted); padding: 2px 6px; text-align: center; }
+
 .more-toggle {
   font-family: var(--sans); font-size: 11px; color: var(--ink);
   background: var(--panel); border: var(--border-dotted); padding: 1px 8px; cursor: pointer;

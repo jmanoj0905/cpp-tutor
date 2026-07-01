@@ -3,6 +3,7 @@ import type { ContainerDecoder, DecodeCtx } from "./types";
 import { arrayDecoder, dequeDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 import { forwardListDecoder, hashDecoder, listDecoder, treeDecoder } from "./nodeChain";
 import { stackDecoder, queueDecoder, priorityQueueDecoder } from "./adaptor";
+import { iteratorDecoder } from "./iterator";
 import { pairDecoder, tupleDecoder, bitsetDecoder, sharedPtrDecoder, uniquePtrDecoder, weakPtrDecoder } from "./structLike";
 
 // Order matters: more specific patterns first.
@@ -40,6 +41,10 @@ export const registry: ContainerDecoder[] = [
   arrayDecoder,
   vectorDecoder,
   stringDecoder,
+  // Contiguous iterators: emit a reference cell pointing at the element.
+  // Must precede the struct-like decoders (pair/tuple) so iterator structs
+  // are not misread, and after the container decoders.
+  iteratorDecoder,
   // Smart-pointer decoders: emit a reference cell pointing at the managed object.
   // These must appear BEFORE the generic struct-like decoders (their type patterns
   // are specific enough not to collide with pair/tuple/bitset).

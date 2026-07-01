@@ -1,7 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { decodeMemoryValue, normalizeMemory } from "../src/viz/memoryModel";
+import { decodeMemoryValue, normalizeMemory, gridShape } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
+import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
+
+// vector<int> with 3 elements living in a heap C_ARRAY at 0x9000.
+// element addresses: [0]=0x9000, [1]=0x9004, [2]=0x9008.
+function vectorPoint(): ExecPoint {
+  const elem = (addr: string, val: number) => ["C_DATA", addr, "int", val];
+  return {
+    line: 1, event: "step_line", func_name: "main", stdout: "",
+    ordered_globals: [], globals: {},
+    heap: {
+      "0x9000": ["C_ARRAY", "0x9000", elem("0x9000", 10), elem("0x9004", 20), elem("0x9008", 30)],
+    },
+    stack_to_render: [{
+      func_name: "main", frame_id: "f1", unique_hash: "f1",
+      ordered_varnames: ["v", "p", "it"],
+      encoded_locals: {
+        v: ["C_STRUCT", "0x100", "std::vector<int>",
+          ["_M_impl", ["C_STRUCT", "0x100", "impl",
+            ["_M_start", ["C_DATA", "0x100", "int*", "0x9000"]],
+            ["_M_finish", ["C_DATA", "0x108", "int*", "0x900c"]]]]],
+        p: ["C_DATA", "0x200", "int*", "0x9004"],
+        it: ["C_STRUCT", "0x300", "__gnu_cxx::__normal_iterator<int*, std::vector<int> >",
+          ["_M_current", ["C_DATA", "0x300", "int*", "0x9008"]]],
+      },
+    }],
+  } as unknown as ExecPoint;
+}
+
+describe("pointer/iterator into a container", () => {
+  it("resolves a raw pointer &v[1] to the [1] element cell", () => {
+    const m = normalizeMemory(vectorPoint());
+    const v = m.frames[0].cells.find((c) => c.name === "v")!;
+    const elem1 = v.children!.find((c) => c.name === "[1]")!;
+    const link = m.links.find((l) => l.fromName === "p")!;
+    expect(link).toBeDefined();
+    expect(link.toId).toBe(elem1.id);
+  });
+  it("resolves an iterator to the [2] element cell", () => {
+    const m = normalizeMemory(vectorPoint());
+    const v = m.frames[0].cells.find((c) => c.name === "v")!;
+    const elem2 = v.children!.find((c) => c.name === "[2]")!;
+    const link = m.links.find((l) => l.fromName === "it")!;
+    expect(link).toBeDefined();
+    expect(link.toId).toBe(elem2.id);
+  });
+});
 
 const point: ExecPoint = {
   line: 6,
@@ -201,5 +247,45 @@ describe("memoryModel", () => {
       ["gp", "0x100"],
       ["p", "0x100"],
     ]);
+  });
+});
+
+function gcell(p: Partial<NormalizedCell>): NormalizedCell {
+  return { id: "id", name: "n", source: "stack", kind: "scalar", address: null, type: null, displayValue: "", rawValue: null, ...p };
+}
+
+function row(id: string, vals: string[]): NormalizedCell {
+  return gcell({
+    id, name: id, kind: "container", containerKind: "vector",
+    children: vals.map((v, i) => gcell({ id: `${id}-${i}`, name: `[${i}]`, displayValue: v })),
+  });
+}
+
+describe("gridShape", () => {
+  it("returns rows×cols for a rectangular 2D container", () => {
+    const m = gcell({ id: "m", kind: "container", containerKind: "vector",
+      children: [row("r0", ["1", "2", "3"]), row("r1", ["4", "5", "6"])] });
+    expect(gridShape(m)).toEqual({ rows: 2, cols: 3 });
+  });
+  it("returns null for a jagged 2D container", () => {
+    const m = gcell({ id: "m", kind: "container",
+      children: [row("r0", ["1", "2"]), row("r1", ["3", "4", "5"])] });
+    expect(gridShape(m)).toBeNull();
+  });
+  it("returns null for a 1D container (children have no children)", () => {
+    expect(gridShape(row("r0", ["1", "2", "3"]))).toBeNull();
+  });
+  it("returns null for fewer than 2 rows", () => {
+    const m = gcell({ id: "m", kind: "container", children: [row("r0", ["1", "2"])] });
+    expect(gridShape(m)).toBeNull();
+  });
+  it("returns null when the cell is not array/container", () => {
+    const s = gcell({ id: "s", kind: "struct", children: [row("r0", ["1"]), row("r1", ["2"])] });
+    expect(gridShape(s)).toBeNull();
+  });
+  it("returns the outer shape for a 3D container (inner recurses)", () => {
+    const inner = (id: string) => gcell({ id, kind: "container", children: [row(`${id}a`, ["1", "2"]), row(`${id}b`, ["3", "4"])] });
+    const m = gcell({ id: "m", kind: "container", children: [inner("x"), inner("y")] });
+    expect(gridShape(m)).toEqual({ rows: 2, cols: 2 });
   });
 });
