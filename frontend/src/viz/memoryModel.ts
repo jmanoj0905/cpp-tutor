@@ -25,6 +25,10 @@ export interface NormalizedCell {
    *  recoverable from this tracer); suppresses key/value pair layout. */
   placeholders?: boolean;
   note?: string;
+  /** True for compiler-generated top-level stack locals (name starts with `__`),
+   *  e.g. range-for temporaries __for_range/__for_begin/__for_end. Hidden by
+   *  default behind the per-frame internals toggle. */
+  internal?: boolean;
 }
 
 export interface NormalizedFrame {
@@ -273,7 +277,10 @@ function normalizeFrames(point: ExecPoint): NormalizedFrame[] {
     return {
       id: frameId,
       name: frame.func_name ?? `frame ${index + 1}`,
-      cells: names.map((name) => decodeMemoryValue(locals[name], name, "stack", frameId)),
+      cells: names.map((name) => {
+        const cell = decodeMemoryValue(locals[name], name, "stack", frameId);
+        return isCompilerInternal(name) ? { ...cell, internal: true } : cell;
+      }),
     };
   });
 }
@@ -316,6 +323,10 @@ function orderNames(record: Record<string, unknown>, ordered: string[]): string[
   }
 
   return names;
+}
+
+export function isCompilerInternal(name: string): boolean {
+  return name.startsWith("__");
 }
 
 function getReferenceTarget(value: unknown): string | null {

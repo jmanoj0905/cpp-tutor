@@ -261,6 +261,26 @@ function row(id: string, vals: string[]): NormalizedCell {
   });
 }
 
+describe("compiler-internal stack locals", () => {
+  it("flags top-level locals whose name starts with __ as internal", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["v", "__for_range"],
+        encoded_locals: {
+          v: ["C_DATA", "0x10", "int", 5],
+          __for_range: ["C_DATA", "0x18", "int", 9],
+        },
+      }],
+    } as unknown as ExecPoint;
+    const cells = normalizeMemory(point).frames[0].cells;
+    expect(cells.find((c) => c.name === "__for_range")!.internal).toBe(true);
+    expect(cells.find((c) => c.name === "v")!.internal).toBeFalsy();
+  });
+});
+
 describe("gridShape", () => {
   it("returns rows×cols for a rectangular 2D container", () => {
     const m = gcell({ id: "m", kind: "container", containerKind: "vector",
