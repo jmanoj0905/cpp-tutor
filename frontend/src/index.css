@@ -251,6 +251,14 @@ p {
 }
 .frame-cells { display: flex; flex-direction: column; padding: 4px 8px; }
 
+/* Per-variable bento box: only top-level stack vars (direct children). */
+.stack-pane .frame-cells > .cell {
+  border: var(--border-dotted);
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+.stack-pane .frame-cells > .cell:last-child { margin-bottom: 0; }
+
 /* ── Cells ──────────────────────────────────────────────────── */
 .cell { padding: 4px 2px; font-family: var(--mono); font-size: 12px; }
 .cell-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
