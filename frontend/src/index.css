@@ -254,7 +254,7 @@ p {
 /* ── Cells ──────────────────────────────────────────────────── */
 .cell { padding: 4px 2px; font-family: var(--mono); font-size: 12px; }
 .cell-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cell-name { color: var(--ink-soft); }
+.cell-name { color: var(--ink); font-weight: 600; }
 .cell-type { font-size: 10px; color: var(--ink-soft); border: var(--border-dotted); padding: 0 4px; }
 .cell-value { color: var(--ink); font-weight: 600; margin-left: auto; }
 .cell-value.summary { font-weight: 700; }
