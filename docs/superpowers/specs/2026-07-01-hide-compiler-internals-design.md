@@ -86,6 +86,16 @@ Work:
 4. Fix so the raw guts never render.
 5. Regenerate any affected fixtures.
 
+## Part C — bolder variable names
+
+Variable names currently render soft and unweighted:
+`.cell-name { color: var(--ink-soft); }`. Make the name a little bolder than
+its surroundings so the eye lands on it first.
+
+- `frontend/src/index.css`: give `.cell-name` `font-weight: 600` and switch its
+  color from `var(--ink-soft)` to `var(--ink)`.
+- Purely visual; no data-layer or test change.
+
 ## Testing
 
 TDD, per repo convention — failing test first, then minimal implementation,
