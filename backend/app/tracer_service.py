@@ -23,7 +23,7 @@ def _docker_cmd(code: str, lang: str, image: str) -> list[str]:
 
 def run_trace(code: str, lang: str,
               image: str = "cpp-tutor-tracer:dev",
-              timeout: int = 15) -> Trace | CompileError:
+              timeout: int = 40) -> Trace | CompileError:
     if lang not in ("c", "cpp"):
         raise TracerError(f"unsupported lang: {lang}")
     try:
