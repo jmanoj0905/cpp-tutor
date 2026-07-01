@@ -21,6 +21,9 @@ export interface NormalizedCell {
   length?: number;
   elementType?: string;
   containerKind?: string;
+  /** True when a container's children are opaque "?" placeholders (values not
+   *  recoverable from this tracer); suppresses key/value pair layout. */
+  placeholders?: boolean;
   note?: string;
 }
 
@@ -178,6 +181,17 @@ export function decodeMemoryValue(
     type: null,
     displayValue: formatScalar(rawValue),
   };
+}
+
+export function gridShape(cell: NormalizedCell): { rows: number; cols: number } | null {
+  if (cell.kind !== "array" && cell.kind !== "container") return null;
+  const rows = cell.children ?? [];
+  if (rows.length < 2) return null;
+  const cols = rows[0].children?.length ?? 0;
+  if (cols === 0) return null;
+  const rectangular = rows.every((r) => (r.children?.length ?? 0) === cols);
+  if (!rectangular) return null;
+  return { rows: rows.length, cols };
 }
 
 function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {

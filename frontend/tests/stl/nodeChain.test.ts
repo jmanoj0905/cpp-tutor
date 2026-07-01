@@ -1,6 +1,6 @@
 // frontend/tests/stl/nodeChain.test.ts
 //
-// Node-container struct-fallback tests.
+// Node-container decode tests.
 //
 // Tracer limitation (verified against real traces): this old libstdc++ tracer
 // does NOT emit node payload values for any node-based container:
@@ -11,8 +11,11 @@
 //   - std::unordered_*/hash nodes: C_ARRAY with _Hash_node_base/_M_nxt only;
 //     the stored value is absent.
 //
-// Per design: these decoders return null, so the cell stays as kind:"struct"
-// (generic struct render). We assert that fallback here.
+// All families collapse to kind:"container" with placeholder children.
+// Element values remain unrecoverable (tracer limitation).
+// map/set: treeDecoder uses _M_node_count for size.
+// list/forward_list: listDecoder/forwardListDecoder walk the node chain.
+// unordered_*: hashDecoder walks _M_nxt chain or falls back to _M_element_count.
 
 import { describe, it, expect } from "vitest";
 import { normalizeMemory } from "../../src/viz/memoryModel";
@@ -29,52 +32,58 @@ function lastStep(fixture: { trace: unknown[] }, name: string): ExecPoint {
   )!;
 }
 
-describe("node-chain decoders — struct fallback", () => {
-  it("std::list falls back to struct (tracer omits node payload)", () => {
+describe("node-chain decoders — container collapse", () => {
+  it("std::list collapses to a placeholder container", () => {
     const step = lastStep(listFixture as any, "l");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "l")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("list");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::forward_list falls back to struct (tracer omits node payload)", () => {
+  it("std::forward_list collapses to a placeholder container", () => {
     const step = lastStep(listFixture as any, "f");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "f")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("forward_list");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::map falls back to struct (tracer omits node payload)", () => {
+  it("std::map collapses to a placeholder container (treeDecoder)", () => {
     const step = lastStep(treeFixture as any, "m");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "m")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("map");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::set falls back to struct (tracer omits node payload)", () => {
+  it("std::set collapses to a placeholder container (treeDecoder)", () => {
     const step = lastStep(treeFixture as any, "s");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "s")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("set");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::unordered_map falls back to struct (tracer omits node payload)", () => {
+  it("std::unordered_map collapses to a placeholder container", () => {
     const step = lastStep(hashFixture as any, "um");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "um")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("unordered_map");
+    expect(cell.placeholders).toBe(true);
   });
 
-  it("std::unordered_set falls back to struct (tracer omits node payload)", () => {
+  it("std::unordered_set collapses to a placeholder container", () => {
     const step = lastStep(hashFixture as any, "us");
     const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "us")!;
     expect(cell).toBeDefined();
-    expect(cell.kind).toBe("struct");
-    expect((cell as any).containerKind).toBeUndefined();
+    expect(cell.kind).toBe("container");
+    expect(cell.containerKind).toBe("unordered_set");
+    expect(cell.placeholders).toBe(true);
   });
 });
