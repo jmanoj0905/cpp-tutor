@@ -162,7 +162,12 @@ function vectorSize(start?: string, finish?: string, buffer?: NormalizedCell): n
 }
 
 export const vectorDecoder: ContainerDecoder = {
-  match: (type) => /\bvector\s*</.test(type),
+  // Anchor at the type head: match `vector<…>` / `std::vector<…>`, but NOT the
+  // libstdc++ base classes `_Vector_base<…>` / `_Vector_impl` whose template
+  // ARGUMENT contains "vector<" for a nested vector<vector<T>>. Matching the base
+  // class would decode it first (bottom-up), consuming the real _M_impl._M_start
+  // so the outer vector then resolves to the first inner vector's element buffer.
+  match: (type) => /^(?:std::)?vector\s*</.test(type),
   decode(cell, ctx: DecodeCtx) {
     const start = findPointer(cell, "_M_start");
     if (!start) return null;
