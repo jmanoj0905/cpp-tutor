@@ -49,6 +49,9 @@ function Workspace({
       <Divider onResize={onResize} />
       <section className="right-col">
         <pre className="stdout-bar">{player.point.stdout}</pre>
+        {player.point.exception_msg && (
+          <div className="limit-notice">{player.point.exception_msg}</div>
+        )}
         <div className="mem-region">
           <MemoryView point={player.point} />
         </div>

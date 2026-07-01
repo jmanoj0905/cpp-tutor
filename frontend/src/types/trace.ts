@@ -7,6 +7,7 @@ export interface ExecPoint {
   globals: Record<string, unknown>;
   ordered_globals: string[];
   stdout: string;
+  exception_msg?: string;
 }
 export interface Trace { code: string; trace: ExecPoint[]; }
 export interface CompileError { status: "compile_error"; message: string; line: number | null; }

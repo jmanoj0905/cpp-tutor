@@ -11,6 +11,7 @@ class ExecPoint(BaseModel):
     globals: dict[str, Any] = {}
     ordered_globals: list[str] = []
     stdout: str = ""
+    exception_msg: str = ""
 
 
 class Trace(BaseModel):
