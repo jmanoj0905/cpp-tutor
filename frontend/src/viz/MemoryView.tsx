@@ -5,6 +5,10 @@ import { MemoryCell } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
 
 export function MemoryView({ point }: { point: ExecPoint }) {
+  // Intentionally recomputed every render (not memoized on [point]): the
+  // per-frame internals toggle relies on `memory.links` getting a fresh array
+  // identity so the Connectors effect re-measures after newly-revealed internal
+  // ports mount. A useMemo here would silently break connector redraw on expand.
   const memory = normalizeMemory(point);
   const containerRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<ConnectorSelection | null>(null);
