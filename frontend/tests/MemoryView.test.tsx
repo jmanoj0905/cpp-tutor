@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryCell } from "../src/viz/MemoryCell";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import { MemoryView } from "../src/viz/MemoryView";
@@ -102,5 +102,43 @@ describe("MemoryCell", () => {
     const { container } = render(<MemoryView point={point} />);
     expect(container.querySelector(".stack-pane")).toBeTruthy();
     expect(container.querySelector(".heap-pane")).toBeTruthy();
+  });
+
+  it("hides compiler internals behind a per-frame toggle, collapsed by default", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["v", "__for_range"],
+        encoded_locals: {
+          v: ["C_DATA", "0x10", "int", 5],
+          __for_range: ["C_DATA", "0x18", "int", 9],
+        },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    // internal cell hidden by default
+    expect(container.querySelector('[data-cell-id="stack-f1-__for_range"]')).toBeNull();
+    // toggle present
+    const toggle = container.querySelector(".internals-toggle") as HTMLButtonElement;
+    expect(toggle).toBeTruthy();
+    // clicking reveals it
+    fireEvent.click(toggle);
+    expect(container.querySelector('[data-cell-id="stack-f1-__for_range"]')).not.toBeNull();
+  });
+
+  it("renders no internals toggle when a frame has none", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["v"],
+        encoded_locals: { v: ["C_DATA", "0x10", "int", 5] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    expect(container.querySelector(".internals-toggle")).toBeNull();
   });
 });
