@@ -7,7 +7,7 @@ const COLLAPSE_AT = 8;
 export function MemoryCell({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
   const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
   return (
-    <div className={`cell cell-${cell.kind}${hot}`} data-cell-id={cell.id}>
+    <div className={`cell cell-${cell.kind}${hot}${cell.internal ? " cell-internal" : ""}`} data-cell-id={cell.id}>
       <div className="cell-head">
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}

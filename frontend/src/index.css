@@ -290,3 +290,16 @@ p {
 .connector-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .connectors marker path { fill: var(--blue); }
 .cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+.internals-toggle {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 11px;
+  text-align: left;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.internals-toggle:hover { color: var(--ink); }
+.cell-internal { opacity: 0.55; }
