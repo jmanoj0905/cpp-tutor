@@ -169,17 +169,21 @@ export const vectorDecoder: ContainerDecoder = {
   // so the outer vector then resolves to the first inner vector's element buffer.
   match: (type) => /^(?:std::)?vector\s*</.test(type),
   decode(cell, ctx: DecodeCtx) {
-    const start = findPointer(cell, "_M_start");
-    if (!start) return null;
-    const finish = findPointer(cell, "_M_finish");
+    // Presence of the _M_start MEMBER (not its value) is what makes this a
+    // vector. An empty vector's _M_start is a null pointer that decodes as a
+    // scalar, so findPointer returns undefined — bailing on that would leak the
+    // raw _Vector_base struct. Distinguish "no member" from "null pointer".
+    if (!findMember(cell, "_M_start")) return null;
     const elem = templateArg(cell.type ?? "");
-    const buffer = ctx.heapByAddress.get(start);
+    const start = findPointer(cell, "_M_start");
+    const buffer = start ? ctx.heapByAddress.get(start) : undefined;
     if (!buffer) {
       return { ...cell, kind: "container", containerKind: "vector",
         children: [], length: 0, elementType: elem,
         displayValue: `vector<${elem}> · 0` };
     }
-    ctx.consumed.add(start);
+    ctx.consumed.add(start!); // start is defined: buffer truthy implies start was defined above
+    const finish = findPointer(cell, "_M_finish");
     const size = vectorSize(start, finish, buffer);
     const children = (buffer.children ?? []).slice(0, size).map((c, i) => ({ ...c, name: `[${i}]` }));
     return { ...cell, kind: "container", containerKind: "vector",

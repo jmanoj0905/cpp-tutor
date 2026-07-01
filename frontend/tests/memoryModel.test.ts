@@ -281,6 +281,32 @@ describe("compiler-internal stack locals", () => {
   });
 });
 
+describe("empty vector decode", () => {
+  it("renders an empty vector (_M_start = 0x0) as a container, not raw guts", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["v"],
+        encoded_locals: {
+          v: ["C_STRUCT", "0x10", "std::vector<int, std::allocator<int> >",
+            ["<anon_field>", ["C_STRUCT", "0x10", "_Vector_base<int, std::allocator<int> >",
+              ["_M_impl", ["C_STRUCT", "0x10", "_Vector_impl",
+                ["_M_start", ["C_DATA", "0x10", "pointer", "0x0"]],
+                ["_M_finish", ["C_DATA", "0x18", "pointer", "0x0"]],
+                ["_M_end_of_storage", ["C_DATA", "0x20", "pointer", "0x0"]]]]]]],
+        },
+      }],
+    } as unknown as ExecPoint;
+    const v = normalizeMemory(point).frames[0].cells.find((c) => c.name === "v")!;
+    expect(v.kind).toBe("container");
+    expect(v.containerKind).toBe("vector");
+    expect(v.length).toBe(0);
+    expect(v.displayValue).toBe("vector<int> · 0");
+  });
+});
+
 describe("gridShape", () => {
   it("returns rows×cols for a rectangular 2D container", () => {
     const m = gcell({ id: "m", kind: "container", containerKind: "vector",
