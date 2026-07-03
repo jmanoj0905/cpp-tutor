@@ -311,3 +311,9 @@ p {
 }
 .internals-toggle:hover { color: var(--ink); }
 .cell-internal { opacity: 0.55; }
+
+.trace-hint {
+  margin-left: 0.75rem;
+  font: 400 0.8rem var(--sans);
+  color: var(--ink-soft);
+}

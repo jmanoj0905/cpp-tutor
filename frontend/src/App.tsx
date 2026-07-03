@@ -4,6 +4,7 @@ import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
+import { useElapsed } from "./player/useElapsed";
 import { toggleBreakpoint as toggleInSet } from "./player/breakpoints";
 import { fetchTrace } from "./api/client";
 import { isCompileError, type Trace } from "./types/trace";
@@ -67,6 +68,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
   const [split, setSplit] = useState(50);
+  const elapsed = useElapsed(loading);
 
   function toggleBreakpoint(line: number) {
     setBreakpoints((prev) => toggleInSet(prev, line));
@@ -101,8 +103,11 @@ export default function App() {
         {viewing
           ? <button className="run stop" onClick={stop}>Stop</button>
           : <button className="run" onClick={visualize} disabled={loading}>
-              {loading ? "Visualizing…" : "Visualize Execution"}
+              {loading ? `Visualizing… ${elapsed}s` : "Visualize Execution"}
             </button>}
+        {loading && (
+          <span className="trace-hint">Tracing can take up to ~45s for heavy or looping code.</span>
+        )}
       </header>
       {err && <pre className="error">{err}</pre>}
       <main className="workspace" style={{ "--split": `${split}%` } as CSSProperties}>
