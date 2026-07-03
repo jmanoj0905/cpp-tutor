@@ -1,0 +1,33 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time; newer pushes cancel an in-flight run.
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH to VM and deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: azureuser
+          key: ${{ secrets.VM_SSH_KEY }}
+          command_timeout: 40m
+          script: |
+            set -e
+            APP=/home/azureuser/cpp-tutor
+            if [ ! -d "$APP/.git" ]; then
+              git clone https://github.com/jmanoj0905/cpp-tutor.git "$APP"
+            fi
+            cd "$APP"
+            git fetch origin main
+            git reset --hard origin/main
+            bash deploy/deploy.sh
