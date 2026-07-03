@@ -28,6 +28,14 @@ def test_non_json_output_includes_exit_code_and_stderr(monkeypatch):
     assert "boom" in msg, f"expected stderr snippet in message, got: {msg!r}"
 
 
+def test_run_trace_default_timeout_exceeds_trace_budget():
+    """Backend timeout must sit above the ~45s valgrind trace budget so heavy
+    programs return a partial trace instead of a wrapper timeout."""
+    import inspect
+    default = inspect.signature(run_trace).parameters["timeout"].default
+    assert default >= 60, f"expected timeout >= 60, got {default}"
+
+
 @pytest.mark.docker
 def test_run_trace_returns_trace():
     with open("tests/fixtures/pointers.cpp") as f:
