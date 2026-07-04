@@ -210,10 +210,10 @@ def test_shutdown_pool_cancels_timer_and_removes_container(fake_timer):
 
 
 def test_idle_ttl_covers_thinking_gaps():
-    """Learners pause minutes between runs — TTL must be well above that,
-    well below 24/7."""
+    """Learners pause up to half an hour between runs — TTL sits in the
+    30-40min band: well above a thinking gap, well below 24/7."""
     from app.tracer_service import IDLE_TTL_SECONDS
-    assert 5 * 60 <= IDLE_TTL_SECONDS <= 60 * 60
+    assert 30 * 60 <= IDLE_TTL_SECONDS <= 40 * 60
 
 
 @pytest.mark.docker

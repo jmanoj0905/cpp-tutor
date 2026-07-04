@@ -28,7 +28,7 @@ _warm_lock = threading.Lock()
 # The warm container lives only while someone is actively tracing: each
 # request re-arms this timer, and IDLE_TTL_SECONDS without a request reaps
 # the container. The next request cold-starts a fresh one.
-IDLE_TTL_SECONDS = 15 * 60
+IDLE_TTL_SECONDS = 35 * 60
 _reap_timer: threading.Timer | None = None
 
 
