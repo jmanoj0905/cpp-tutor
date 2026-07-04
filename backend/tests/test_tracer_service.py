@@ -145,6 +145,77 @@ def test_cold_fallback_when_container_dies_mid_exec():
     assert isinstance(result, Trace)
 
 
+# ---------------------------------------------------------------------------
+# Idle reaper — the warm container must not outlive a learning session.
+# ---------------------------------------------------------------------------
+
+class FakeTimer:
+    instances = []
+
+    def __init__(self, interval, fn):
+        self.interval = interval
+        self.fn = fn
+        self.started = False
+        self.cancelled = False
+        FakeTimer.instances.append(self)
+
+    def start(self):
+        self.started = True
+
+    def cancel(self):
+        self.cancelled = True
+
+
+@pytest.fixture
+def fake_timer(monkeypatch):
+    import app.tracer_service as ts
+    FakeTimer.instances = []
+    monkeypatch.setattr(ts.threading, "Timer", FakeTimer)
+    monkeypatch.setattr(ts, "_reap_timer", None)
+    yield FakeTimer
+
+
+def test_exec_arms_idle_reap_timer(fake_timer):
+    fake = FakeDocker(inspect=[_proc(0, "true\n")],
+                      exec_=[_proc(0, MINIMAL_TRACE_JSON)])
+    with patch("app.tracer_service.subprocess.run", side_effect=fake):
+        run_trace("int main(){}", "cpp")
+    from app.tracer_service import IDLE_TTL_SECONDS
+    assert len(fake_timer.instances) == 1
+    t = fake_timer.instances[0]
+    assert t.interval == IDLE_TTL_SECONDS and t.started and t.daemon
+
+
+def test_next_request_rearms_reap_timer(fake_timer):
+    fake = FakeDocker(inspect=[_proc(0, "true\n"), _proc(0, "true\n")],
+                      exec_=[_proc(0, MINIMAL_TRACE_JSON),
+                             _proc(0, MINIMAL_TRACE_JSON)])
+    with patch("app.tracer_service.subprocess.run", side_effect=fake):
+        run_trace("int main(){}", "cpp")
+        run_trace("int main(){}", "cpp")
+    assert len(fake_timer.instances) == 2
+    assert fake_timer.instances[0].cancelled
+    assert fake_timer.instances[1].started
+
+
+def test_shutdown_pool_cancels_timer_and_removes_container(fake_timer):
+    import app.tracer_service as ts
+    fake = FakeDocker(inspect=[_proc(0, "true\n")],
+                      exec_=[_proc(0, MINIMAL_TRACE_JSON)])
+    with patch("app.tracer_service.subprocess.run", side_effect=fake):
+        run_trace("int main(){}", "cpp")
+        ts.shutdown_pool()
+    assert fake_timer.instances[-1].cancelled
+    assert fake.calls[-1][:3] == ["docker", "rm", "-f"]
+
+
+def test_idle_ttl_covers_thinking_gaps():
+    """Learners pause minutes between runs — TTL must be well above that,
+    well below 24/7."""
+    from app.tracer_service import IDLE_TTL_SECONDS
+    assert 5 * 60 <= IDLE_TTL_SECONDS <= 60 * 60
+
+
 @pytest.mark.docker
 def test_run_trace_returns_trace():
     with open("tests/fixtures/pointers.cpp") as f:

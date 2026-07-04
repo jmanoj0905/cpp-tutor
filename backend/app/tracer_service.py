@@ -25,6 +25,22 @@ WARM_CONTAINER = "cpp-tutor-tracer-warm"
 # requests are serialized. Tracing was already effectively serial (1 CPU).
 _warm_lock = threading.Lock()
 
+# The warm container lives only while someone is actively tracing: each
+# request re-arms this timer, and IDLE_TTL_SECONDS without a request reaps
+# the container. The next request cold-starts a fresh one.
+IDLE_TTL_SECONDS = 15 * 60
+_reap_timer: threading.Timer | None = None
+
+
+def _arm_reap_timer() -> None:
+    global _reap_timer
+    if _reap_timer is not None:
+        _reap_timer.cancel()
+    t = threading.Timer(IDLE_TTL_SECONDS, shutdown_pool)
+    t.daemon = True
+    t.start()
+    _reap_timer = t
+
 
 def _docker_cmd(code: str, lang: str, image: str) -> list[str]:
     return [
@@ -51,10 +67,15 @@ def _start_warm(image: str) -> bool:
 
 
 def shutdown_pool() -> None:
-    try:
-        _docker("rm", "-f", WARM_CONTAINER)
-    except Exception:
-        pass
+    global _reap_timer
+    if _reap_timer is not None:
+        _reap_timer.cancel()
+        _reap_timer = None
+    with _warm_lock:  # never yank the container out from under a live exec
+        try:
+            _docker("rm", "-f", WARM_CONTAINER)
+        except Exception:
+            pass
 
 
 def _run_tracer(code: str, lang: str, image: str, timeout: int):
@@ -72,6 +93,7 @@ def _run_tracer(code: str, lang: str, image: str, timeout: int):
                 _docker("rm", "-f", WARM_CONTAINER)
                 raise
             if proc.returncode == 0 or _warm_running():
+                _arm_reap_timer()
                 return proc
             # container died mid-exec — fall through to a cold run
     return subprocess.run(_docker_cmd(code, lang, image),
