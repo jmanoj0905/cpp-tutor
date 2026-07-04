@@ -1,6 +1,7 @@
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
 from app.tracer_service import run_trace, TracerTimeout, TracerError
 from app.trace_model import Trace, CompileError
@@ -10,6 +11,7 @@ app.add_middleware(
     CORSMiddleware, allow_origins=["http://localhost:5173"],
     allow_methods=["*"], allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 class TraceRequest(BaseModel):

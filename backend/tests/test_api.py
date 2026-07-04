@@ -21,6 +21,17 @@ def test_trace_compile_error():
     assert r.status_code == 200
     assert r.json()["status"] == "compile_error"
 
+def test_trace_response_is_gzipped():
+    """Traces are megabytes of repetitive JSON; they must go out gzip-compressed."""
+    big = Trace(code="x" * 2000,
+                trace=[ExecPoint(line=1, event="step_line", func_name="main")])
+    with patch("app.api.run_trace", return_value=big):
+        r = client.post("/api/trace",
+                        json={"code": "int main(){}", "lang": "cpp"},
+                        headers={"Accept-Encoding": "gzip"})
+    assert r.status_code == 200
+    assert r.headers.get("content-encoding") == "gzip"
+
 def test_trace_timeout():
     with patch("app.api.run_trace", side_effect=TracerTimeout("too slow")):
         r = client.post("/api/trace", json={"code": "while(1){}", "lang": "cpp"})
