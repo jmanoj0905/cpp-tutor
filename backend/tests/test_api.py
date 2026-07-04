@@ -21,6 +21,11 @@ def test_trace_compile_error():
     assert r.status_code == 200
     assert r.json()["status"] == "compile_error"
 
+def test_endpoint_uses_trace_cache():
+    """/api/trace must go through the LRU cache, not straight to the tracer."""
+    from app import api, trace_cache
+    assert api.run_trace is trace_cache.run_trace
+
 def test_trace_response_is_gzipped():
     """Traces are megabytes of repetitive JSON; they must go out gzip-compressed."""
     big = Trace(code="x" * 2000,

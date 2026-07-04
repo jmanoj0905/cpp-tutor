@@ -3,7 +3,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel
-from app.tracer_service import run_trace, TracerTimeout, TracerError
+from app.trace_cache import run_trace
+from app.tracer_service import TracerTimeout, TracerError
 from app.trace_model import Trace, CompileError
 
 app = FastAPI(title="cpp-tutor")
