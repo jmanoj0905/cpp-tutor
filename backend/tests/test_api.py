@@ -37,6 +37,13 @@ def test_trace_response_is_gzipped():
     assert r.status_code == 200
     assert r.headers.get("content-encoding") == "gzip"
 
+def test_shutdown_removes_warm_container():
+    """App shutdown must reap the warm tracer container, not leak it."""
+    with patch("app.tracer_service.shutdown_pool") as m:
+        with TestClient(app):
+            pass
+    m.assert_called_once()
+
 def test_trace_timeout():
     with patch("app.api.run_trace", side_effect=TracerTimeout("too slow")):
         r = client.post("/api/trace", json={"code": "while(1){}", "lang": "cpp"})

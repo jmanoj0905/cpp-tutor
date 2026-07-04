@@ -1,5 +1,6 @@
 import json
 import subprocess
+import threading
 from app.trace_model import Trace, CompileError, parse_trace
 
 
@@ -11,14 +12,70 @@ class TracerTimeout(TracerError):
     pass
 
 
+_LIMIT_FLAGS = [
+    "--net=none", "--cap-drop", "all", "--user=netuser",
+    "--memory=256m", "--cpus=1", "--pids-limit=128",
+]
+
+_TRACER_ARGV = ["python", "/opt/tracer/run_cpp_backend.py"]
+
+WARM_CONTAINER = "cpp-tutor-tracer-warm"
+
+# Execs share the warm container's /opt/tracer/usercode.* scratch files, so
+# requests are serialized. Tracing was already effectively serial (1 CPU).
+_warm_lock = threading.Lock()
+
+
 def _docker_cmd(code: str, lang: str, image: str) -> list[str]:
     return [
-        "docker", "run", "--rm", "-i",
-        "--net=none", "--cap-drop", "all", "--user=netuser",
-        "--memory=256m", "--cpus=1", "--pids-limit=128",
-        image,
-        "python", "/opt/tracer/run_cpp_backend.py", code, lang, "--jsondump",
+        "docker", "run", "--rm", "-i", *_LIMIT_FLAGS, image,
+        *_TRACER_ARGV, code, lang, "--jsondump",
     ]
+
+
+def _docker(*args: str, timeout: int | None = None):
+    return subprocess.run(["docker", *args], capture_output=True,
+                          text=True, timeout=timeout)
+
+
+def _warm_running() -> bool:
+    proc = _docker("inspect", "-f", "{{.State.Running}}", WARM_CONTAINER)
+    return proc.returncode == 0 and proc.stdout.strip() == "true"
+
+
+def _start_warm(image: str) -> bool:
+    _docker("rm", "-f", WARM_CONTAINER)
+    proc = _docker("run", "-d", "--name", WARM_CONTAINER, *_LIMIT_FLAGS,
+                   image, "sleep", "infinity")
+    return proc.returncode == 0
+
+
+def shutdown_pool() -> None:
+    try:
+        _docker("rm", "-f", WARM_CONTAINER)
+    except Exception:
+        pass
+
+
+def _run_tracer(code: str, lang: str, image: str, timeout: int):
+    """Exec inside the warm container; fall back to a cold `docker run --rm`
+    when the warm path is unavailable."""
+    with _warm_lock:
+        if _warm_running() or _start_warm(image):
+            try:
+                proc = _docker("exec", "-i", WARM_CONTAINER,
+                               *_TRACER_ARGV, code, lang, "--jsondump",
+                               timeout=timeout)
+            except subprocess.TimeoutExpired:
+                # The guest process outlives the exec — remove the container
+                # so it can't keep burning CPU; next request starts a fresh one.
+                _docker("rm", "-f", WARM_CONTAINER)
+                raise
+            if proc.returncode == 0 or _warm_running():
+                return proc
+            # container died mid-exec — fall through to a cold run
+    return subprocess.run(_docker_cmd(code, lang, image),
+                          capture_output=True, text=True, timeout=timeout)
 
 
 def run_trace(code: str, lang: str,
@@ -27,10 +84,7 @@ def run_trace(code: str, lang: str,
     if lang not in ("c", "cpp"):
         raise TracerError(f"unsupported lang: {lang}")
     try:
-        proc = subprocess.run(
-            _docker_cmd(code, lang, image),
-            capture_output=True, text=True, timeout=timeout,
-        )
+        proc = _run_tracer(code, lang, image, timeout)
     except subprocess.TimeoutExpired as e:
         raise TracerTimeout("tracer exceeded time limit") from e
 
