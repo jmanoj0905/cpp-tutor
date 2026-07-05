@@ -56,7 +56,20 @@ describe("usePlayer", () => {
     expect(result.current.index).toBe(2);
     act(() => result.current.nextHit(new Set([5])));
     expect(result.current.index).toBe(4);
-    act(() => result.current.nextHit(new Set([5]))); // none ahead
-    expect(result.current.index).toBe(4);            // no-op
+  });
+
+  it("nextHit single-steps when no breakpoint hit remains ahead", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5, 7, 5])));
+    // breakpoint on line 6: only hit is index 1
+    act(() => result.current.nextHit(new Set([6])));
+    expect(result.current.index).toBe(1);   // snapped to the hit
+    act(() => result.current.nextHit(new Set([6])));
+    expect(result.current.index).toBe(2);   // no hit ahead -> one step
+    act(() => result.current.nextHit(new Set([6])));
+    expect(result.current.index).toBe(3);   // keeps single-stepping
+    act(() => result.current.nextHit(new Set([6])));
+    expect(result.current.index).toBe(4);
+    act(() => result.current.nextHit(new Set([6])));
+    expect(result.current.index).toBe(4);   // clamped at last step
   });
 });

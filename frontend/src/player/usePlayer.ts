@@ -26,7 +26,7 @@ export function usePlayer(trace: Trace) {
         for (let j = i + 1; j < total; j++) {
           if (breakpoints.has(trace.trace[j].line)) return j;
         }
-        return i;
+        return Math.max(0, Math.min(total - 1, i + 1)); // no hit ahead: single-step
       }),
     [trace, total],
   );
