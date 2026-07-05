@@ -82,8 +82,10 @@ export function CodePanel({
   const onChangeRef = useRef(onChange);
   const onToggleRef = useRef(onToggleBreakpoint);
   const readOnlyComp = useRef(new Compartment());
+  const readOnlyRef = useRef(readOnly);
   onChangeRef.current = onChange;
   onToggleRef.current = onToggleBreakpoint;
+  readOnlyRef.current = readOnly;
 
   useEffect(() => {
     if (!host.current) return;
@@ -96,6 +98,15 @@ export function CodePanel({
           EditorState.readOnly.of(readOnly),
         ]),
         execGutter((ln) => onToggleRef.current(ln)),
+        EditorView.domEventHandlers({
+          mousedown(event, view) {
+            if (!readOnlyRef.current) return false; // edit mode: normal cursor
+            const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+            if (pos == null) return false;
+            onToggleRef.current(view.state.doc.lineAt(pos).number);
+            return true; // swallow cursor placement in trace mode
+          },
+        }),
         lineNumbers(),
         cpp(),
         syntaxHighlighting(cppHighlight),
