@@ -43,6 +43,16 @@ describe("usePlayer", () => {
     expect(result.current.nextLine).toBeNull();      // at last
   });
 
+  it("exposes prevPoint (null at the first step)", () => {
+    const trace = mk(3);
+    const { result } = renderHook(() => usePlayer(trace));
+    expect(result.current.prevPoint).toBeNull();
+    act(() => result.current.next());
+    expect(result.current.prevPoint).toBe(trace.trace[0]);
+    act(() => result.current.last());
+    expect(result.current.prevPoint).toBe(trace.trace[1]);
+  });
+
   it("hitSteps returns indices whose line is a breakpoint", () => {
     const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5, 7, 5])));
     expect(result.current.hitSteps(new Set([5]))).toEqual([0, 2, 4]);

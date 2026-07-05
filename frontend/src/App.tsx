@@ -54,7 +54,7 @@ function Workspace({
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
         <div className="mem-region">
-          <MemoryView point={player.point} />
+          <MemoryView point={player.point} prevPoint={player.prevPoint} />
         </div>
       </section>
     </>

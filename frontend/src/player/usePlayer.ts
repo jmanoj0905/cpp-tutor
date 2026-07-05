@@ -35,6 +35,7 @@ export function usePlayer(trace: Trace) {
     index,
     total,
     point: trace.trace[index],
+    prevPoint: index > 0 ? trace.trace[index - 1] : null,
     prevLine: lineAt(index - 1),
     nextLine: lineAt(index + 1),
     first: () => setIndex(0),

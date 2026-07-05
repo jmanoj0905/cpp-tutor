@@ -25,4 +25,23 @@ describe("App shell", () => {
     await screen.findByRole("button", { name: /^stop$/i });
     expect(screen.queryByRole("button", { name: /visualize/i })).toBeNull();
   });
+
+  it("tints a cell after stepping to a point where its value changed", async () => {
+    const point = (line: number, x: number) => ({
+      line, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["x"],
+        encoded_locals: { x: ["C_DATA", "0x10", "int", x] },
+      }],
+    });
+    (fetchTrace as any).mockResolvedValue({ code: "int x;", trace: [point(1, 41), point(2, 42)] });
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(container.querySelector(".cell-changed")).toBeNull();      // first step: no prev
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
+  });
 });

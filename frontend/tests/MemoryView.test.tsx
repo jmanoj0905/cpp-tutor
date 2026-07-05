@@ -128,6 +128,38 @@ describe("MemoryCell", () => {
     expect(container.querySelector('[data-cell-id="stack-f1-__for_range"]')).not.toBeNull();
   });
 
+  it("tints cells whose value changed since the previous point", () => {
+    const mk = (x: number) => ({
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["x", "y"],
+        encoded_locals: {
+          x: ["C_DATA", "0x10", "int", x],
+          y: ["C_DATA", "0x14", "int", 5],
+        },
+      }],
+    }) as any;
+    const { container } = render(<MemoryView point={mk(2)} prevPoint={mk(1)} />);
+    expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
+    expect(container.querySelector('[data-cell-id="stack-f1-y"]')?.className).not.toContain("cell-changed");
+  });
+
+  it("tints nothing when there is no previous point", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["x"],
+        encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} prevPoint={null} />);
+    expect(container.querySelector(".cell-changed")).toBeNull();
+  });
+
   it("renders no internals toggle when a frame has none", () => {
     const point = {
       line: 1, event: "step_line", func_name: "main", stdout: "",

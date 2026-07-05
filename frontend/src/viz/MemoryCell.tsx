@@ -4,16 +4,17 @@ import { gridShape } from "./memoryModel";
 
 const COLLAPSE_AT = 8;
 
-export function MemoryCell({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
+export function MemoryCell({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; highlightedIds?: Set<string>; changedIds?: Set<string> }) {
   const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
+  const changed = changedIds?.has(cell.id) ? " cell-changed" : "";
   return (
-    <div className={`cell cell-${cell.kind}${hot}${cell.internal ? " cell-internal" : ""}`} data-cell-id={cell.id}>
+    <div className={`cell cell-${cell.kind}${hot}${changed}${cell.internal ? " cell-internal" : ""}`} data-cell-id={cell.id}>
       <div className="cell-head">
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} />
       </div>
-      {hasChildren(cell) && <Children cell={cell} highlightedIds={highlightedIds} />}
+      {hasChildren(cell) && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} />}
     </div>
   );
 }
@@ -42,7 +43,7 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedIds?: Set<string> }) {
+function Children({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; highlightedIds?: Set<string>; changedIds?: Set<string> }) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
@@ -53,7 +54,7 @@ function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedI
         {all.map((rowCell) => (
           <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
             {(rowCell.children ?? []).map((el) => (
-              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} />
+              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} />
             ))}
           </div>
         ))}
@@ -67,7 +68,7 @@ function Children({ cell, highlightedIds }: { cell: NormalizedCell; highlightedI
   const grid = !kv && (cell.kind === "array" || cell.kind === "container");
   return (
     <div className={`cell-children ${kv ? "kv" : grid ? "grid" : ""}`}>
-      {shown.map((child) => <MemoryCell key={child.id} cell={child} highlightedIds={highlightedIds} />)}
+      {shown.map((child) => <MemoryCell key={child.id} cell={child} highlightedIds={highlightedIds} changedIds={changedIds} />)}
       {hidden > 0 && (
         <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
       )}

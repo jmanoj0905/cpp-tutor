@@ -10,6 +10,7 @@
   --green: #2e8b3d;   /* just-executed line */
   --red:   #d6322a;   /* next line + unresolved pointer */
   --blue:  #2452cc;   /* resolved pointer lines */
+  --yellow: #f2b100;  /* value changed since previous step */
 
   --border-dotted: 1px dotted #000;
   --radius: 0;
@@ -298,6 +299,7 @@ p {
 .connector-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .connectors marker path { fill: var(--blue); }
 .cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }
+.cell.cell-changed { background: rgba(242, 177, 0, 0.22); box-shadow: inset 2px 0 0 var(--yellow); }
 
 .internals-toggle {
   background: none;
