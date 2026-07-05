@@ -68,10 +68,10 @@ p {
 .app { height: 100svh; display: flex; flex-direction: column; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 20px; background: #fff; border-bottom: 1px solid var(--ink);
+  padding: 4px 16px; background: #fff; border-bottom: 1px solid var(--ink);
 }
 .topbar h1 {
-  margin: 0; font-size: 15px; font-weight: 500;
+  margin: 0; font-size: 13px; font-weight: 500;
   letter-spacing: 2px; text-transform: uppercase; color: var(--ink);
 }
 
