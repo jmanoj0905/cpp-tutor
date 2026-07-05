@@ -65,6 +65,7 @@ export default function App() {
   const [code, setCode] = useState(SAMPLE);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [errLine, setErrLine] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [breakpoints, setBreakpoints] = useState<Set<number>>(new Set());
   const [split, setSplit] = useState(50);
@@ -76,10 +77,11 @@ export default function App() {
 
   async function visualize() {
     setErr(null);
+    setErrLine(null);
     setLoading(true);
     try {
       const res = await fetchTrace(code, "cpp");
-      if (isCompileError(res)) { setErr(res.message); setTrace(null); return; }
+      if (isCompileError(res)) { setErr(res.message); setErrLine(res.line); setTrace(null); return; }
       setTrace(res);
     } catch (e) {
       setErr((e as Error).message);
@@ -92,6 +94,7 @@ export default function App() {
   function stop() {
     setTrace(null);
     setErr(null);
+    setErrLine(null);
   }
 
   const viewing = trace !== null;
@@ -129,6 +132,7 @@ export default function App() {
                   readOnly={false}
                   breakpoints={breakpoints}
                   onToggleBreakpoint={toggleBreakpoint}
+                  errorLine={errLine}
                 />
               </section>
               <Divider onResize={setSplit} />

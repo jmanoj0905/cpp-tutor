@@ -112,6 +112,8 @@ p {
 .exec-arrow.red { color: var(--red); }
 .cm-line.cm-next { background: rgba(214, 50, 42, 0.10); }
 .cm-line.cm-bp { box-shadow: inset 3px 0 0 var(--red); }
+.cm-line.cm-error-line { background: rgba(214, 50, 42, 0.16); box-shadow: inset 3px 0 0 var(--red); }
+.error-marker { color: var(--red); font-weight: bold; }
 
 /* ── Editor ──────────────────────────────────────────────────── */
 .editor {

@@ -26,6 +26,28 @@ describe("App shell", () => {
     expect(screen.queryByRole("button", { name: /visualize/i })).toBeNull();
   });
 
+  it("highlights the compile-error line in the editor", async () => {
+    (fetchTrace as any).mockResolvedValue({ status: "compile_error", message: "expected ';'", line: 2 });
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByText("expected ';'");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-line.cm-error-line")).toBeTruthy();
+    expect(container.querySelector(".error-marker")).toBeTruthy();
+  });
+
+  it("clears the error highlight on the next visualize", async () => {
+    (fetchTrace as any).mockResolvedValueOnce({ status: "compile_error", message: "expected ';'", line: 2 });
+    (fetchTrace as any).mockResolvedValueOnce(vectorTrace as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByText("expected ';'");
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(container.querySelector(".cm-error-line")).toBeNull();
+    expect(screen.queryByText("expected ';'")).toBeNull();
+  });
+
   it("tints a cell after stepping to a point where its value changed", async () => {
     const point = (line: number, x: number) => ({
       line, event: "step_line", func_name: "main", stdout: "",

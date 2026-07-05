@@ -15,12 +15,12 @@ const cppHighlight = HighlightStyle.define([
 ]);
 
 interface ExecState { justExecuted: number | null; next: number | null }
-interface PanelState { exec: ExecState | null; breakpoints: Set<number> }
+interface PanelState { exec: ExecState | null; breakpoints: Set<number>; errorLine: number | null }
 
 const setPanel = StateEffect.define<PanelState>();
 
 const panelField = StateField.define<PanelState>({
-  create: () => ({ exec: null, breakpoints: new Set() }),
+  create: () => ({ exec: null, breakpoints: new Set(), errorLine: null }),
   update(value, tr) {
     for (const e of tr.effects) if (e.is(setPanel)) return e.value;
     return value;
@@ -44,14 +44,16 @@ class ArrowMarker extends GutterMarker {
 }
 const greenMarker = new ArrowMarker("▶", "exec-arrow green");  // just executed
 const redMarker = new ArrowMarker("▶", "exec-arrow red");      // next to execute
+const errorMarker = new ArrowMarker("✖", "error-marker");      // compile error line
 
 function execGutter(onToggle: (line: number) => void) {
   return gutter({
     class: "cm-exec-gutter",
     lineMarker(view, line) {
-      const { exec } = view.state.field(panelField);
-      if (!exec) return null;
+      const { exec, errorLine } = view.state.field(panelField);
       const ln = view.state.doc.lineAt(line.from).number;
+      if (ln === errorLine) return errorMarker;
+      if (!exec) return null;
       if (ln === exec.next) return redMarker;
       if (ln === exec.justExecuted) return greenMarker;
       return null;
@@ -68,7 +70,7 @@ function execGutter(onToggle: (line: number) => void) {
 }
 
 export function CodePanel({
-  value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly,
+  value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly, errorLine = null,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -76,6 +78,7 @@ export function CodePanel({
   breakpoints: Set<number>;
   onToggleBreakpoint: (line: number) => void;
   readOnly: boolean;
+  errorLine?: number | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -111,7 +114,7 @@ export function CodePanel({
         cpp(),
         syntaxHighlighting(cppHighlight),
         EditorView.decorations.compute([panelField, "doc"], (st) => {
-          const { exec: ex, breakpoints: bps } = st.field(panelField);
+          const { exec: ex, breakpoints: bps, errorLine: errLn } = st.field(panelField);
           const doc = st.doc;
           const list: { from: number; deco: Decoration }[] = [];
           const add = (line: number, cls: string) => {
@@ -120,6 +123,7 @@ export function CodePanel({
           };
           for (const bp of bps) add(bp, "cm-bp");
           if (ex?.next != null) add(ex.next, "cm-next");
+          if (errLn != null) add(errLn, "cm-error-line");
           list.sort((a, b) => a.from - b.from);
           return Decoration.set(list.map((r) => r.deco.range(r.from)));
         }),
@@ -131,10 +135,10 @@ export function CodePanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // push exec/breakpoints into the editor on change
+  // push exec/breakpoints/error into the editor on change
   useEffect(() => {
-    view.current?.dispatch({ effects: setPanel.of({ exec, breakpoints }) });
-  }, [exec, breakpoints]);
+    view.current?.dispatch({ effects: setPanel.of({ exec, breakpoints, errorLine }) });
+  }, [exec, breakpoints, errorLine]);
 
   useEffect(() => {
     view.current?.dispatch({

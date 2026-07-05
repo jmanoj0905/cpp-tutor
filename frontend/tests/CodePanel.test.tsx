@@ -28,6 +28,37 @@ describe("CodePanel readOnly", () => {
   });
 });
 
+describe("CodePanel compile error", () => {
+  it("highlights the error line and places a gutter marker", async () => {
+    const { container } = render(
+      <CodePanel {...base} value={"int main(){\n  broken\n}"} readOnly={false} errorLine={2} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-line.cm-error-line")).toBeTruthy();
+    expect(container.querySelector(".error-marker")).toBeTruthy();
+  });
+
+  it("shows no error styling when errorLine is null", async () => {
+    const { container } = render(
+      <CodePanel {...base} readOnly={false} errorLine={null} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-line.cm-error-line")).toBeNull();
+    expect(container.querySelector(".error-marker")).toBeNull();
+  });
+
+  it("clears the highlight when errorLine becomes null", async () => {
+    const { container, rerender } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly={false} errorLine={2} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-error-line")).toBeTruthy();
+    rerender(<CodePanel {...base} value={"a\nb\nc"} readOnly={false} errorLine={null} />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-error-line")).toBeNull();
+  });
+});
+
 describe("CodePanel exec arrows", () => {
   it("renders a green marker on just-executed line and red on next line", async () => {
     const { container } = render(
