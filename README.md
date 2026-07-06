@@ -2,6 +2,27 @@
 
 A [Python Tutor](https://pythontutor.com/)-style step-through visualizer for C and C++. Paste code, press run, and step through execution while watching the stack, heap, and pointer relationships update live.
 
+## Run with Docker
+
+No setup beyond Docker itself:
+
+```bash
+docker run --rm -p 8000:8000 ghcr.io/jmanoj0905/cpp-tutor
+```
+
+Then open http://localhost:8000.
+
+The image bundles the tracer (patched Valgrind), the API server, and the
+built frontend — arm64 and amd64. Note: traced code runs inside this
+container with process-level limits (no network isolation between the app
+and traced code, unlike the dev setup's per-request sandbox). Fine for
+local single-user use; add your own hardening if exposing it, e.g.:
+
+```bash
+docker run --rm -p 8000:8000 --memory 512m --pids-limit 256 --cap-drop all \
+  ghcr.io/jmanoj0905/cpp-tutor
+```
+
 ## Quick start
 
 ```bash
