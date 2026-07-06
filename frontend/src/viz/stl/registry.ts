@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { arrayDecoder, dequeDecoder, vectorDecoder, stringDecoder } from "./contiguous";
+import { arrayDecoder, dequeDecoder, vectorBoolDecoder, vectorDecoder, stringDecoder } from "./contiguous";
 import { forwardListDecoder, hashDecoder, listDecoder, treeDecoder } from "./nodeChain";
 import { stackDecoder, queueDecoder, priorityQueueDecoder } from "./adaptor";
 import { iteratorDecoder } from "./iterator";
@@ -39,6 +39,9 @@ export const registry: ContainerDecoder[] = [
   listDecoder,
   dequeDecoder,
   arrayDecoder,
+  // vectorBoolDecoder before vectorDecoder: vector<bool> is the bit-packed
+  // _Bvector specialization; the plain vector decoder explicitly excludes it.
+  vectorBoolDecoder,
   vectorDecoder,
   stringDecoder,
   // Contiguous iterators: emit a reference cell pointing at the element.

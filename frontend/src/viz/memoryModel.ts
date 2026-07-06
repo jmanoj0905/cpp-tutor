@@ -97,7 +97,7 @@ export function decodeMemoryValue(
         kind: "scalar",
         address,
         type,
-        displayValue: formatScalar(value),
+        displayValue: formatScalar(value, type),
       };
     }
 
@@ -352,11 +352,25 @@ function isAddressLike(value: string): boolean {
   return /^0x[0-9a-f]+$/i.test(value);
 }
 
-function formatScalar(value: unknown): string {
+function formatScalar(value: unknown, type?: string | null): string {
   if (value === null) return "null";
+  if (type === "bool" && (value === 0 || value === 1)) return value === 1 ? "true" : "false";
+  if (type === "char" && typeof value === "number") return formatChar(value);
   if (typeof value === "string") return value;
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   return "...";
+}
+
+const CHAR_ESCAPES: Record<number, string> = { 0: "\\0", 9: "\\t", 10: "\\n", 13: "\\r" };
+
+// Only plain `char` gets glyph rendering; signed/unsigned char are byte-valued
+// in practice and stay numeric. Codes outside escapes + printable ASCII also
+// stay numeric rather than render mojibake.
+function formatChar(code: number): string {
+  const esc = CHAR_ESCAPES[code];
+  if (esc) return `'${esc}'`;
+  if (code >= 32 && code <= 126) return `'${String.fromCharCode(code)}'`;
+  return String(code);
 }
 
 function formatReference(targetAddress: string): string {

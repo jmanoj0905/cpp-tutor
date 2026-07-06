@@ -335,3 +335,35 @@ describe("gridShape", () => {
     expect(gridShape(m)).toEqual({ rows: 2, cols: 2 });
   });
 });
+
+describe("typed scalar formatting", () => {
+  const decode = (type: string, value: unknown) =>
+    decodeMemoryValue(["C_DATA", "0x10", type, value], "x", "stack", "f1");
+
+  it("renders bool 0/1 as false/true", () => {
+    expect(decode("bool", 0).displayValue).toBe("false");
+    expect(decode("bool", 1).displayValue).toBe("true");
+  });
+  it("keeps <UNINITIALIZED> bool as-is", () => {
+    expect(decode("bool", "<UNINITIALIZED>").displayValue).toBe("<UNINITIALIZED>");
+  });
+  it("renders printable char codes as quoted characters", () => {
+    expect(decode("char", 65).displayValue).toBe("'A'");
+    expect(decode("char", 32).displayValue).toBe("' '");
+  });
+  it("renders common control chars as escapes", () => {
+    expect(decode("char", 0).displayValue).toBe("'\\0'");
+    expect(decode("char", 10).displayValue).toBe("'\\n'");
+    expect(decode("char", 9).displayValue).toBe("'\\t'");
+  });
+  it("leaves non-printable char codes numeric", () => {
+    expect(decode("char", 200).displayValue).toBe("200");
+  });
+  it("does not quote unsigned char (byte-valued) scalars", () => {
+    expect(decode("unsigned char", 65).displayValue).toBe("65");
+  });
+  it("keeps big integers received as quoted strings intact", () => {
+    expect(decode("long long unsigned int", "18446744073709551615").displayValue)
+      .toBe("18446744073709551615");
+  });
+});

@@ -147,6 +147,13 @@ export const dequeDecoder: ContainerDecoder = {
   },
 };
 
+/** Numeric char code from a C_DATA scalar's raw encoding, or null. */
+function rawCharCode(cell: NormalizedCell): number | null {
+  const rv = cell.rawValue;
+  if (Array.isArray(rv) && rv[0] === "C_DATA" && typeof rv[3] === "number") return rv[3];
+  return null;
+}
+
 function vectorSize(start?: string, finish?: string, buffer?: NormalizedCell): number {
   const elems = buffer?.children ?? [];
   const s = parseAddr(start), f = parseAddr(finish);
@@ -161,13 +168,100 @@ function vectorSize(start?: string, finish?: string, buffer?: NormalizedCell): n
   return elems.length;
 }
 
+const VECTOR_BOOL_RE = /^(?:std::)?vector\s*<\s*bool[\s,>]/;
+/** Bits per _Bit_type word (unsigned long on the 64-bit tracer). */
+const BITS_PER_WORD = 64n;
+
+/** Parse a non-negative integer member (e.g. _M_offset) anywhere in the subtree. */
+function intMember(cell: NormalizedCell, name: string): number | null {
+  const m = findMember(cell, name);
+  if (!m) return null;
+  const n = Number.parseInt(m.displayValue, 10);
+  return Number.isNaN(n) ? null : n;
+}
+
+/** Exact value of a _Bit_type word cell. displayValue carries the full digit
+ *  string (parseTraceJson quotes integers beyond 2^53), so BigInt is lossless. */
+function wordValue(cell: NormalizedCell): bigint | null {
+  try {
+    return BigInt(cell.displayValue);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * std::vector<bool> — bit-packed specialization.
+ *
+ * libstdc++ replaces _Vector_base with _Bvector_base: _M_start/_M_finish are
+ * _Bit_iterator structs (_M_p → heap word buffer, _M_offset → bit within the
+ * first/last word), not raw element pointers. The heap buffer is a C_ARRAY of
+ * 64-bit _Bit_type words; element i is bit (start._M_offset + i) of that
+ * bitstream. size = (finish._M_p − start._M_p) × 8 + finish._M_offset − start._M_offset.
+ */
+export const vectorBoolDecoder: ContainerDecoder = {
+  match: (type) => VECTOR_BOOL_RE.test(type),
+  decode(cell, ctx: DecodeCtx) {
+    const startIter = findMember(cell, "_M_start");
+    const finishIter = findMember(cell, "_M_finish");
+    if (!startIter || !finishIter) return null;
+    const startOff = intMember(startIter, "_M_offset");
+    const finishOff = intMember(finishIter, "_M_offset");
+    if (startOff === null || finishOff === null) return null;
+
+    const empty = { ...cell, kind: "container" as const, containerKind: "vector",
+      children: [] as NormalizedCell[], length: 0, elementType: "bool",
+      displayValue: "vector<bool> · 0" };
+
+    // A null _M_p decodes as a scalar (not a reference), so findPointer
+    // returns undefined — that is the empty-vector shape, not a failure.
+    const startP = findPointer(startIter, "_M_p");
+    const finishP = findPointer(finishIter, "_M_p");
+    if (!startP || !finishP) return startOff === 0 && finishOff === 0 ? empty : null;
+
+    const s = parseAddr(startP);
+    const f = parseAddr(finishP);
+    if (s === null || f === null) return null;
+    const size = (f - s) * 8 + finishOff - startOff;
+    if (size < 0) return null;
+    if (size === 0) return empty;
+
+    const buffer = ctx.heapByAddress.get(startP);
+    if (!buffer) return null; // non-empty but no buffer snapshot: bail to raw struct
+    const words = (buffer.children ?? []).map(wordValue);
+
+    const children: NormalizedCell[] = [];
+    for (let i = 0; i < size; i++) {
+      const bit = BigInt(startOff + i);
+      const word = words[Number(bit / BITS_PER_WORD)];
+      const isSet = word === null || word === undefined ? null : (word >> bit % BITS_PER_WORD) & 1n;
+      children.push({
+        id: `${cell.id}-${i}`,
+        name: `[${i}]`,
+        source: cell.source,
+        kind: "scalar",
+        address: null,
+        type: "bool",
+        displayValue: isSet === null ? "?" : isSet === 1n ? "true" : "false",
+        rawValue: isSet === null ? null : isSet === 1n,
+      });
+    }
+    if (buffer.address) ctx.consumed.add(buffer.address);
+    return { ...cell, kind: "container", containerKind: "vector",
+      children, length: size, elementType: "bool",
+      displayValue: `vector<bool> · ${size}` };
+  },
+};
+
 export const vectorDecoder: ContainerDecoder = {
   // Anchor at the type head: match `vector<…>` / `std::vector<…>`, but NOT the
   // libstdc++ base classes `_Vector_base<…>` / `_Vector_impl` whose template
   // ARGUMENT contains "vector<" for a nested vector<vector<T>>. Matching the base
   // class would decode it first (bottom-up), consuming the real _M_impl._M_start
   // so the outer vector then resolves to the first inner vector's element buffer.
-  match: (type) => /^(?:std::)?vector\s*</.test(type),
+  // vector<bool> is excluded: its _Bvector layout has no plain _M_start pointer,
+  // and falling through here would misrender it as an empty vector.
+  match: (type) => /^(?:std::)?vector\s*</.test(type) && !VECTOR_BOOL_RE.test(type),
   decode(cell, ctx: DecodeCtx) {
     // Presence of the _M_start MEMBER (not its value) is what makes this a
     // vector. An empty vector's _M_start is a null pointer that decodes as a
@@ -259,11 +353,13 @@ export const stringDecoder: ContainerDecoder = {
 
     if (charSlice.length === 0) return null;
 
-    // Extract chars until null terminator (displayValue "0") or uninitialized.
+    // Extract chars until null terminator or uninitialized. Codes are read from
+    // rawValue, not displayValue: char scalars display as glyphs ('h'), and
+    // parsing the glyph back would break on quotes and escapes.
     const chars: string[] = [];
     for (const c of charSlice) {
-      const n = Number(c.displayValue);
-      if (!Number.isFinite(n) || n === 0) break;
+      const n = rawCharCode(c);
+      if (n === null || n === 0) break;
       chars.push(String.fromCharCode(n));
     }
     const text = chars.join("");
