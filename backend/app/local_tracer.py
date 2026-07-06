@@ -7,6 +7,7 @@ already runs as netuser. Requests are serialized because the tracer writes
 shared /opt/tracer/usercode.* scratch files.
 """
 import os
+import resource
 import signal
 import subprocess
 import threading
@@ -21,7 +22,6 @@ _local_lock = threading.Lock()
 
 
 def _apply_rlimits() -> None:
-    import resource
     resource.setrlimit(resource.RLIMIT_CPU, (RLIMIT_CPU_SECONDS, RLIMIT_CPU_SECONDS))
     resource.setrlimit(resource.RLIMIT_AS, (RLIMIT_AS_BYTES, RLIMIT_AS_BYTES))
     resource.setrlimit(resource.RLIMIT_NPROC, (RLIMIT_NPROC, RLIMIT_NPROC))

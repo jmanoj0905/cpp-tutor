@@ -63,6 +63,10 @@ jobs:
 
       - name: Push by digest
         id: push
+        # Rebuilds from the registry cache rather than pushing the exact
+        # smoke-tested bytes (buildx container driver can't push a loaded
+        # image by digest). Warm cache makes this a layer-for-layer replay;
+        # a cache miss rebuilds unsmoked — accepted tradeoff.
         uses: docker/build-push-action@v6
         with:
           context: .
