@@ -25,6 +25,8 @@ for _ in $(seq 1 30); do
   curl -fs "http://localhost:$PORT/" >/dev/null 2>&1 && break
   sleep 1
 done
+curl -fs "http://localhost:$PORT/" >/dev/null 2>&1 \
+  || { echo "FAIL: server did not start within 30s" >&2; exit 1; }
 
 echo "==> GET / serves the frontend"
 curl -fs "http://localhost:$PORT/" | grep -q 'id="root"'
@@ -42,8 +44,13 @@ curl -fs -X POST "http://localhost:$PORT/api/trace" \
 jq -e '.status == "compile_error"' "$WORK/bad-resp.json" >/dev/null
 
 echo "==> built frontend has no hardcoded API base"
-if docker run --rm --entrypoint grep "$IMAGE" -rq "localhost:8000" /opt/cpp-tutor/static; then
+rc=0
+docker run --rm --entrypoint grep "$IMAGE" -rq "localhost:8000" /opt/cpp-tutor/static || rc=$?
+if [ "$rc" -eq 0 ]; then
   echo "FAIL: dist contains localhost:8000 (VITE_API not applied)" >&2
+  exit 1
+elif [ "$rc" -ne 1 ]; then
+  echo "FAIL: could not inspect /opt/cpp-tutor/static (grep exit $rc)" >&2
   exit 1
 fi
 
