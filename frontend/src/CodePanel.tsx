@@ -1,8 +1,19 @@
 import { useEffect, useRef } from "react";
 import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
-import { EditorView, lineNumbers, gutter, GutterMarker, Decoration } from "@codemirror/view";
-import { cpp } from "@codemirror/lang-cpp";
-import { syntaxHighlighting, HighlightStyle } from "@codemirror/language";
+import {
+  EditorView, keymap, lineNumbers, gutter, GutterMarker, Decoration,
+  highlightActiveLine, highlightActiveLineGutter,
+} from "@codemirror/view";
+import { cpp, cppLanguage } from "@codemirror/lang-cpp";
+import {
+  syntaxHighlighting, HighlightStyle, foldGutter, foldKeymap,
+  bracketMatching, indentOnInput, indentUnit,
+} from "@codemirror/language";
+import {
+  autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap,
+  completeFromList, completeAnyWord, type CompletionSource,
+} from "@codemirror/autocomplete";
+import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { tags as t } from "@lezer/highlight";
 
 const cppHighlight = HighlightStyle.define([
@@ -13,6 +24,32 @@ const cppHighlight = HighlightStyle.define([
   { tag: [t.comment, t.lineComment, t.blockComment], color: "var(--ink-soft)", fontStyle: "italic" },
   { tag: t.meta, color: "var(--ink-soft)" },
 ]);
+
+// lang-cpp ships no completions of its own: offer keywords/common std names
+// alongside identifiers already present in the document.
+const CPP_WORDS =
+  ("alignas alignof auto bool break case catch char class const constexpr continue default delete " +
+   "do double else enum explicit extern false float for friend goto if inline int long mutable " +
+   "namespace new noexcept nullptr operator private protected public return short signed sizeof " +
+   "static struct switch template this throw true try typedef typename union unsigned using " +
+   "virtual void volatile while " +
+   "std size_t int64_t uint64_t int32_t uint32_t " +
+   "cout cin cerr endl printf scanf " +
+   "vector string array pair map set unordered_map unordered_set deque queue stack tuple " +
+   "push_back emplace_back pop_back begin end size empty front back insert erase find count " +
+   "make_pair sort reverse swap min max abs").split(" ");
+
+const cppCompletions: CompletionSource = completeFromList(
+  CPP_WORDS.map((label) => ({ label, type: "keyword" })),
+);
+
+const CPP_WORD_SET = new Set(CPP_WORDS);
+// completeAnyWord would re-offer words the keyword list already has
+const docWordCompletions: CompletionSource = (ctx) => {
+  const result = completeAnyWord(ctx);
+  if (!result || result instanceof Promise) return result;
+  return { ...result, options: result.options.filter((o) => !CPP_WORD_SET.has(o.label)) };
+};
 
 interface ExecState { justExecuted: number | null; next: number | null }
 interface PanelState { exec: ExecState | null; breakpoints: Set<number>; errorLine: number | null }
@@ -115,8 +152,27 @@ export function CodePanel({
           },
         }),
         lineNumbers(),
+        foldGutter(),
         cpp(),
+        cppLanguage.data.of({ autocomplete: cppCompletions }),
+        cppLanguage.data.of({ autocomplete: docWordCompletions }),
         syntaxHighlighting(cppHighlight),
+        history(),
+        autocompletion(),
+        closeBrackets(),
+        bracketMatching(),
+        indentOnInput(),
+        indentUnit.of("  "),
+        highlightActiveLine(),
+        highlightActiveLineGutter(),
+        keymap.of([
+          ...closeBracketsKeymap,
+          ...completionKeymap,
+          ...foldKeymap,
+          ...historyKeymap,
+          ...defaultKeymap,
+          indentWithTab,
+        ]),
         EditorView.decorations.compute([panelField, "doc"], (st) => {
           const { exec: ex, breakpoints: bps, errorLine: errLn } = st.field(panelField);
           const doc = st.doc;

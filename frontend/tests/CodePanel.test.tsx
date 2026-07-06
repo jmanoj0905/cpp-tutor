@@ -56,6 +56,31 @@ describe("CodePanel breakpoint toggling", () => {
   });
 });
 
+describe("CodePanel editing affordances", () => {
+  it("renders a fold gutter", async () => {
+    const { container } = render(
+      <CodePanel {...base} value={"int main(){\n  return 0;\n}"} readOnly={false} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-foldGutter")).toBeTruthy();
+  });
+
+  it("supports undo via history", async () => {
+    let latest = "";
+    const { container } = render(
+      <CodePanel {...base} value={"abc"} readOnly={false} onChange={(v) => { latest = v; }} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const { EditorView } = await import("@codemirror/view");
+    const { undo } = await import("@codemirror/commands");
+    const view = EditorView.findFromDOM(container.querySelector(".cm-editor") as HTMLElement)!;
+    view.dispatch({ changes: { from: 3, insert: "d" }, userEvent: "input.type" });
+    expect(latest).toBe("abcd");
+    undo(view);
+    expect(latest).toBe("abc");
+  });
+});
+
 describe("CodePanel compile error", () => {
   it("highlights the error line and places a gutter marker", async () => {
     const { container } = render(
