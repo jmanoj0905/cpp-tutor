@@ -1,8 +1,9 @@
 FROM ubuntu:14.04
 
-# 14.04 is EOL — repoint apt at the archive so apt-get update works.
-RUN sed -i 's|http://archive.ubuntu.com|http://old-releases.ubuntu.com|g; s|http://security.ubuntu.com|http://old-releases.ubuntu.com|g' /etc/apt/sources.list \
- && apt-get update && apt-get install -y \
+# 14.04 is EOL but archive.ubuntu.com still serves trusty (old-releases
+# dropped it — amd64 indexes 404 there as of 2026), so use the default
+# sources unchanged. arm64 pulls from ports.ubuntu.com, also still live.
+RUN apt-get update && apt-get install -y \
     build-essential autotools-dev automake libc6-dbg python patch \
  && rm -rf /var/lib/apt/lists/*
 
