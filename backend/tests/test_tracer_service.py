@@ -146,6 +146,23 @@ def test_cold_fallback_when_container_dies_mid_exec():
 
 
 # ---------------------------------------------------------------------------
+# Local (in-container) tracer mode — unit test, no Docker required.
+# ---------------------------------------------------------------------------
+
+def test_local_mode_routes_to_local_tracer(monkeypatch):
+    """CPP_TUTOR_TRACER=local must bypass docker entirely and still parse."""
+    monkeypatch.setenv("CPP_TUTOR_TRACER", "local")
+    fake = _proc(0, MINIMAL_TRACE_JSON)
+    with patch("app.tracer_service.local_tracer.run_local",
+               return_value=fake) as run_local, \
+         patch("app.tracer_service.subprocess.run") as docker_run:
+        result = run_trace("int main(){}", "cpp")
+    assert isinstance(result, Trace)
+    run_local.assert_called_once_with("int main(){}", "cpp", 60)
+    docker_run.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
 # Idle reaper — the warm container must not outlive a learning session.
 # ---------------------------------------------------------------------------
 

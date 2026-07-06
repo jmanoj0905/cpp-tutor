@@ -1,6 +1,8 @@
 import json
+import os
 import subprocess
 import threading
+from app import local_tracer
 from app.trace_model import Trace, CompileError, parse_trace
 
 
@@ -106,7 +108,10 @@ def run_trace(code: str, lang: str,
     if lang not in ("c", "cpp"):
         raise TracerError(f"unsupported lang: {lang}")
     try:
-        proc = _run_tracer(code, lang, image, timeout)
+        if os.environ.get("CPP_TUTOR_TRACER", "docker") == "local":
+            proc = local_tracer.run_local(code, lang, timeout)
+        else:
+            proc = _run_tracer(code, lang, image, timeout)
     except subprocess.TimeoutExpired as e:
         raise TracerTimeout("tracer exceeded time limit") from e
 
