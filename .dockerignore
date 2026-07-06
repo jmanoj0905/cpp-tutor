@@ -1,0 +1,11 @@
+.git
+.gstack
+docs
+graphify-out
+tracer
+backend/.venv
+backend/tests
+backend/cpp_tutor_backend.egg-info
+**/__pycache__
+frontend/node_modules
+frontend/dist
