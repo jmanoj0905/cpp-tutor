@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { CodePanel } from "../src/CodePanel";
 
 const base = {
@@ -25,6 +25,34 @@ describe("CodePanel readOnly", () => {
     const { container, rerender } = render(<CodePanel {...base} readOnly={false} />);
     rerender(<CodePanel {...base} readOnly />);
     expect(container.querySelector(".cm-content")?.getAttribute("contenteditable")).toBe("false");
+  });
+});
+
+describe("CodePanel breakpoint toggling", () => {
+  it("toggles a breakpoint on gutter click in trace mode (readOnly)", async () => {
+    let toggled: number | null = null;
+    const { container } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly
+        onToggleBreakpoint={(ln) => { toggled = ln; }} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const gutter = container.querySelector(".cm-exec-gutter");
+    expect(gutter).toBeTruthy();
+    fireEvent.mouseDown(gutter!);
+    expect(toggled).not.toBeNull();
+  });
+
+  it("does not toggle breakpoints on gutter click in edit mode", async () => {
+    let toggled: number | null = null;
+    const { container } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly={false}
+        onToggleBreakpoint={(ln) => { toggled = ln; }} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const gutter = container.querySelector(".cm-exec-gutter");
+    expect(gutter).toBeTruthy();
+    fireEvent.mouseDown(gutter!);
+    expect(toggled).toBeNull();
   });
 });
 

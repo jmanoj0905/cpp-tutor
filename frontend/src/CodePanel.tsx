@@ -46,7 +46,7 @@ const greenMarker = new ArrowMarker("▶", "exec-arrow green");  // just execute
 const redMarker = new ArrowMarker("▶", "exec-arrow red");      // next to execute
 const errorMarker = new ArrowMarker("✖", "error-marker");      // compile error line
 
-function execGutter(onToggle: (line: number) => void) {
+function execGutter(onToggle: (line: number) => boolean) {
   return gutter({
     class: "cm-exec-gutter",
     lineMarker(view, line) {
@@ -62,8 +62,7 @@ function execGutter(onToggle: (line: number) => void) {
     domEventHandlers: {
       mousedown(view, line) {
         const ln = view.state.doc.lineAt(line.from).number;
-        onToggle(ln);
-        return true;
+        return onToggle(ln);
       },
     },
   });
@@ -100,7 +99,12 @@ export function CodePanel({
           EditorView.editable.of(!readOnly),
           EditorState.readOnly.of(readOnly),
         ]),
-        execGutter((ln) => onToggleRef.current(ln)),
+        // breakpoints only exist in trace mode; edit-mode gutter clicks fall through
+        execGutter((ln) => {
+          if (!readOnlyRef.current) return false;
+          onToggleRef.current(ln);
+          return true;
+        }),
         EditorView.domEventHandlers({
           mousedown(event, view) {
             if (!readOnlyRef.current) return false; // edit mode: normal cursor
