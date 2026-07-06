@@ -1,8 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 from typing import Literal
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from app import tracer_service
 from app.trace_cache import run_trace
@@ -37,3 +39,10 @@ def trace(req: TraceRequest) -> Trace | CompileError:
                             detail="Program ran too long — try a smaller example.")
     except TracerError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# In the all-in-one container the backend also serves the built frontend.
+# Same-origin, so the dev CORS allowance above is irrelevant there.
+_static_dir = os.environ.get("CPP_TUTOR_STATIC", "")
+if _static_dir and os.path.isdir(_static_dir):
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="static")
