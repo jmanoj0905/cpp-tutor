@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { ExecPoint } from "../types/trace";
 import { normalizeMemory, type NormalizedFrame } from "./memoryModel";
 import { changedCellIds } from "./memoryDiff";
 import { MemoryCell } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
+import { Divider } from "../Divider.tsx";
 
 export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?: ExecPoint | null }) {
   // Intentionally recomputed every render (not memoized on [point]): the
@@ -15,6 +16,7 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
   const containerRef = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<ConnectorSelection | null>(null);
   const [expandedFrames, setExpandedFrames] = useState<Set<string>>(new Set());
+  const [split, setSplit] = useState(50);
 
   useEffect(() => { setSelected(null); }, [point]);
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
@@ -28,7 +30,7 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
 
   return (
     <div className="memory" ref={containerRef} onClick={() => setSelected(null)}>
-      <div className="panes">
+      <div className="panes" style={{ "--mem-split": `${split}%` } as CSSProperties}>
         <section className="stack-pane">
           <h3>Stack</h3>
           {memory.globals.length > 0 && (
@@ -51,6 +53,7 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
             />
           ))}
         </section>
+        <Divider container=".panes" onResize={setSplit} />
         <section className="heap-pane">
           <h3>Heap</h3>
           <div className="frame-cells">
@@ -61,7 +64,7 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
       <Connectors
         containerRef={containerRef}
         links={memory.links}
-        stepKey={point.line}
+        stepKey={`${point.line}:${split}`}
         selected={selected}
         onSelect={(link) => setSelected(link)}
       />

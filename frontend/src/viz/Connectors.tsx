@@ -21,7 +21,7 @@ export function Connectors({
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   links: MemoryLink[];
-  stepKey: number;
+  stepKey: number | string;
   selected: ConnectorSelection | null;
   onSelect: (link: ConnectorSelection | null) => void;
 }) {

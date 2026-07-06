@@ -160,6 +160,44 @@ describe("MemoryCell", () => {
     expect(container.querySelector(".cell-changed")).toBeNull();
   });
 
+  it("renders a draggable divider between the stack and heap panes", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["x"],
+        encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    const divider = container.querySelector(".panes .divider");
+    expect(divider).toBeTruthy();
+    expect(divider?.getAttribute("role")).toBe("separator");
+  });
+
+  it("updates the stack/heap split while dragging the divider", () => {
+    const point = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "main",
+        ordered_varnames: ["x"],
+        encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
+      }],
+    } as any;
+    const { container } = render(<MemoryView point={point} />);
+    const panes = container.querySelector(".panes") as HTMLElement;
+    panes.getBoundingClientRect = () =>
+      ({ left: 0, width: 1000, top: 0, right: 1000, bottom: 100, height: 100 } as DOMRect);
+    const divider = container.querySelector(".panes .divider") as HTMLElement;
+    // jsdom has no PointerEvent; MouseEvent with a pointer event type still
+    // reaches React's onPointerDown/Move handlers.
+    fireEvent(divider, new MouseEvent("pointerdown", { bubbles: true }));
+    fireEvent(divider, new MouseEvent("pointermove", { bubbles: true, clientX: 300 }));
+    expect(panes.style.getPropertyValue("--mem-split")).toBe("30%");
+  });
+
   it("renders no internals toggle when a frame has none", () => {
     const point = {
       line: 1, event: "step_line", func_name: "main", stdout: "",

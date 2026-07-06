@@ -238,9 +238,9 @@ p {
 
 /* ── Memory view: stack | heap ──────────────────────────────── */
 .memory { position: relative; padding: 0; }
-.panes { display: grid; grid-template-columns: 1fr 1fr; min-height: 100%; }
-.stack-pane { border-right: var(--border-dotted); padding: 10px; }
-.heap-pane { padding: 10px; }
+.panes { display: flex; min-height: 100%; }
+.stack-pane { flex: 0 0 var(--mem-split, 50%); min-width: 0; border-right: var(--border-dotted); padding: 10px; }
+.heap-pane { flex: 1 1 0; min-width: 0; padding: 10px; }
 .stack-pane h3, .heap-pane h3 {
   margin: 0 0 10px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
   color: var(--ink-soft);

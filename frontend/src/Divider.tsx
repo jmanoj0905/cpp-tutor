@@ -1,7 +1,10 @@
 import { useRef } from "react";
 import { splitFromPointer } from "./divider";
 
-export function Divider({ onResize }: { onResize: (pct: number) => void }) {
+export function Divider({ onResize, container = ".workspace" }: {
+  onResize: (pct: number) => void;
+  container?: string;
+}) {
   const dragging = useRef(false);
   return (
     <div
@@ -10,21 +13,21 @@ export function Divider({ onResize }: { onResize: (pct: number) => void }) {
       aria-orientation="vertical"
       onPointerDown={(e) => {
         dragging.current = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
+        e.currentTarget.setPointerCapture?.(e.pointerId);
       }}
       onPointerMove={(e) => {
         if (!dragging.current) return;
-        const ws = e.currentTarget.closest(".workspace");
+        const ws = e.currentTarget.closest(container);
         if (!ws) return;
         onResize(splitFromPointer(e.clientX, ws.getBoundingClientRect()));
       }}
       onPointerUp={(e) => {
         dragging.current = false;
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
       }}
       onPointerCancel={(e) => {
         dragging.current = false;
-        e.currentTarget.releasePointerCapture(e.pointerId);
+        e.currentTarget.releasePointerCapture?.(e.pointerId);
       }}
     />
   );
