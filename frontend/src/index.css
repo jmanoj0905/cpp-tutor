@@ -217,7 +217,7 @@ p {
 
 /* ── VCR controls ───────────────────────────────────────────── */
 .vcr { display: flex; flex-direction: column; gap: 8px; }
-.vcr-buttons { display: flex; gap: 6px; }
+.vcr-buttons { display: flex; gap: 6px; justify-content: center; }
 .vcr button {
   font-family: var(--sans); font-size: 13px; color: var(--ink);
   background: var(--panel); border: var(--border-dotted); border-radius: 0;
@@ -229,7 +229,26 @@ p {
 .timeline { display: flex; align-items: center; gap: 10px; width: 100%; }
 .timeline label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 .track { position: relative; flex: 1; }
-.track input[type="range"] { width: 100%; display: block; accent-color: var(--blue); }
+.track input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; display: block; height: 18px; margin: 0;
+  background: transparent; cursor: pointer;
+}
+.track input[type="range"]::-webkit-slider-runnable-track {
+  height: 0; border-top: 1px dotted var(--ink);
+}
+.track input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 11px; height: 11px; margin-top: -6px;
+  background: var(--ink); border: none; border-radius: 0;
+}
+.track input[type="range"]::-moz-range-track {
+  height: 0; border-top: 1px dotted var(--ink);
+}
+.track input[type="range"]::-moz-range-thumb {
+  width: 11px; height: 11px;
+  background: var(--ink); border: none; border-radius: 0;
+}
 .ticks { position: absolute; inset: 0; pointer-events: none; }
 .tick {
   position: absolute; top: 50%; width: 2px; height: 12px;
