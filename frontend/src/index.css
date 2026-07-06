@@ -123,9 +123,16 @@ p {
 }
 
 .editor .cm-editor {
-  font-family: var(--mono);
   font-size: 14px;
   background: var(--panel);
+}
+
+/* CodeMirror sets its own font on .cm-scroller, so the family (and the
+   JetBrains Mono coding ligatures) must be applied there, not on .cm-editor. */
+.editor .cm-scroller {
+  font-family: var(--mono);
+  font-variant-ligatures: contextual;
+  font-feature-settings: "liga" 1, "calt" 1;
 }
 
 .editor .cm-editor.cm-focused {
