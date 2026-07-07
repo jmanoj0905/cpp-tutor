@@ -36,7 +36,9 @@ function Workspace({
   onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
-  const [stdoutSplit, setStdoutSplit] = useState(8);
+  // null = auto: the stdout pane grows with its content (CSS min/max-height
+  // defaults); a number pins it to that exact percentage after a drag.
+  const [stdoutSplit, setStdoutSplit] = useState<number | null>(null);
   // OPT C trace: point.line is the line about to execute (next); the previously
   // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
@@ -49,7 +51,14 @@ function Workspace({
         <Vcr player={player} breakpoints={breakpoints} />
       </section>
       <Divider onResize={onResize} />
-      <section className="right-col" style={{ "--stdout-split": `${stdoutSplit}%` } as CSSProperties}>
+      <section
+        className="right-col"
+        style={
+          stdoutSplit === null
+            ? undefined
+            : ({ "--stdout-min": `${stdoutSplit}%`, "--stdout-max": `${stdoutSplit}%` } as CSSProperties)
+        }
+      >
         <div className="stdout-region">
           <h3 className="stdout-title">Stdout</h3>
           <pre className="stdout-bar">{player.point.stdout}</pre>
@@ -57,10 +66,10 @@ function Workspace({
         <Divider
           container=".right-col"
           orientation="horizontal"
-          defaultPct={8}
           min={8}
           max={60}
           onResize={setStdoutSplit}
+          onReset={() => setStdoutSplit(null)}
         />
         {player.point.exception_msg && (
           <div className="limit-notice">{player.point.exception_msg}</div>

@@ -3,6 +3,7 @@ import { splitFromPointer } from "./divider";
 
 export function Divider({
   onResize,
+  onReset,
   container = ".workspace",
   defaultPct = 50,
   orientation = "vertical",
@@ -10,6 +11,7 @@ export function Divider({
   max = 80,
 }: {
   onResize: (pct: number) => void;
+  onReset?: () => void;
   container?: string;
   defaultPct?: number;
   orientation?: "vertical" | "horizontal";
@@ -23,7 +25,7 @@ export function Divider({
       className={orientation === "vertical" ? "divider" : "divider divider-h"}
       role="separator"
       aria-orientation={orientation}
-      onDoubleClick={() => onResize(defaultPct)}
+      onDoubleClick={() => (onReset ? onReset() : onResize(defaultPct))}
       onPointerDown={(e) => {
         dragging.current = true;
         e.currentTarget.setPointerCapture?.(e.pointerId);

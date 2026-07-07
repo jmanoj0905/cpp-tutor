@@ -48,6 +48,31 @@ describe("App shell", () => {
     expect(screen.queryByText("expected ';'")).toBeNull();
   });
 
+  it("stdout pane auto-sizes with content until dragged, and reset returns to auto", async () => {
+    (fetchTrace as any).mockResolvedValue(vectorTrace as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+
+    const rightCol = container.querySelector(".right-col") as HTMLElement;
+    // Auto mode: no inline pin, CSS min/max-height defaults drive the size.
+    expect(rightCol.style.getPropertyValue("--stdout-min")).toBe("");
+    expect(rightCol.style.getPropertyValue("--stdout-max")).toBe("");
+
+    rightCol.getBoundingClientRect = () => ({ top: 0, height: 1000 } as DOMRect);
+    const divider = container.querySelector(".divider-h") as HTMLElement;
+    fireEvent.pointerDown(divider, { pointerId: 1 });
+    fireEvent.pointerMove(divider, { pointerId: 1, clientY: 300 });
+    fireEvent.pointerUp(divider, { pointerId: 1 });
+    // Manual mode: drag pins the pane to an exact height.
+    expect(rightCol.style.getPropertyValue("--stdout-min")).toBe("30%");
+    expect(rightCol.style.getPropertyValue("--stdout-max")).toBe("30%");
+
+    fireEvent.doubleClick(divider);
+    expect(rightCol.style.getPropertyValue("--stdout-min")).toBe("");
+    expect(rightCol.style.getPropertyValue("--stdout-max")).toBe("");
+  });
+
   it("tints a cell after stepping to a point where its value changed", async () => {
     const point = (line: number, x: number) => ({
       line, event: "step_line", func_name: "main", stdout: "",

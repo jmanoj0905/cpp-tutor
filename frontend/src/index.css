@@ -89,7 +89,10 @@ p {
 .left-col .vcr { flex: 0 0 auto; padding: 8px 12px; border-top: var(--border-dotted); }
 
 .stdout-region {
-  flex: 0 0 var(--stdout-split, 8%); min-height: 0;
+  /* Content-sized like the stack/heap panes: grows with the output, clamped
+     between 10% and 60%; a drag pins both bounds to the same value. */
+  flex: 0 1 auto;
+  min-height: var(--stdout-min, 10%); max-height: var(--stdout-max, 60%);
   display: flex; flex-direction: column;
   background: var(--code-bg); border-bottom: var(--border-dotted);
 }

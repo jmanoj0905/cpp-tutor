@@ -17,6 +17,15 @@ describe("Divider", () => {
     expect(onResize).toHaveBeenCalledWith(18);
   });
 
+  it("calls onReset instead of onResize on double click when provided", () => {
+    const onResize = vi.fn();
+    const onReset = vi.fn();
+    const { container } = render(<Divider onResize={onResize} onReset={onReset} />);
+    fireEvent.doubleClick(container.querySelector(".divider")!);
+    expect(onReset).toHaveBeenCalled();
+    expect(onResize).not.toHaveBeenCalled();
+  });
+
   it("renders horizontal orientation with the divider-h class", () => {
     const { container } = render(<Divider onResize={() => {}} orientation="horizontal" />);
     const el = container.querySelector(".divider")!;
