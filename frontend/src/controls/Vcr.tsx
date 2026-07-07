@@ -1,5 +1,8 @@
 import type { usePlayer } from "../player/usePlayer";
 
+// Past this many steps the marks blur into a solid line, so draw none.
+const STEP_MARK_LIMIT = 60;
+
 export function Vcr({
   player,
   breakpoints,
@@ -28,6 +31,17 @@ export function Vcr({
             value={index}
             onChange={(event) => goto(Number(event.currentTarget.value))}
           />
+          {total > 1 && total <= STEP_MARK_LIMIT && (
+            <div className="step-marks" aria-hidden>
+              {Array.from({ length: total }, (_, step) => (
+                <span
+                  key={step}
+                  className="step-mark"
+                  style={{ left: `${(step / max) * 100}%` }}
+                />
+              ))}
+            </div>
+          )}
           <div className="ticks" aria-hidden>
             {hits.map((step) => (
               <span

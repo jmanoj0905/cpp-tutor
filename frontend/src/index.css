@@ -289,6 +289,11 @@ p {
   width: 11px; height: 11px;
   background: var(--ink); border: none; border-radius: 0;
 }
+.step-marks { position: absolute; inset: 0; pointer-events: none; }
+.step-mark {
+  position: absolute; top: 50%; width: 1px; height: 7px;
+  transform: translate(-50%, -50%); background: var(--ink-soft);
+}
 .ticks { position: absolute; inset: 0; pointer-events: none; }
 .tick {
   position: absolute; top: 50%; width: 2px; height: 12px;

@@ -51,6 +51,21 @@ describe("Vcr", () => {
     expect(screen.getByText(/Step 4 of 4/)).toBeDefined();
   });
 
+  it("renders a step mark per step", () => {
+    const { result } = renderHook(() => usePlayer(mk(4)));
+    const { container } = render(<Vcr player={result.current} />);
+    const marks = container.querySelectorAll(".step-mark");
+    expect(marks.length).toBe(4);
+    expect((marks[0] as HTMLElement).style.left).toBe("0%");
+    expect((marks[3] as HTMLElement).style.left).toBe("100%");
+  });
+
+  it("omits step marks when the trace is too dense", () => {
+    const { result } = renderHook(() => usePlayer(mk(200)));
+    const { container } = render(<Vcr player={result.current} />);
+    expect(container.querySelectorAll(".step-mark").length).toBe(0);
+  });
+
   it("renders a tick per breakpoint hit", () => {
     const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5, 7, 5])));
     const { container } = render(<Vcr player={result.current} breakpoints={new Set([5])} />);
