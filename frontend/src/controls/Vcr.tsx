@@ -3,6 +3,13 @@ import type { usePlayer } from "../player/usePlayer";
 // Past this many steps the marks blur into a solid line, so draw none.
 const STEP_MARK_LIMIT = 60;
 
+// Must match the slider thumb width in index.css. The thumb's center only
+// travels [THUMB_PX/2, 100% - THUMB_PX/2], so marks map into that range,
+// not the raw track percentage.
+const THUMB_PX = 11;
+const markLeft = (step: number, max: number) =>
+  `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${max ? step / max : 0})`;
+
 export function Vcr({
   player,
   breakpoints,
@@ -37,7 +44,7 @@ export function Vcr({
                 <span
                   key={step}
                   className="step-mark"
-                  style={{ left: `${(step / max) * 100}%` }}
+                  style={{ left: markLeft(step, max) }}
                 />
               ))}
             </div>
@@ -48,7 +55,7 @@ export function Vcr({
                 key={step}
                 className="tick"
                 data-step={step}
-                style={{ left: `${max ? (step / max) * 100 : 0}%` }}
+                style={{ left: markLeft(step, max) }}
               />
             ))}
           </div>

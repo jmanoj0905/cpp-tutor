@@ -56,8 +56,17 @@ describe("Vcr", () => {
     const { container } = render(<Vcr player={result.current} />);
     const marks = container.querySelectorAll(".step-mark");
     expect(marks.length).toBe(4);
-    expect((marks[0] as HTMLElement).style.left).toBe("0%");
-    expect((marks[3] as HTMLElement).style.left).toBe("100%");
+    // Marks must sit where the 11px thumb's center stops, not on the raw
+    // track percentage: center travel spans [5.5px, 100% - 5.5px].
+    expect((marks[0] as HTMLElement).style.left).toBe("calc(5.5px + 0 * (100% - 11px))");
+    expect((marks[3] as HTMLElement).style.left).toBe("calc(5.5px + 1 * (100% - 11px))");
+  });
+
+  it("positions breakpoint ticks on the thumb travel range", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5, 7, 5])));
+    const { container } = render(<Vcr player={result.current} breakpoints={new Set([6])} />);
+    const tick = container.querySelector(".tick") as HTMLElement;
+    expect(tick.style.left).toBe("calc(5.5px + 0.25 * (100% - 11px))");
   });
 
   it("omits step marks when the trace is too dense", () => {
