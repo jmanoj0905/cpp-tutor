@@ -1,11 +1,11 @@
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { CodePanel } from "./CodePanel";
 import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
-import { toggleBreakpoint as toggleInSet } from "./player/breakpoints";
+import { toggleBreakpoint as toggleInSet, deadBreakpointLines } from "./player/breakpoints";
 import { fetchTrace } from "./api/client";
 import { isCompileError, type Trace } from "./types/trace";
 
@@ -42,13 +42,16 @@ function Workspace({
   // OPT C trace: point.line is the line about to execute (next); the previously
   // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
+  const deadLines = useMemo(() => deadBreakpointLines(breakpoints, trace), [breakpoints, trace]);
+  const deadLineSet = useMemo(() => new Set(deadLines), [deadLines]);
 
   return (
     <>
       <section className="left-col">
         <CodePanel value={code} onChange={() => {}} exec={exec} readOnly
-          breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint} />
-        <Vcr player={player} breakpoints={breakpoints} />
+          breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint}
+          deadLines={deadLineSet} />
+        <Vcr player={player} breakpoints={breakpoints} deadLines={deadLines} />
       </section>
       <Divider onResize={onResize} />
       <section

@@ -88,4 +88,21 @@ describe("Vcr", () => {
     rerender(<Vcr player={result.current} breakpoints={new Set([5])} />);
     expect(result.current.index).toBe(2);
   });
+
+  it("warns about breakpoints on lines the trace never reaches", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5])));
+    const { container } = render(
+      <Vcr player={result.current} breakpoints={new Set([5, 9, 12])} deadLines={[9, 12]} />,
+    );
+    const notice = container.querySelector(".bp-dead-notice");
+    expect(notice?.textContent).toContain("lines 9, 12");
+  });
+
+  it("shows no dead-breakpoint warning when all breakpoints are hit", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5])));
+    const { container } = render(
+      <Vcr player={result.current} breakpoints={new Set([5])} deadLines={[]} />,
+    );
+    expect(container.querySelector(".bp-dead-notice")).toBeNull();
+  });
 });

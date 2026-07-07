@@ -52,12 +52,17 @@ const docWordCompletions: CompletionSource = (ctx) => {
 };
 
 interface ExecState { justExecuted: number | null; next: number | null }
-interface PanelState { exec: ExecState | null; breakpoints: Set<number>; errorLine: number | null }
+interface PanelState {
+  exec: ExecState | null;
+  breakpoints: Set<number>;
+  deadLines: Set<number>; // breakpoint lines the trace never reaches
+  errorLine: number | null;
+}
 
 const setPanel = StateEffect.define<PanelState>();
 
 const panelField = StateField.define<PanelState>({
-  create: () => ({ exec: null, breakpoints: new Set(), errorLine: null }),
+  create: () => ({ exec: null, breakpoints: new Set(), deadLines: new Set(), errorLine: null }),
   update(value, tr) {
     for (const e of tr.effects) if (e.is(setPanel)) return e.value;
     return value;
@@ -105,8 +110,11 @@ function execGutter(onToggle: (line: number) => boolean) {
   });
 }
 
+const NO_DEAD_LINES = new Set<number>();
+
 export function CodePanel({
-  value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly, errorLine = null,
+  value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly,
+  deadLines = NO_DEAD_LINES, errorLine = null,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -114,6 +122,7 @@ export function CodePanel({
   breakpoints: Set<number>;
   onToggleBreakpoint: (line: number) => void;
   readOnly: boolean;
+  deadLines?: Set<number>;
   errorLine?: number | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -174,14 +183,14 @@ export function CodePanel({
           indentWithTab,
         ]),
         EditorView.decorations.compute([panelField, "doc"], (st) => {
-          const { exec: ex, breakpoints: bps, errorLine: errLn } = st.field(panelField);
+          const { exec: ex, breakpoints: bps, deadLines: dead, errorLine: errLn } = st.field(panelField);
           const doc = st.doc;
           const list: { from: number; deco: Decoration }[] = [];
           const add = (line: number, cls: string) => {
             if (line < 1 || line > doc.lines) return;
             list.push({ from: doc.line(line).from, deco: Decoration.line({ class: cls }) });
           };
-          for (const bp of bps) add(bp, "cm-bp");
+          for (const bp of bps) add(bp, dead.has(bp) ? "cm-bp-dead" : "cm-bp");
           if (ex?.next != null) add(ex.next, "cm-next");
           if (errLn != null) add(errLn, "cm-error-line");
           list.sort((a, b) => a.from - b.from);
@@ -197,8 +206,8 @@ export function CodePanel({
 
   // push exec/breakpoints/error into the editor on change
   useEffect(() => {
-    view.current?.dispatch({ effects: setPanel.of({ exec, breakpoints, errorLine }) });
-  }, [exec, breakpoints, errorLine]);
+    view.current?.dispatch({ effects: setPanel.of({ exec, breakpoints, deadLines, errorLine }) });
+  }, [exec, breakpoints, deadLines, errorLine]);
 
   useEffect(() => {
     view.current?.dispatch({

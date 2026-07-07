@@ -10,12 +10,19 @@ const THUMB_PX = 11;
 const markLeft = (step: number, max: number) =>
   `calc(${THUMB_PX / 2}px + (100% - ${THUMB_PX}px) * ${max ? step / max : 0})`;
 
+const deadLinesMsg = (lines: number[]) =>
+  lines.length === 1
+    ? `Breakpoint on line ${lines[0]} is never reached in this trace.`
+    : `Breakpoints on lines ${lines.join(", ")} are never reached in this trace.`;
+
 export function Vcr({
   player,
   breakpoints,
+  deadLines = [],
 }: {
   player: ReturnType<typeof usePlayer>;
   breakpoints?: Set<number>;
+  deadLines?: number[];
 }) {
   const { index, total, first, prev, next, last, goto, hitSteps, nextHit } = player;
   const max = Math.max(0, total - 1);
@@ -62,6 +69,10 @@ export function Vcr({
         </div>
         <span className="counter">Step {index + 1} of {total}</span>
       </div>
+
+      {deadLines.length > 0 && (
+        <p className="bp-dead-notice" role="status">{deadLinesMsg(deadLines)}</p>
+      )}
 
       <div className="vcr-buttons">
         <button onClick={first} disabled={index === 0}>&lt;&lt; First</button>

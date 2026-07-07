@@ -125,6 +125,8 @@ p {
 .exec-arrow.red { color: var(--red); }
 .cm-line.cm-next { background: rgba(214, 50, 42, 0.10); }
 .cm-line.cm-bp { box-shadow: inset 3px 0 0 var(--red); }
+/* breakpoint on a line the trace never reaches: hollow, not armed */
+.cm-line.cm-bp-dead { box-shadow: inset 3px 0 0 var(--ink-soft); opacity: 0.75; }
 .cm-line.cm-error-line { background: rgba(214, 50, 42, 0.16); box-shadow: inset 3px 0 0 var(--red); }
 .error-marker { color: var(--red); font-weight: bold; }
 
@@ -265,6 +267,10 @@ p {
 
 /* ── VCR controls ───────────────────────────────────────────── */
 .vcr { display: flex; flex-direction: column; gap: 8px; }
+.bp-dead-notice {
+  margin: 6px 0 0; font-family: var(--sans); font-size: 12px;
+  color: var(--ink); background: #ffef9f; padding: 4px 8px;
+}
 .vcr-buttons { display: flex; gap: 6px; justify-content: center; }
 .vcr button {
   font-family: var(--sans); font-size: 13px; color: var(--ink);

@@ -112,6 +112,20 @@ describe("CodePanel compile error", () => {
   });
 });
 
+describe("CodePanel dead breakpoints", () => {
+  it("styles a never-reached breakpoint line as dead instead of active", async () => {
+    const { container } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly
+        breakpoints={new Set([1, 2])} deadLines={new Set([2])} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const active = container.querySelectorAll(".cm-line.cm-bp");
+    const dead = container.querySelectorAll(".cm-line.cm-bp-dead");
+    expect(active.length).toBe(1);
+    expect(dead.length).toBe(1);
+  });
+});
+
 describe("CodePanel exec arrows", () => {
   it("renders a green marker on just-executed line and red on next line", async () => {
     const { container } = render(
