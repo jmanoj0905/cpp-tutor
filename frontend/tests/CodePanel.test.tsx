@@ -112,6 +112,37 @@ describe("CodePanel compile error", () => {
   });
 });
 
+describe("CodePanel active-line highlight", () => {
+  it("highlights the cursor line in edit mode", async () => {
+    const { container } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly={false} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-activeLine")).toBeTruthy();
+  });
+
+  it("does not paint a stuck cursor line in trace mode", async () => {
+    // the cursor is frozen at line 1 in trace mode (clicks toggle
+    // breakpoints instead of moving it), so an active-line highlight
+    // would just render line 1 permanently yellow
+    const { container } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-activeLine")).toBeNull();
+  });
+
+  it("drops the highlight when switching into trace mode", async () => {
+    const { container, rerender } = render(
+      <CodePanel {...base} value={"a\nb\nc"} readOnly={false} />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    rerender(<CodePanel {...base} value={"a\nb\nc"} readOnly />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-activeLine")).toBeNull();
+  });
+});
+
 describe("CodePanel dead breakpoints", () => {
   it("styles a never-reached breakpoint line as dead instead of active", async () => {
     const { container } = render(

@@ -135,16 +135,22 @@ export function CodePanel({
   onToggleRef.current = onToggleBreakpoint;
   readOnlyRef.current = readOnly;
 
+  // Trace mode freezes the cursor at line 1 (clicks toggle breakpoints
+  // instead of moving it), so the active-line highlight would paint line 1
+  // permanently — only offer it while editing.
+  const modeExtensions = (ro: boolean) => [
+    EditorView.editable.of(!ro),
+    EditorState.readOnly.of(ro),
+    ...(ro ? [] : [highlightActiveLine(), highlightActiveLineGutter()]),
+  ];
+
   useEffect(() => {
     if (!host.current) return;
     const state = EditorState.create({
       doc: value,
       extensions: [
         panelField,
-        readOnlyComp.current.of([
-          EditorView.editable.of(!readOnly),
-          EditorState.readOnly.of(readOnly),
-        ]),
+        readOnlyComp.current.of(modeExtensions(readOnly)),
         // breakpoints only exist in trace mode; edit-mode gutter clicks fall through
         execGutter((ln) => {
           if (!readOnlyRef.current) return false;
@@ -172,8 +178,6 @@ export function CodePanel({
         bracketMatching(),
         indentOnInput(),
         indentUnit.of("  "),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
         keymap.of([
           ...closeBracketsKeymap,
           ...completionKeymap,
@@ -211,11 +215,9 @@ export function CodePanel({
 
   useEffect(() => {
     view.current?.dispatch({
-      effects: readOnlyComp.current.reconfigure([
-        EditorView.editable.of(!readOnly),
-        EditorState.readOnly.of(readOnly),
-      ]),
+      effects: readOnlyComp.current.reconfigure(modeExtensions(readOnly)),
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readOnly]);
 
   return <div className="editor codepanel" ref={host} />;
