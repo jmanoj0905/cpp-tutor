@@ -89,7 +89,7 @@ p {
 .left-col .vcr { flex: 0 0 auto; padding: 8px 12px; border-top: var(--border-dotted); }
 
 .stdout-region {
-  flex: 0 0 var(--stdout-split, 18%); min-height: 0;
+  flex: 0 0 var(--stdout-split, 8%); min-height: 0;
   display: flex; flex-direction: column;
   background: var(--code-bg); border-bottom: var(--border-dotted);
 }

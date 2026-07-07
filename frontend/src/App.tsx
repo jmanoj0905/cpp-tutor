@@ -36,7 +36,7 @@ function Workspace({
   onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
-  const [stdoutSplit, setStdoutSplit] = useState(18);
+  const [stdoutSplit, setStdoutSplit] = useState(8);
   // OPT C trace: point.line is the line about to execute (next); the previously
   // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
@@ -57,7 +57,7 @@ function Workspace({
         <Divider
           container=".right-col"
           orientation="horizontal"
-          defaultPct={18}
+          defaultPct={8}
           min={8}
           max={60}
           onResize={setStdoutSplit}
