@@ -22,4 +22,14 @@ describe("splitFromPointer", () => {
   it("returns 50 when the rect has zero width", () => {
     expect(splitFromPointer(0, rect(0, 0))).toBe(50);
   });
+
+  it("maps a vertical pointer with the y axis", () => {
+    const r = { top: 100, height: 1000 } as DOMRect;
+    expect(splitFromPointer(400, r, "y")).toBe(30);
+  });
+
+  it("clamps to custom bounds", () => {
+    expect(splitFromPointer(0, rect(0, 1000), "x", 8, 60)).toBe(8);
+    expect(splitFromPointer(1000, rect(0, 1000), "x", 8, 60)).toBe(60);
+  });
 });

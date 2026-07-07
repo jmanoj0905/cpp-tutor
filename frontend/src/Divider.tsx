@@ -1,17 +1,28 @@
 import { useRef } from "react";
 import { splitFromPointer } from "./divider";
 
-export function Divider({ onResize, container = ".workspace", defaultPct = 50 }: {
+export function Divider({
+  onResize,
+  container = ".workspace",
+  defaultPct = 50,
+  orientation = "vertical",
+  min = 20,
+  max = 80,
+}: {
   onResize: (pct: number) => void;
   container?: string;
   defaultPct?: number;
+  orientation?: "vertical" | "horizontal";
+  min?: number;
+  max?: number;
 }) {
   const dragging = useRef(false);
+  const axis = orientation === "vertical" ? "x" : "y";
   return (
     <div
-      className="divider"
+      className={orientation === "vertical" ? "divider" : "divider divider-h"}
       role="separator"
-      aria-orientation="vertical"
+      aria-orientation={orientation}
       onDoubleClick={() => onResize(defaultPct)}
       onPointerDown={(e) => {
         dragging.current = true;
@@ -21,7 +32,8 @@ export function Divider({ onResize, container = ".workspace", defaultPct = 50 }:
         if (!dragging.current) return;
         const ws = e.currentTarget.closest(container);
         if (!ws) return;
-        onResize(splitFromPointer(e.clientX, ws.getBoundingClientRect()));
+        const client = axis === "x" ? e.clientX : e.clientY;
+        onResize(splitFromPointer(client, ws.getBoundingClientRect(), axis, min, max));
       }}
       onPointerUp={(e) => {
         dragging.current = false;

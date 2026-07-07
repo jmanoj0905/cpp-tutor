@@ -16,4 +16,26 @@ describe("Divider", () => {
     fireEvent.doubleClick(container.querySelector(".divider")!);
     expect(onResize).toHaveBeenCalledWith(18);
   });
+
+  it("renders horizontal orientation with the divider-h class", () => {
+    const { container } = render(<Divider onResize={() => {}} orientation="horizontal" />);
+    const el = container.querySelector(".divider")!;
+    expect(el.classList.contains("divider-h")).toBe(true);
+    expect(el.getAttribute("aria-orientation")).toBe("horizontal");
+  });
+
+  it("resizes from clientY when horizontal", () => {
+    const onResize = vi.fn();
+    const { container } = render(
+      <div className="host" style={{ position: "relative" }}>
+        <Divider onResize={onResize} container=".host" orientation="horizontal" min={8} max={60} />
+      </div>,
+    );
+    const host = container.querySelector(".host")!;
+    host.getBoundingClientRect = () => ({ top: 0, height: 1000 } as DOMRect);
+    const el = container.querySelector(".divider")!;
+    fireEvent.pointerDown(el, { pointerId: 1 });
+    fireEvent.pointerMove(el, { pointerId: 1, clientY: 300 });
+    expect(onResize).toHaveBeenCalledWith(30);
+  });
 });

@@ -36,6 +36,7 @@ function Workspace({
   onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
+  const [stdoutSplit, setStdoutSplit] = useState(18);
   // OPT C trace: point.line is the line about to execute (next); the previously
   // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
@@ -48,9 +49,19 @@ function Workspace({
         <Vcr player={player} breakpoints={breakpoints} />
       </section>
       <Divider onResize={onResize} />
-      <section className="right-col">
-        <h3 className="stdout-title">Stdout</h3>
-        <pre className="stdout-bar">{player.point.stdout}</pre>
+      <section className="right-col" style={{ "--stdout-split": `${stdoutSplit}%` } as CSSProperties}>
+        <div className="stdout-region">
+          <h3 className="stdout-title">Stdout</h3>
+          <pre className="stdout-bar">{player.point.stdout}</pre>
+        </div>
+        <Divider
+          container=".right-col"
+          orientation="horizontal"
+          defaultPct={18}
+          min={8}
+          max={60}
+          onResize={setStdoutSplit}
+        />
         {player.point.exception_msg && (
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
