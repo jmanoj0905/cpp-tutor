@@ -247,3 +247,32 @@ def test_compile_error_is_structured():
     result = run_trace("int main(){ return", "cpp")
     assert isinstance(result, CompileError)
     assert result.message
+
+
+MEMBER_FN_CODE = """\
+struct Box {
+    int v;
+    int grow(int by) {
+        v += by;
+        return v;
+    }
+};
+int main() {
+    Box b{1};
+    int r = b.grow(4);
+    return r;
+}
+"""
+
+
+@pytest.mark.docker
+def test_member_function_steps_survive():
+    """Method frames report the caller's FP, so the postprocessor's
+    duplicate-frame_id filter used to drop every step inside a member
+    function — breakpoints there could never hit."""
+    result = run_trace(MEMBER_FN_CODE, "cpp")
+    assert isinstance(result, Trace)
+    method_points = [pt for pt in result.trace if "Box::grow" in pt.func_name]
+    assert method_points, "no execution points inside Box::grow"
+    # body lines (4: v += by, 5: return v) must be steppable
+    assert {4, 5} <= {pt.line for pt in method_points}
