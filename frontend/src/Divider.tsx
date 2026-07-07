@@ -1,9 +1,10 @@
 import { useRef } from "react";
 import { splitFromPointer } from "./divider";
 
-export function Divider({ onResize, container = ".workspace" }: {
+export function Divider({ onResize, container = ".workspace", defaultPct = 50 }: {
   onResize: (pct: number) => void;
   container?: string;
+  defaultPct?: number;
 }) {
   const dragging = useRef(false);
   return (
@@ -11,6 +12,7 @@ export function Divider({ onResize, container = ".workspace" }: {
       className="divider"
       role="separator"
       aria-orientation="vertical"
+      onDoubleClick={() => onResize(defaultPct)}
       onPointerDown={(e) => {
         dragging.current = true;
         e.currentTarget.setPointerCapture?.(e.pointerId);
