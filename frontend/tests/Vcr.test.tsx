@@ -98,6 +98,26 @@ describe("Vcr", () => {
     expect(notice?.textContent).toContain("lines 9, 12");
   });
 
+  it("clears all breakpoints with one click", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5])));
+    let cleared = false;
+    render(
+      <Vcr player={result.current} breakpoints={new Set([5, 6])}
+        onClearBreakpoints={() => { cleared = true; }} />,
+    );
+    fireEvent.click(screen.getByText(/Clear breakpoints/));
+    expect(cleared).toBe(true);
+  });
+
+  it("hides the clear button when there are no breakpoints", () => {
+    const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5])));
+    render(
+      <Vcr player={result.current} breakpoints={new Set()}
+        onClearBreakpoints={() => {}} />,
+    );
+    expect(screen.queryByText(/Clear breakpoints/)).toBeNull();
+  });
+
   it("shows no dead-breakpoint warning when all breakpoints are hit", () => {
     const { result } = renderHook(() => usePlayer(mkLines([5, 6, 5])));
     const { container } = render(

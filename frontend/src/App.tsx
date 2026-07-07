@@ -27,12 +27,13 @@ int main() {
 }`;
 
 function Workspace({
-  trace, code, breakpoints, onToggleBreakpoint, onResize,
+  trace, code, breakpoints, onToggleBreakpoint, onClearBreakpoints, onResize,
 }: {
   trace: Trace;
   code: string;
   breakpoints: Set<number>;
   onToggleBreakpoint: (line: number) => void;
+  onClearBreakpoints: () => void;
   onResize: (pct: number) => void;
 }) {
   const player = usePlayer(trace);
@@ -51,7 +52,8 @@ function Workspace({
         <CodePanel value={code} onChange={() => {}} exec={exec} readOnly
           breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint}
           deadLines={deadLineSet} />
-        <Vcr player={player} breakpoints={breakpoints} deadLines={deadLines} />
+        <Vcr player={player} breakpoints={breakpoints} deadLines={deadLines}
+          onClearBreakpoints={onClearBreakpoints} />
       </section>
       <Divider onResize={onResize} />
       <section
@@ -145,6 +147,7 @@ export default function App() {
               code={code}
               breakpoints={breakpoints}
               onToggleBreakpoint={toggleBreakpoint}
+              onClearBreakpoints={() => setBreakpoints(new Set())}
               onResize={setSplit}
             />
           : (<>

@@ -19,10 +19,12 @@ export function Vcr({
   player,
   breakpoints,
   deadLines = [],
+  onClearBreakpoints,
 }: {
   player: ReturnType<typeof usePlayer>;
   breakpoints?: Set<number>;
   deadLines?: number[];
+  onClearBreakpoints?: () => void;
 }) {
   const { index, total, first, prev, next, last, goto, hitSteps, nextHit } = player;
   const max = Math.max(0, total - 1);
@@ -79,6 +81,11 @@ export function Vcr({
         <button onClick={prev} disabled={index === 0}>&lt; Prev</button>
         <button onClick={handleNext} disabled={index === total - 1}>Next &gt;</button>
         <button onClick={last} disabled={index === total - 1}>Last &gt;&gt;</button>
+        {bp.size > 0 && onClearBreakpoints && (
+          <button className="clear-bps" onClick={onClearBreakpoints}>
+            Clear breakpoints
+          </button>
+        )}
       </div>
     </div>
   );
