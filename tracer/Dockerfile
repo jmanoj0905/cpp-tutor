@@ -7,9 +7,10 @@ RUN apt-get update && apt-get install -y \
     build-essential autotools-dev automake libc6-dbg python patch \
  && rm -rf /var/lib/apt/lists/*
 
-COPY opt-cpp-backend /opt/tracer
-# Fix 1: force DWARF v2 so the patched Valgrind can parse debug info
-RUN sed -i "s/'-ggdb', '-O0'/'-ggdb', '-gdwarf-2', '-O0'/" /opt/tracer/run_cpp_backend.py
+# Valgrind sources first: they change rarely and the compile below is the
+# slow layer. The Python driver scripts are copied AFTER the compile so that
+# editing them rebuilds in seconds instead of recompiling Valgrind.
+COPY opt-cpp-backend/valgrind-3.11.0 /opt/tracer/valgrind-3.11.0
 # Fix 2: add ARM64 frame-pointer (x29) register mapping so DW_OP_breg29 resolves
 #        correctly when evaluating DW_OP_fbreg local-variable locations.
 #        Stock Valgrind 3.11 only mapped r31(SP); r29(FP) was missing → fbGX
@@ -36,6 +37,14 @@ COPY cpp-stl-dwarf-inheritance.patch /tmp/cpp-stl-dwarf-inheritance.patch
 RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-dwarf-inheritance.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
+
+# Python driver scripts — the fast-changing layer.
+COPY opt-cpp-backend/run_cpp_backend.py \
+     opt-cpp-backend/vg_to_opt_trace.py \
+     opt-cpp-backend/step_limits.py \
+     /opt/tracer/
+# Fix 1: force DWARF v2 so the patched Valgrind can parse debug info
+RUN sed -i "s/'-ggdb', '-O0'/'-ggdb', '-gdwarf-2', '-O0'/" /opt/tracer/run_cpp_backend.py
 
 RUN useradd netuser && find /opt/tracer | xargs chown netuser
 WORKDIR /opt/tracer
