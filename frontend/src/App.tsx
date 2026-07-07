@@ -49,6 +49,7 @@ function Workspace({
       </section>
       <Divider onResize={onResize} />
       <section className="right-col">
+        <h3 className="stdout-title">Stdout</h3>
         <pre className="stdout-bar">{player.point.stdout}</pre>
         {player.point.exception_msg && (
           <div className="limit-notice">{player.point.exception_msg}</div>
