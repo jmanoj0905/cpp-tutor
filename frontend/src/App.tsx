@@ -1,4 +1,6 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useShortcuts, type ShortcutHandlers } from "./shortcuts/useShortcuts";
+import { HelpOverlay } from "./shortcuts/HelpOverlay";
 import { CodePanel } from "./CodePanel";
 import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
@@ -28,6 +30,7 @@ int main() {
 
 function Workspace({
   trace, code, breakpoints, onToggleBreakpoint, onClearBreakpoints, onResize,
+  registerStepHandlers,
 }: {
   trace: Trace;
   code: string;
@@ -35,6 +38,7 @@ function Workspace({
   onToggleBreakpoint: (line: number) => void;
   onClearBreakpoints: () => void;
   onResize: (pct: number) => void;
+  registerStepHandlers: (h: ShortcutHandlers | null) => void;
 }) {
   const player = usePlayer(trace);
   // null = auto: the stdout pane grows with its content (CSS min/max-height
@@ -45,6 +49,19 @@ function Workspace({
   const exec = { justExecuted: player.prevLine, next: player.point.line };
   const deadLines = useMemo(() => deadBreakpointLines(breakpoints, trace), [breakpoints, trace]);
   const deadLineSet = useMemo(() => new Set(deadLines), [deadLines]);
+
+  // No dependency array: handlers close over the current player/breakpoints,
+  // so re-register every render; cleanup deregisters on unmount.
+  useEffect(() => {
+    registerStepHandlers({
+      prev: player.prev,
+      // same breakpoint-aware behavior as the Vcr Next button
+      next: () => (breakpoints.size ? player.nextHit(breakpoints) : player.next()),
+      first: player.first,
+      last: player.last,
+    });
+    return () => registerStepHandlers(null);
+  });
 
   return (
     <>
@@ -97,6 +114,12 @@ export default function App() {
   const [split, setSplit] = useState(50);
   const elapsed = useElapsed(loading);
 
+  const [helpOpen, setHelpOpen] = useState(false);
+  const stepHandlers = useRef<ShortcutHandlers | null>(null);
+  const registerStepHandlers = useCallback((h: ShortcutHandlers | null) => {
+    stepHandlers.current = h;
+  }, []);
+
   function toggleBreakpoint(line: number) {
     setBreakpoints((prev) => toggleInSet(prev, line));
   }
@@ -125,18 +148,39 @@ export default function App() {
 
   const viewing = trace !== null;
 
+  useShortcuts(
+    { mode: viewing ? "trace" : "edit", helpOpen, loading },
+    {
+      prev: () => stepHandlers.current?.prev?.(),
+      next: () => stepHandlers.current?.next?.(),
+      first: () => stepHandlers.current?.first?.(),
+      last: () => stepHandlers.current?.last?.(),
+      visualize,
+      stop,
+      toggleHelp: () => setHelpOpen((v) => !v),
+      closeHelp: () => setHelpOpen(false),
+    },
+  );
+
   return (
     <div className="app">
       <header className="topbar">
         <h1>cpp-tutor</h1>
-        {viewing
-          ? <button className="run stop" onClick={stop}>Stop</button>
-          : <button className="run" onClick={visualize} disabled={loading}>
-              {loading ? `Visualizing… ${elapsed}s` : "Visualize Execution"}
-            </button>}
-        {loading && (
-          <span className="trace-hint">Tracing can take up to ~45s for heavy or looping code.</span>
-        )}
+        <div className="topbar-actions">
+          {loading && (
+            <span className="trace-hint">Tracing can take up to ~45s for heavy or looping code.</span>
+          )}
+          {viewing
+            ? <button className="run stop" onClick={stop}>Stop</button>
+            : <button className="run" onClick={visualize} disabled={loading}>
+                {loading ? `Visualizing… ${elapsed}s` : "Visualize Execution"}
+              </button>}
+          <button
+            className="help-hint"
+            aria-label="Keyboard shortcuts"
+            onClick={() => setHelpOpen((v) => !v)}
+          >?</button>
+        </div>
       </header>
       {err && <pre className="error">{err}</pre>}
       <main className="workspace" style={{ "--split": `${split}%` } as CSSProperties}>
@@ -149,6 +193,7 @@ export default function App() {
               onToggleBreakpoint={toggleBreakpoint}
               onClearBreakpoints={() => setBreakpoints(new Set())}
               onResize={setSplit}
+              registerStepHandlers={registerStepHandlers}
             />
           : (<>
               <section className="left-col">
@@ -168,6 +213,7 @@ export default function App() {
               </section>
             </>)}
       </main>
+      {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }

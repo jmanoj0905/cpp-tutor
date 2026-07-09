@@ -92,3 +92,62 @@ describe("App shell", () => {
     expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
   });
 });
+
+describe("keyboard shortcuts", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const visualize = async () => {
+    (fetchTrace as any).mockResolvedValue(vectorTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+  };
+
+  it("Ctrl+Enter visualizes from edit mode", async () => {
+    (fetchTrace as any).mockResolvedValue(vectorTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.keyDown(window, { key: "Enter", ctrlKey: true });
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(fetchTrace).toHaveBeenCalledTimes(1);
+  });
+
+  it("arrows step, End/Home jump, Escape stops", async () => {
+    await visualize();
+    expect(screen.getByText(/^Step 1 of /)).toBeTruthy();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText(/^Step 2 of /)).toBeTruthy();
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByText(/^Step 1 of /)).toBeTruthy();
+    fireEvent.keyDown(window, { key: "End" });
+    const total = (vectorTrace as unknown as Trace).trace.length;
+    expect(screen.getByText(new RegExp(`^Step ${total} of ${total}`))).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Home" });
+    expect(screen.getByText(/^Step 1 of /)).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.getByRole("button", { name: /visualize/i })).toBeTruthy();
+  });
+
+  it("? opens help; Escape closes it without stopping the trace", async () => {
+    await visualize();
+    fireEvent.keyDown(window, { key: "?", shiftKey: true });
+    expect(screen.getByRole("dialog", { name: /keyboard shortcuts/i })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: /^stop$/i })).toBeTruthy();
+  });
+
+  it("topbar ? button toggles the overlay in edit mode", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /keyboard shortcuts/i }));
+    expect(screen.getByRole("dialog", { name: /keyboard shortcuts/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("stepping keys are inert in edit mode", () => {
+    render(<App />);
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    fireEvent.keyDown(window, { key: "End" });
+    expect(screen.getByRole("button", { name: /visualize/i })).toBeTruthy();
+  });
+});
