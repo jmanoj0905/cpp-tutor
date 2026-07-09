@@ -399,3 +399,31 @@ p {
   font: 400 0.8rem var(--sans);
   color: var(--ink-soft);
 }
+
+/* ── Keyboard shortcuts help ────────────────────────────────── */
+.help-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(26, 26, 26, 0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.help-panel {
+  background: var(--panel); border: 2px solid var(--ink);
+  border-radius: var(--radius);
+  min-width: 300px; max-width: 420px; padding: 14px 18px;
+}
+.help-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 8px;
+}
+.help-head h2 {
+  margin: 0; font-size: 12px; font-weight: 500;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--ink);
+}
+.help-close {
+  background: none; border: none; padding: 0 2px;
+  font-size: 16px; line-height: 1; cursor: pointer; color: var(--ink);
+}
+.help-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--ink); }
+.help-table td { padding: 5px 10px 5px 0; border-bottom: var(--border-thin); }
+.help-table tr:last-child td { border-bottom: none; }
+.help-keys { font-family: var(--mono); white-space: nowrap; }
