@@ -136,9 +136,10 @@ describe("keyboard shortcuts", () => {
     expect(screen.getByRole("button", { name: /^stop$/i })).toBeTruthy();
   });
 
-  it("topbar ? button toggles the overlay in edit mode", () => {
+  it("has no topbar help button; ? key toggles the overlay in edit mode", () => {
     render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /keyboard shortcuts/i }));
+    expect(screen.queryByRole("button", { name: /keyboard shortcuts/i })).toBeNull();
+    fireEvent.keyDown(window, { key: "?", shiftKey: true });
     expect(screen.getByRole("dialog", { name: /keyboard shortcuts/i })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /close/i }));
     expect(screen.queryByRole("dialog")).toBeNull();

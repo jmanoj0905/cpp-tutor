@@ -175,11 +175,6 @@ export default function App() {
             : <button className="run" onClick={visualize} disabled={loading}>
                 {loading ? `Visualizing… ${elapsed}s` : "Visualize Execution"}
               </button>}
-          <button
-            className="help-hint"
-            aria-label="Keyboard shortcuts"
-            onClick={() => setHelpOpen((v) => !v)}
-          >?</button>
         </div>
       </header>
       {err && <pre className="error">{err}</pre>}
