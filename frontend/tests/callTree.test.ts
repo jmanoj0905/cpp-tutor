@@ -116,3 +116,66 @@ describe("nodeState", () => {
     expect(nodeState(main, 3)).toBe("on-stack");
   });
 });
+
+describe("labels and return values", () => {
+  const cd = (v: unknown, type = "int") => ["C_DATA", "0xA0", type, v];
+
+  it("labels a node with initialized locals at its first step, in order", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["fib", "0x2", {
+        n: cd(3),
+        result: cd("<UNINITIALIZED>"),   // local, not an argument — skipped
+        __t0: cd(9),                      // compiler temp — skipped
+      }]], "call"),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].label).toBe("fib(3)");
+  });
+
+  it("caps the label at 3 values plus ellipsis", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", {
+        a: cd(1), b: cd(2), c: cd(3), d: cd(4),
+      }]], "call"),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].label).toBe("f(1, 2, 3, …)");
+  });
+
+  it("abbreviates structs, arrays, and pointers", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", {
+        v: ["C_STRUCT", "0xB0", "std::vector<int>"],
+        arr: ["C_ARRAY", "0xC0", cd(1), cd(2)],
+        p: cd("0x9000", "int*"),
+      }]], "call"),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].label).toBe("f({…}, […], 0x9000)");
+  });
+
+  it("captures __return__ at a return event when present", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", { n: cd(2) }]], "call"),
+      pt([["main", "0x1"], ["f", "0x2", { n: cd(2), __return__: cd(7) }]], "return"),
+      pt([["main", "0x1"]]),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].returnValue).toBe("7");
+  });
+
+  it("leaves returnValue null when the trace has no __return__ (C traces)", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", { n: cd(2) }]], "call"),
+      pt([["main", "0x1"], ["f", "0x2", { n: cd(2) }]], "return"),
+      pt([["main", "0x1"]]),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].returnValue).toBeNull();
+  });
+});
