@@ -39,6 +39,34 @@ describe("buildCallTree on real traces", () => {
     expect(count(t.roots[0], "ok")).toBeGreaterThan(4);
   });
 
+  it("nqueens: ok() and place() labels never leak a later-scoped local or a post-return glitch value", () => {
+    // Regression guard for the tracer glitch where a "return" event point
+    // reports the returning frame at a shifted address with garbage locals
+    // (e.g. ok's `c` holding a stack address like 4196152 instead of the
+    // real 0/1), and for the loop-local `c` in `place` leaking into its
+    // label once it comes into scope while place is still top-of-stack.
+    const t = tree(nqueens);
+    const okNodes: CallTreeNode[] = [];
+    const placeNodes: CallTreeNode[] = [];
+    const collect = (n: CallTreeNode) => {
+      if (n.funcName === "ok") okNodes.push(n);
+      if (n.funcName === "place") placeNodes.push(n);
+      n.children.forEach(collect);
+    };
+    t.roots.forEach(collect);
+
+    expect(okNodes.length).toBeGreaterThan(4);
+    for (const n of okNodes) {
+      expect(n.label).toMatch(/^ok\(\d+, \d+\)$/);
+    }
+    expect(okNodes.some((n) => n.label === "ok(0, 0)")).toBe(true);
+
+    expect(placeNodes.length).toBeGreaterThan(1);
+    for (const n of placeNodes) {
+      expect(n.label).toMatch(/^place\(\d+\)$/);
+    }
+  });
+
   it("mutual: isEven/isOdd alternate down the chain", () => {
     const t = tree(mutual);
     expect(t.hasRecursion).toBe(true);

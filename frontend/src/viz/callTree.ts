@@ -33,6 +33,21 @@
 // from the current frame every step while it remains top-of-stack, so the
 // label naturally settles once the param is actually populated and then
 // freezes as soon as a child call pushes on top of it (or it returns).
+//
+// Fifth subtlety, observed in the nqueens fixture: two more ways the "keep
+// refreshing while top-of-stack" rule above goes wrong. (1) The tracer can
+// report the *returning* frame itself (the "return" event point, not just
+// the point after) at a shifted address with garbage locals — refreshing on
+// that exact point freezes the garbage as the node's final label, so the
+// refresh must skip "return" event points outright, same tracer-glitch
+// family as glitchAbsorbed. (2) A loop-scoped local (e.g. a `for` counter)
+// can come into scope partway through a frame's life, while it is still
+// top-of-stack, and ordered_varnames will list it — sometimes ordered
+// *before* the real parameters — so naively reformatting from the live
+// frame every step leaks that local into the label. We snapshot each node's
+// paramNames from ordered_varnames at its call/entry point (before any
+// later-scoped local exists) and every refresh formats only those names, in
+// that snapshot order, from however the live frame's locals look now.
 import type { ExecPoint } from "../types/trace";
 import { isCompilerInternal } from "./memoryModel";
 
@@ -77,7 +92,7 @@ const baseName = (raw: string | undefined): string => (raw ?? "?").replace(/\(.*
 export function buildCallTree(trace: ExecPoint[]): CallTree {
   const roots: CallTreeNode[] = [];
   const nodes: CallTreeNode[] = [];
-  const live: { node: CallTreeNode; hash: string; addr: string }[] = [];
+  const live: { node: CallTreeNode; hash: string; addr: string; paramNames: string[] }[] = [];
   let hasRecursion = false;
   let prevEvent: string | undefined;
 
@@ -129,10 +144,15 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
       const f = fs[j];
       const funcName = baseName(f.func_name);
       if (live.some((l) => l.node.funcName === funcName)) hasRecursion = true;
+      // Snapshot ordered_varnames at the frame's call/entry point (see
+      // "Fifth subtlety" below) — later-scoped locals (e.g. a loop variable
+      // that comes into scope while this frame is still top-of-stack) must
+      // never enter the label, so refreshes only ever format these names.
+      const paramNames = (f.ordered_varnames ?? []).filter((n) => !isCompilerInternal(n));
       const node: CallTreeNode = {
         id: nodes.length,
         funcName,
-        label: `${funcName}(${argsLabel(f)})`,
+        label: `${funcName}(${argsLabel(f, paramNames)})`,
         enterStep: step,
         exitStep: null,
         returnValue: null,
@@ -143,7 +163,7 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
       const parent = live[live.length - 1];
       if (parent) parent.node.children.push(node);
       else roots.push(node);
-      live.push({ node, hash: frameHash(f, j), addr: frameAddr(f, j) });
+      live.push({ node, hash: frameHash(f, j), addr: frameAddr(f, j), paramNames });
     }
 
     if (point.event === "return" && live.length > 0 && fs.length > 0) {
@@ -155,9 +175,16 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
     // where fs[top] is known-bogus (the popped callee's func_name and
     // leftover locals under the survivor's frame_id); hold the previous
     // label there or the callee's locals leak into the parent's label.
-    if (!glitchAbsorbed && live.length > 0 && fs.length >= live.length) {
+    // Also skip on a "return" event point itself: real traces (nqueens
+    // fixture) report the returning frame at a shifted address with
+    // garbage locals right there (not just on the point after), so
+    // refreshing on the return event freezes garbage as the final label.
+    // And only ever format the paramNames snapshotted at push (see
+    // "Fifth subtlety") — a loop local that comes into scope later while
+    // this frame is still top-of-stack must not leak into the label.
+    if (!glitchAbsorbed && point.event !== "return" && live.length > 0 && fs.length >= live.length) {
       const top = live[live.length - 1];
-      top.node.label = `${top.node.funcName}(${argsLabel(fs[live.length - 1])})`;
+      top.node.label = `${top.node.funcName}(${argsLabel(fs[live.length - 1], top.paramNames)})`;
     }
 
     prevEvent = point.event;
@@ -183,8 +210,7 @@ export function nodeState(n: CallTreeNode, step: number): NodeState | null {
 // and other locals are "<UNINITIALIZED>", so we print initialized values in
 // ordered_varnames order (compiler temporaries excluded), capped at 3.
 
-function argsLabel(f: OptFrame): string {
-  const names = (f.ordered_varnames ?? []).filter((n) => !isCompilerInternal(n));
+function argsLabel(f: OptFrame, names: string[]): string {
   const parts: string[] = [];
   for (const name of names) {
     const v = formatValue(f.encoded_locals?.[name]);
