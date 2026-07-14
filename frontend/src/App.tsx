@@ -4,6 +4,8 @@ import { HelpOverlay } from "./shortcuts/HelpOverlay";
 import { CodePanel } from "./CodePanel";
 import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
+import { buildCallTree } from "./viz/callTree";
+import { CallTreePanel } from "./viz/CallTreePanel";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
@@ -41,6 +43,13 @@ function Workspace({
   registerStepHandlers: (h: ShortcutHandlers | null) => void;
 }) {
   const player = usePlayer(trace);
+  const callTree = useMemo(() => buildCallTree(trace.trace), [trace]);
+  const [tab, setTab] = useState<"memory" | "tree">("memory");
+  const [treeSeen, setTreeSeen] = useState(false);
+  const openTab = (t: "memory" | "tree") => {
+    setTab(t);
+    if (t === "tree") setTreeSeen(true);
+  };
   // null = auto: the stdout pane grows with its content (CSS min/max-height
   // defaults); a number pins it to that exact percentage after a drag.
   const [stdoutSplit, setStdoutSplit] = useState<number | null>(null);
@@ -97,7 +106,30 @@ function Workspace({
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
         <div className="mem-region">
-          <MemoryView point={player.point} prevPoint={player.prevPoint} />
+          <div className="panel-tabs" role="tablist">
+            <button
+              role="tab"
+              aria-selected={tab === "memory"}
+              onClick={() => openTab("memory")}
+            >
+              Memory
+            </button>
+            <button
+              role="tab"
+              aria-selected={tab === "tree"}
+              onClick={() => openTab("tree")}
+            >
+              Call Tree
+              {callTree.hasRecursion && !treeSeen && (
+                <span className="tab-dot" data-testid="tree-dot" />
+              )}
+            </button>
+          </div>
+          {tab === "memory" ? (
+            <MemoryView point={player.point} prevPoint={player.prevPoint} />
+          ) : (
+            <CallTreePanel tree={callTree} step={player.index} onJump={player.goto} />
+          )}
         </div>
       </section>
     </>

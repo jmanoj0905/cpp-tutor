@@ -112,7 +112,7 @@ p {
   font-family: var(--sans); font-size: 13px; color: var(--ink);
   background: #ffef9f; border-bottom: var(--border-dotted);
 }
-.mem-region { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; }
+.mem-region { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; display: flex; flex-direction: column; }
 .empty-hint { display: flex; align-items: center; justify-content: center; color: var(--ink-soft); }
 
 .codepanel { border: none; border-radius: 0; height: 100%; }
@@ -429,3 +429,97 @@ p {
 .help-keys { font-family: var(--mono); white-space: nowrap; }
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
+
+/* --- memory / call-tree tabs --- */
+.panel-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+  flex: 0 0 auto;
+}
+.panel-tabs [role="tab"] {
+  font: 13px var(--sans);
+  padding: 4px 12px;
+  background: none;
+  color: var(--ink);
+  border: var(--border-thin);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-tabs [role="tab"][aria-selected="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.tab-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--yellow);
+}
+
+/* --- call tree panel --- */
+.calltree {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+.calltree-svg {
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  background: var(--code-bg);
+  border: var(--border-thin);
+}
+.calltree-svg:active {
+  cursor: grabbing;
+}
+.ct-edge {
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+.ct-node {
+  cursor: pointer;
+}
+.ct-node rect {
+  fill: var(--panel);
+  stroke: var(--ink-soft);
+  stroke-width: 1.5;
+}
+.ct-node text {
+  font: 12px var(--mono);
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.ct-current rect {
+  fill: var(--yellow);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.ct-on-stack rect {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+.ct-returned {
+  opacity: 0.45;
+}
+.calltree-zoom {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+.calltree-zoom button {
+  width: 28px;
+  height: 28px;
+  font: 16px var(--mono);
+  background: var(--panel);
+  color: var(--ink);
+  border: var(--border-thin);
+  cursor: pointer;
+}

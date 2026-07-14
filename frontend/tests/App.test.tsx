@@ -91,6 +91,74 @@ describe("App shell", () => {
     fireEvent.click(screen.getByRole("button", { name: /next/i }));
     expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
   });
+
+  const recTrace = {
+    code: "int f();",
+    trace: [
+      {
+        line: 1, event: "step_line", func_name: "main", stdout: "",
+        ordered_globals: [], globals: {}, heap: {},
+        stack_to_render: [
+          { func_name: "main", frame_id: "0x1", unique_hash: "main_0x1", ordered_varnames: [], encoded_locals: {} },
+        ],
+      },
+      {
+        line: 2, event: "call", func_name: "f", stdout: "",
+        ordered_globals: [], globals: {}, heap: {},
+        stack_to_render: [
+          { func_name: "main", frame_id: "0x1", unique_hash: "main_0x1", ordered_varnames: [], encoded_locals: {} },
+          { func_name: "f", frame_id: "0x2", unique_hash: "f_0x2", ordered_varnames: [], encoded_locals: {} },
+        ],
+      },
+      {
+        line: 2, event: "call", func_name: "f", stdout: "",
+        ordered_globals: [], globals: {}, heap: {},
+        stack_to_render: [
+          { func_name: "main", frame_id: "0x1", unique_hash: "main_0x1", ordered_varnames: [], encoded_locals: {} },
+          { func_name: "f", frame_id: "0x2", unique_hash: "f_0x2", ordered_varnames: [], encoded_locals: {} },
+          { func_name: "f", frame_id: "0x3", unique_hash: "f_0x3", ordered_varnames: [], encoded_locals: {} },
+        ],
+      },
+    ],
+  };
+
+  it("shows Memory and Call Tree tabs after visualize, Memory selected", async () => {
+    (fetchTrace as any).mockResolvedValue(recTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(screen.getByRole("tab", { name: /memory/i }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tab", { name: /call tree/i }).getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("marks the Call Tree tab with a dot on recursive traces, cleared on first visit", async () => {
+    (fetchTrace as any).mockResolvedValue(recTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(screen.getByTestId("tree-dot")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /call tree/i }));
+    expect(screen.queryByTestId("tree-dot")).toBeNull();
+  });
+
+  it("shows no dot for non-recursive traces", async () => {
+    (fetchTrace as any).mockResolvedValue(vectorTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(screen.queryByTestId("tree-dot")).toBeNull();
+  });
+
+  it("switching to the Call Tree tab swaps the panel", async () => {
+    (fetchTrace as any).mockResolvedValue(recTrace as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    expect(container.querySelector(".memory")).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: /call tree/i }));
+    expect(container.querySelector(".memory")).toBeNull();
+    expect(container.querySelector(".calltree")).toBeTruthy();
+  });
 });
 
 describe("keyboard shortcuts", () => {
