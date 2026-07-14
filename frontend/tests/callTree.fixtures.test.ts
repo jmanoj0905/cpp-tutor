@@ -53,6 +53,16 @@ describe("buildCallTree on real traces", () => {
     expect(count(t.roots[0], "dfs")).toBe(5);
   });
 
+  it("a parent's label never absorbs a popped callee's leftover locals", () => {
+    // Regression guard: the step_line right after a "return" event mislabels
+    // the surviving top frame with the popped callee's func_name and leftover
+    // locals (fib.json step 67: fib(0)'s leftover n under main's frame_id).
+    // The label refresh must skip that bogus frame so it can never become
+    // main's final label, whatever point the trace happens to end on.
+    const t = tree(fib);
+    expect(t.roots[0].label).toBe("main()");
+  });
+
   it("every step has exactly one current node", () => {
     const t = tree(fib);
     const steps = (fib as unknown as Trace).trace.length;

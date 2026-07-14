@@ -168,6 +168,27 @@ describe("labels and return values", () => {
     expect(roots[0].children[0].returnValue).toBe("7");
   });
 
+  it("holds the parent label through the post-return func_name glitch step", () => {
+    // Real traces: the step_line right after a "return" shows one fewer
+    // frame, mislabeled with the popped callee's func_name and leftover
+    // locals but carrying the surviving parent's frame_id. The label
+    // refresh must not read that bogus frame. The trace ends ON the glitch
+    // step (step caps can truncate a trace anywhere), so a corrupted label
+    // is final here — a later point's self-correction cannot mask the bug.
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", { m: cd(7) }]], "call"),
+      pt([["main", "0x1"], ["f", "0x2", { m: cd(7) }]], "return"),
+      pt([["f", "0x1", { m: cd(0) }]]), // glitch: parent's addr, callee's name + locals
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots).toHaveLength(1);
+    const main = roots[0];
+    expect(main.label).toBe("main()");
+    expect(main.children).toHaveLength(1); // f popped cleanly, no spurious node
+    expect(main.children[0]).toMatchObject({ funcName: "f", exitStep: 2 });
+  });
+
   it("leaves returnValue null when the trace has no __return__ (C traces)", () => {
     const trace = [
       pt([["main", "0x1"]]),

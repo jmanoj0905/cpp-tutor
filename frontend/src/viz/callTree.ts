@@ -110,6 +110,7 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
     // frame short of `live`, everything below the top matches, and the top
     // mismatch is address-only (same frame_id, wrong func_name). Treat it as
     // "one legitimate pop, no bogus push" instead of unwinding everything.
+    let glitchAbsorbed = false;
     if (
       point.event !== "call" &&
       prevEvent === "return" &&
@@ -119,6 +120,7 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
       frameAddr(fs[k], k) === live[k].addr
     ) {
       k = fs.length;
+      glitchAbsorbed = true;
     }
 
     while (live.length > k) live.pop()!.node.exitStep = step - 1;
@@ -149,10 +151,11 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
     }
 
     // Keep the top-of-stack node's label in sync with the current frame
-    // (see "Fourth subtlety" above). This is a no-op once the value has
-    // settled, and stops entirely once a child call pushes on top or this
-    // frame pops — so it never picks up later in-body mutations.
-    if (live.length > 0 && fs.length >= live.length) {
+    // (see "Fourth subtlety" above) — except on a glitch-absorbed step,
+    // where fs[top] is known-bogus (the popped callee's func_name and
+    // leftover locals under the survivor's frame_id); hold the previous
+    // label there or the callee's locals leak into the parent's label.
+    if (!glitchAbsorbed && live.length > 0 && fs.length >= live.length) {
       const top = live[live.length - 1];
       top.node.label = `${top.node.funcName}(${argsLabel(fs[live.length - 1])})`;
     }
