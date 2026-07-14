@@ -13,6 +13,7 @@
   --yellow: #f2b100;  /* value changed since previous step */
 
   --border-dotted: 1px dotted #000;
+  --border-thin: 1px solid var(--ink);
   --radius: 0;
 
   --sans: 'Space Grotesk', system-ui, sans-serif;
