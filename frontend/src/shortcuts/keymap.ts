@@ -21,7 +21,7 @@ export type ShortcutContext = {
 
 export type Action =
   | "prev" | "next" | "first" | "last"
-  | "visualize" | "stop" | "toggleHelp" | "closeHelp";
+  | "visualize" | "stop" | "toggleHelp" | "closeHelp" | "toggleTree";
 
 export const SHORTCUT_TABLE: {
   keys: string;
@@ -32,6 +32,7 @@ export const SHORTCUT_TABLE: {
   { keys: "← / →", description: "Previous / next step", mode: "trace" },
   { keys: "Home / End", description: "First / last step", mode: "trace" },
   { keys: "Esc", description: "Stop trace (or close this help)", mode: "trace" },
+  { keys: "T", description: "Toggle Memory / Call Tree panel", mode: "trace" },
   { keys: "?", description: "Toggle this help", mode: "any" },
 ];
 
@@ -67,6 +68,7 @@ export function resolveShortcut(e: KeyDescriptor, ctx: ShortcutContext): Action 
     case "ArrowRight": return "next"; // repeat allowed: hold to scrub
     case "Home": return e.repeat ? null : "first";
     case "End": return e.repeat ? null : "last";
+    case "t": return e.repeat ? null : "toggleTree";
     default: return null;
   }
 }

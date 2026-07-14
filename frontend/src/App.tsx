@@ -68,6 +68,7 @@ function Workspace({
       next: () => (breakpoints.size ? player.nextHit(breakpoints) : player.next()),
       first: player.first,
       last: player.last,
+      toggleTree: () => openTab(tab === "memory" ? "tree" : "memory"),
     });
     return () => registerStepHandlers(null);
   });
@@ -187,6 +188,7 @@ export default function App() {
       next: () => stepHandlers.current?.next?.(),
       first: () => stepHandlers.current?.first?.(),
       last: () => stepHandlers.current?.last?.(),
+      toggleTree: () => stepHandlers.current?.toggleTree?.(),
       visualize,
       stop,
       toggleHelp: () => setHelpOpen((v) => !v),

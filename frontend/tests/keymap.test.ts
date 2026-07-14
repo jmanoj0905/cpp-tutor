@@ -118,6 +118,26 @@ describe("global guards", () => {
   });
 });
 
+describe("toggleTree shortcut", () => {
+  it("t in trace mode toggles the tree tab", () => {
+    expect(resolveShortcut(key({ key: "t" }), ctx())).toBe("toggleTree");
+  });
+
+  it("t is inert in edit mode, in editables, and with modifiers", () => {
+    expect(resolveShortcut(key({ key: "t" }), ctx({ mode: "edit" }))).toBeNull();
+    expect(resolveShortcut(key({ key: "t" }), ctx({ inEditable: true }))).toBeNull();
+    expect(resolveShortcut(key({ key: "t", ctrlKey: true }), ctx())).toBeNull();
+  });
+
+  it("t does not repeat on hold", () => {
+    expect(resolveShortcut(key({ key: "t", repeat: true }), ctx())).toBeNull();
+  });
+
+  it("appears in the shortcut table", () => {
+    expect(SHORTCUT_TABLE.some((r) => r.keys === "T")).toBe(true);
+  });
+});
+
 describe("SHORTCUT_TABLE", () => {
   it("documents every binding", () => {
     const keys = SHORTCUT_TABLE.map((r) => r.keys);
