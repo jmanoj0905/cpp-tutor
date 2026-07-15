@@ -485,6 +485,10 @@ p {
 .ct-edge-future {
   opacity: 0.25;
 }
+.ct-edge-current {
+  stroke: var(--blue);
+  stroke-width: 2;
+}
 .ct-node {
   cursor: pointer;
 }

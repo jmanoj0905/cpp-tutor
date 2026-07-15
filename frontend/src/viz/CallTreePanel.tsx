@@ -134,7 +134,7 @@ function renderNode(
     <g key={node.id}>
       {parentPos && (
         <line
-          className={`ct-edge${state === "future" && !lit ? " ct-edge-future" : ""}`}
+          className={`ct-edge${state === "future" && !lit ? " ct-edge-future" : ""}${state === "current" ? " ct-edge-current" : ""}`}
           x1={parentPos.x}
           y1={parentPos.y + NODE_H}
           x2={p.x}
