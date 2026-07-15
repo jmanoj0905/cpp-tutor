@@ -10,6 +10,8 @@
   --green: #2e8b3d;   /* just-executed line */
   --red:   #d6322a;   /* next line + unresolved pointer */
   --blue:  #2452cc;   /* resolved pointer lines */
+  --blue-pale: #dbe6ff; /* call-tree: current node fill */
+  --blue-deep: #13276b; /* call-tree: selected node outline */
   --yellow: #f2b100;  /* value changed since previous step */
 
   --border-dotted: 1px dotted #000;
@@ -505,11 +507,13 @@ p {
   dominant-baseline: central;
 }
 .ct-current rect {
-  fill: var(--yellow);
+  fill: var(--blue-pale);
+  stroke: var(--blue);
   stroke-dasharray: none;
   stroke-width: 2;
 }
 .ct-on-stack rect {
+  stroke: var(--blue);
   stroke-dasharray: none;
   stroke-width: 2;
 }
@@ -520,7 +524,7 @@ p {
   opacity: 1;
 }
 .ct-selected rect {
-  stroke: var(--blue);
+  stroke: var(--blue-deep);
   stroke-width: 2;
   stroke-dasharray: none;
 }
