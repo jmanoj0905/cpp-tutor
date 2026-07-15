@@ -216,6 +216,13 @@ export function nodeState(n: CallTreeNode, step: number): NodeState {
   return n.children.some((c) => isLive(c, step)) ? "on-stack" : "current";
 }
 
+/** Display label including the return value once the node has returned.
+ *  Stable for the whole trace (exitStep/returnValue are known at build time),
+ *  so box widths sized from it never change while stepping. */
+export function finalLabel(n: CallTreeNode): string {
+  return n.exitStep !== null ? `${n.label} → ${n.returnValue ?? "?"}` : n.label;
+}
+
 // --- label formatting -------------------------------------------------------
 // Args are a heuristic: at a frame's first step, parameters are initialized
 // and other locals are "<UNINITIALIZED>", so we print initialized values in

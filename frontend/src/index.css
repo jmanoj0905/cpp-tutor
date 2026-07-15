@@ -482,13 +482,17 @@ p {
   stroke: var(--ink-soft);
   stroke-width: 1.5;
 }
+.ct-edge-future {
+  opacity: 0.25;
+}
 .ct-node {
   cursor: pointer;
 }
 .ct-node rect {
   fill: var(--panel);
-  stroke: var(--ink-soft);
-  stroke-width: 1.5;
+  stroke: var(--ink);
+  stroke-width: 1;
+  stroke-dasharray: 1 3;
 }
 .ct-node text {
   font: 12px var(--mono);
@@ -498,15 +502,15 @@ p {
 }
 .ct-current rect {
   fill: var(--yellow);
-  stroke: var(--ink);
+  stroke-dasharray: none;
   stroke-width: 2;
 }
 .ct-on-stack rect {
-  stroke: var(--ink);
+  stroke-dasharray: none;
   stroke-width: 2;
 }
-.ct-returned {
-  opacity: 0.45;
+.ct-future {
+  opacity: 0.25;
 }
 .calltree-zoom {
   position: absolute;

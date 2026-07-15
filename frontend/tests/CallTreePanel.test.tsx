@@ -1,7 +1,8 @@
 import { render, fireEvent } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { CallTreePanel } from "../src/viz/CallTreePanel";
-import { buildCallTree } from "../src/viz/callTree";
+import { buildCallTree, finalLabel } from "../src/viz/callTree";
+import { nodeWidth, NODE_W } from "../src/viz/treeLayout";
 import type { ExecPoint } from "../src/types/trace";
 
 type Fr = [string, string] | [string, string, Record<string, unknown>];
@@ -27,10 +28,11 @@ const tree = buildCallTree(trace);
 const [f, g] = tree.roots[0].children;
 
 describe("CallTreePanel", () => {
-  it("renders only invocations that have started (grow-as-executed)", () => {
+  it("renders the whole tree; not-yet-called nodes are future ghosts", () => {
     const { container } = render(<CallTreePanel tree={tree} step={1} onJump={() => {}} />);
-    expect(container.querySelectorAll(".ct-node")).toHaveLength(2); // main, f
-    expect(container.querySelector(`[data-testid="ct-node-${g.id}"]`)).toBeNull();
+    expect(container.querySelectorAll(".ct-node")).toHaveLength(3); // main, f, g
+    const gNode = container.querySelector(`[data-testid="ct-node-${g.id}"]`)!;
+    expect(gNode.classList.contains("ct-future")).toBe(true);
   });
 
   it("tags nodes with their state classes", () => {
@@ -48,9 +50,17 @@ describe("CallTreePanel", () => {
     expect(gText.textContent).toBe("g()"); // live: no arrow
   });
 
-  it("draws an edge per visible parent→child pair", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} onJump={() => {}} />);
+  it("draws every edge; edges to future nodes are ghosted", () => {
+    const { container } = render(<CallTreePanel tree={tree} step={1} onJump={() => {}} />);
     expect(container.querySelectorAll(".ct-edge")).toHaveLength(2); // main→f, main→g
+    expect(container.querySelectorAll(".ct-edge-future")).toHaveLength(1); // main→g
+  });
+
+  it("sizes each box to its (final) label and squares the corners", () => {
+    const { container } = render(<CallTreePanel tree={tree} step={3} onJump={() => {}} />);
+    const rect = container.querySelector(`[data-testid="ct-node-${f.id}"] rect`)!;
+    expect(Number(rect.getAttribute("width"))).toBe(nodeWidth(finalLabel(f)));
+    expect(rect.getAttribute("rx")).toBeNull();
   });
 
   it("clicking a node jumps to its enterStep", () => {

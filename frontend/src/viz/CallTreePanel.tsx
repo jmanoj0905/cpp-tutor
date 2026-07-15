@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { nodeState, type CallTree, type CallTreeNode } from "./callTree";
-import { layoutTree, NODE_W, NODE_H, type NodePos } from "./treeLayout";
+import { finalLabel, nodeState, type CallTree, type CallTreeNode } from "./callTree";
+import { layoutTree, nodeWidth, NODE_H, type NodePos } from "./treeLayout";
 import { followIfOffscreen, pan, zoomAt, type Camera } from "./treeCamera";
 
 export function CallTreePanel({ tree, step, onJump }: {
@@ -9,8 +9,8 @@ export function CallTreePanel({ tree, step, onJump }: {
   onJump: (step: number) => void;
 }) {
   const pos = useMemo(
-    () => layoutTree(tree.roots, (n) => n.enterStep <= step),
-    [tree, step],
+    () => layoutTree(tree.roots, (n) => nodeWidth(trimLabel(finalLabel(n)))),
+    [tree],
   );
   const [cam, setCam] = useState<Camera>({ x: -24, y: -24, scale: 1 });
   const svgRef = useRef<SVGSVGElement>(null);
@@ -26,7 +26,7 @@ export function CallTreePanel({ tree, step, onJump }: {
     setCam((c) =>
       followIfOffscreen(
         c,
-        { x: p.x - NODE_W / 2, y: p.y, w: NODE_W, h: NODE_H },
+        { x: p.x - p.w / 2, y: p.y, w: p.w, h: NODE_H },
         { w: el.clientWidth, h: el.clientHeight },
       ),
     );
@@ -81,16 +81,14 @@ function renderNode(
   step: number,
   onJump: (step: number) => void,
 ): ReactNode {
-  const p = pos.get(node.id);
-  if (!p) return null; // not yet called at this step
+  const p = pos.get(node.id)!;
   const state = nodeState(node, step);
-  const label =
-    state === "returned" ? `${node.label} → ${node.returnValue ?? "?"}` : node.label;
+  const label = state === "returned" ? finalLabel(node) : node.label;
   return (
     <g key={node.id}>
       {parentPos && (
         <line
-          className="ct-edge"
+          className={`ct-edge${state === "future" ? " ct-edge-future" : ""}`}
           x1={parentPos.x}
           y1={parentPos.y + NODE_H}
           x2={p.x}
@@ -106,7 +104,7 @@ function renderNode(
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <rect x={p.x - NODE_W / 2} y={p.y} width={NODE_W} height={NODE_H} rx={4} />
+        <rect x={p.x - p.w / 2} y={p.y} width={p.w} height={NODE_H} />
         <text x={p.x} y={p.y + NODE_H / 2}>{trimLabel(label)}</text>
       </g>
       {node.children.map((c) => renderNode(c, p, pos, step, onJump))}
@@ -115,5 +113,5 @@ function renderNode(
 }
 
 function trimLabel(s: string): string {
-  return s.length > 22 ? `${s.slice(0, 21)}…` : s;
+  return s.length > 32 ? `${s.slice(0, 31)}…` : s;
 }
