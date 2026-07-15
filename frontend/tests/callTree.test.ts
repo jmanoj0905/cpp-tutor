@@ -94,7 +94,7 @@ describe("buildCallTree", () => {
 });
 
 describe("nodeState", () => {
-  it("classifies current / on-stack / returned / not-yet-called", () => {
+  it("classifies future / current / on-stack / returned", () => {
     const trace = [
       pt([["main", "0x1"]]),
       pt([["main", "0x1"], ["f", "0x2"]], "call"),
@@ -107,7 +107,7 @@ describe("nodeState", () => {
     // At step 1: f is current, main is on-stack, g not yet called.
     expect(nodeState(f, 1)).toBe("current");
     expect(nodeState(main, 1)).toBe("on-stack");
-    expect(nodeState(g, 1)).toBeNull();
+    expect(nodeState(g, 1)).toBe("future");
     // At step 2: f returned, main is current again.
     expect(nodeState(f, 2)).toBe("returned");
     expect(nodeState(main, 2)).toBe("current");

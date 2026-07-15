@@ -204,14 +204,14 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
   return { roots, nodes, hasRecursion };
 }
 
-export type NodeState = "current" | "on-stack" | "returned";
+export type NodeState = "future" | "current" | "on-stack" | "returned";
 
 const isLive = (n: CallTreeNode, step: number): boolean =>
   n.enterStep <= step && (n.exitStep === null || step <= n.exitStep);
 
-/** null = not yet called at this step (node hidden — tree grows as executed). */
-export function nodeState(n: CallTreeNode, step: number): NodeState | null {
-  if (n.enterStep > step) return null;
+/** "future" = not yet called at this step (rendered as a dimmed ghost). */
+export function nodeState(n: CallTreeNode, step: number): NodeState {
+  if (n.enterStep > step) return "future";
   if (!isLive(n, step)) return "returned";
   return n.children.some((c) => isLive(c, step)) ? "on-stack" : "current";
 }
