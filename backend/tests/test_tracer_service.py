@@ -265,6 +265,35 @@ int main() {
 """
 
 
+HEAVY_STATE_LOOP_CODE = """\
+#include <vector>
+using namespace std;
+int main() {
+    vector<int> v(2000, 7);
+    long s = 0;
+    for (int i = 0; i < 100000; i++) {
+        s += v[i % 2000];
+        v[i % 2000] = i;
+    }
+    return (int)s;
+}
+"""
+
+
+@pytest.mark.docker
+def test_heavy_state_program_returns_partial_trace():
+    """A program whose per-step memory dump is huge (big vector mutated in a
+    long loop) used to blow the vgtrace to 100MB+, OOM the postprocessor, and
+    surface as a bare TracerTimeout — the learner saw zero steps. It must
+    instead return a partial trace whose last point explains the cutoff."""
+    result = run_trace(HEAVY_STATE_LOOP_CODE, "cpp")
+    assert isinstance(result, Trace)
+    assert len(result.trace) >= 10, "expected enough steps to study the loop"
+    last = result.trace[-1]
+    assert last.event in ("instruction_limit_reached", "infinite_loop_detected")
+    assert last.exception_msg
+
+
 @pytest.mark.docker
 def test_member_function_steps_survive():
     """Method frames report the caller's FP, so the postprocessor's
