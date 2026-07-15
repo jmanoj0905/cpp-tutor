@@ -512,6 +512,66 @@ p {
 .ct-future {
   opacity: 0.25;
 }
+.ct-node.ct-preview-lit {
+  opacity: 1;
+}
+.ct-selected rect {
+  stroke: var(--blue);
+  stroke-width: 2;
+  stroke-dasharray: none;
+}
+.ct-detail {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  min-width: 180px;
+  max-width: 280px;
+  background: var(--panel);
+  border: var(--border-dotted);
+  padding: 8px 10px;
+  font: 12px var(--mono);
+  color: var(--ink);
+}
+.ct-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: var(--border-dotted);
+  padding-bottom: 4px;
+  margin-bottom: 6px;
+}
+.ct-detail-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ct-detail-head button {
+  margin-left: auto;
+  background: var(--panel);
+  border: var(--border-dotted);
+  font: 12px var(--mono);
+  cursor: pointer;
+  padding: 0 6px;
+}
+.ct-detail-rows {
+  margin: 0;
+}
+.ct-detail-rows div {
+  display: flex;
+  gap: 8px;
+}
+.ct-detail-rows dt {
+  color: var(--ink-soft);
+}
+.ct-detail-rows dd {
+  margin-left: auto;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ct-detail-steps {
+  margin-top: 6px;
+  color: var(--ink-soft);
+  font-style: italic;
+}
 .calltree-zoom {
   position: absolute;
   top: 8px;
