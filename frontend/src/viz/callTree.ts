@@ -55,6 +55,12 @@ export interface CallTreeNode {
   id: number;
   funcName: string;
   label: string;
+  /** All parameters with initialized values, snapshotted/refreshed under the
+   *  same glitch-safe rules as `label`. Uncapped — the detail panel shows all;
+   *  only the label caps at 3. */
+  args: { name: string; value: string }[];
+  /** The frame's frame_id after the one-step address-settle. */
+  address: string;
   enterStep: number;
   exitStep: number | null;
   returnValue: string | null;
@@ -111,6 +117,7 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
       if (live[k].node.funcName === baseName(fs[k].func_name) && live[k].node.enterStep === step - 1) {
         live[k].hash = frameHash(fs[k], k);
         live[k].addr = frameAddr(fs[k], k);
+        live[k].node.address = live[k].addr;
         k++;
         continue;
       }
@@ -149,10 +156,13 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
       // that comes into scope while this frame is still top-of-stack) must
       // never enter the label, so refreshes only ever format these names.
       const paramNames = (f.ordered_varnames ?? []).filter((n) => !isCompilerInternal(n));
+      const args = argsOf(f, paramNames);
       const node: CallTreeNode = {
         id: nodes.length,
         funcName,
-        label: `${funcName}(${argsLabel(f, paramNames)})`,
+        label: formatLabel(funcName, args),
+        args,
+        address: frameAddr(f, j),
         enterStep: step,
         exitStep: null,
         returnValue: null,
@@ -184,7 +194,8 @@ export function buildCallTree(trace: ExecPoint[]): CallTree {
     // this frame is still top-of-stack must not leak into the label.
     if (!glitchAbsorbed && point.event !== "return" && live.length > 0 && fs.length >= live.length) {
       const top = live[live.length - 1];
-      top.node.label = `${top.node.funcName}(${argsLabel(fs[live.length - 1], top.paramNames)})`;
+      top.node.args = argsOf(fs[live.length - 1], top.paramNames);
+      top.node.label = formatLabel(top.node.funcName, top.node.args);
     }
 
     prevEvent = point.event;
@@ -210,18 +221,19 @@ export function nodeState(n: CallTreeNode, step: number): NodeState | null {
 // and other locals are "<UNINITIALIZED>", so we print initialized values in
 // ordered_varnames order (compiler temporaries excluded), capped at 3.
 
-function argsLabel(f: OptFrame, names: string[]): string {
-  const parts: string[] = [];
+function argsOf(f: OptFrame, names: string[]): { name: string; value: string }[] {
+  const out: { name: string; value: string }[] = [];
   for (const name of names) {
     const v = formatValue(f.encoded_locals?.[name]);
-    if (v === null) continue;
-    if (parts.length === 3) {
-      parts.push("…");
-      break;
-    }
-    parts.push(v);
+    if (v !== null) out.push({ name, value: v });
   }
-  return parts.join(", ");
+  return out;
+}
+
+function formatLabel(funcName: string, args: { value: string }[]): string {
+  const vals = args.slice(0, 3).map((a) => a.value);
+  if (args.length > 3) vals.push("…");
+  return `${funcName}(${vals.join(", ")})`;
 }
 
 /** null = uninitialized (skip: it's a local, not an argument). */

@@ -200,3 +200,53 @@ describe("labels and return values", () => {
     expect(roots[0].children[0].returnValue).toBeNull();
   });
 });
+
+describe("args and address", () => {
+  const cd = (v: unknown, type = "int") => ["C_DATA", "0xA0", type, v];
+
+  it("snapshots args as name/value pairs, skipping uninitialized locals", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["fib", "0x2", {
+        n: cd(3),
+        result: cd("<UNINITIALIZED>"),
+      }]], "call"),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].args).toEqual([{ name: "n", value: "3" }]);
+  });
+
+  it("carries ALL args while the label stays capped at 3 + ellipsis", () => {
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", {
+        a: cd(1), b: cd(2), c: cd(3), d: cd(4),
+      }]], "call"),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].args.map((x) => x.name)).toEqual(["a", "b", "c", "d"]);
+    expect(roots[0].children[0].label).toBe("f(1, 2, 3, …)");
+  });
+
+  it("records the frame address, following the one-step address-settle", () => {
+    // third subtlety: freshly pushed frame's address is transient for one step
+    const trace = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["f", "0x2", { n: cd(5) }]], "call"),
+      pt([["main", "0x1"], ["f", "0x2b", { n: cd(5) }]]),
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].children[0].address).toBe("0x2b");
+  });
+
+  it("holds args through the post-return func_name glitch step", () => {
+    const trace = [
+      pt([["main", "0x1", { x: cd(1) }]]),
+      pt([["main", "0x1", { x: cd(1) }], ["f", "0x2", { m: cd(7) }]], "call"),
+      pt([["main", "0x1", { x: cd(1) }], ["f", "0x2", { m: cd(7) }]], "return"),
+      pt([["f", "0x1", { m: cd(0) }]]), // glitch: parent's addr, callee's name + locals
+    ];
+    const { roots } = buildCallTree(trace);
+    expect(roots[0].args).toEqual([{ name: "x", value: "1" }]);
+  });
+});

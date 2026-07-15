@@ -5,8 +5,8 @@ import type { CallTreeNode } from "../src/viz/callTree";
 let nextId = 0;
 function node(children: CallTreeNode[] = [], enterStep = 0): CallTreeNode {
   return {
-    id: nextId++, funcName: "f", label: "f()", enterStep, exitStep: null,
-    returnValue: null, depth: 0, children,
+    id: nextId++, funcName: "f", label: "f()", args: [], address: "0x0",
+    enterStep, exitStep: null, returnValue: null, depth: 0, children,
   };
 }
 const all = () => true;
