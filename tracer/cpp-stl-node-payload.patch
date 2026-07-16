@@ -1,0 +1,192 @@
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+@@ -391,6 +391,98 @@ SizeT pg_get_elt_size(const XArray* /* of TyEnt */ ents,
+ }
+ 
+ 
++// pgbovine/cpp-tutor: node-payload recovery helpers.
++
++/* Find the Te_TyStOrUn entry whose name exactly matches `name`. Linear scan
++ * over the whole CU type table — only called once per list<T> container
++ * decode (not per-node), so cost is negligible next to Valgrind's own DWARF
++ * parsing. */
++static TyEnt* pg_find_struct_by_name(const XArray* tyents, const HChar* name)
++{
++   Word i, n = VG_(sizeXA)(tyents);
++   for (i = 0; i < n; i++) {
++      TyEnt* e = (TyEnt*)VG_(indexXA)(tyents, i);
++      if (e->tag == Te_TyStOrUn && e->Te.TyStOrUn.name
++          && VG_(strcmp)(e->Te.TyStOrUn.name, name) == 0) {
++         return e;
++      }
++   }
++   return NULL;
++}
++
++/* Extract the first top-level (depth-0) template argument from a name like
++ * "list<int, std::allocator<int> >" -> "int". Writes "" into `out` if `name`
++ * has no '<'. Trims surrounding whitespace. */
++static void pg_first_template_arg(const HChar* name, HChar* out, SizeT outsz)
++{
++   const HChar* lt = VG_(strchr)(name, '<');
++   SizeT i = 0;
++   out[0] = '\0';
++   if (!lt) return;
++   {
++      const HChar* p = lt + 1;
++      Int depth = 0;
++      while (*p && i + 1 < outsz) {
++         if (*p == '<') { depth++; }
++         else if (*p == '>') { if (depth == 0) break; depth--; }
++         else if (*p == ',' && depth == 0) { break; }
++         out[i++] = *p++;
++      }
++   }
++   out[i] = '\0';
++   while (i > 0 && out[i - 1] == ' ') { out[--i] = '\0'; }
++   {
++      SizeT s = 0;
++      while (out[s] == ' ') { s++; }
++      if (s > 0) {
++         SizeT j = 0;
++         while (out[s]) { out[j++] = out[s++]; }
++         out[j] = '\0';
++      }
++   }
++}
++
++
++// pgbovine/cpp-tutor: scoped override for the Te_TyPtr heap-block decoder.
++// Pushed when entering a list<T> container's own Te_TyStOrUn decode (T's
++// derived node type resolved by name), popped on exit. A stack (not a
++// single global) because list<list<int>> nests: the inner list's override
++// must not clobber the outer's while it's still in scope.
++#define PG_NODE_OVERRIDE_MAX 32
++typedef struct { const HChar* base_name; TyEnt* derived; } PgNodeOverride;
++static PgNodeOverride pg_node_override_stack[PG_NODE_OVERRIDE_MAX];
++static Int pg_node_override_sp = 0;
++
++static void pg_push_node_override(const HChar* base_name, TyEnt* derived)
++{
++   if (pg_node_override_sp < PG_NODE_OVERRIDE_MAX) {
++      pg_node_override_stack[pg_node_override_sp].base_name = base_name;
++      pg_node_override_stack[pg_node_override_sp].derived = derived;
++      pg_node_override_sp++;
++   }
++   // silently drop the override past MAX_DEPTH nesting: falls back to
++   // base-only decode for that deeply-nested case rather than crashing.
++}
++
++static void pg_pop_node_override(void)
++{
++   if (pg_node_override_sp > 0) { pg_node_override_sp--; }
++}
++
++/* Topmost active override whose base_name matches, or NULL. Searches from
++ * the top of the stack down so the innermost enclosing container wins. */
++static TyEnt* pg_active_node_override(const HChar* base_name)
++{
++   Int i;
++   for (i = pg_node_override_sp - 1; i >= 0; i--) {
++      if (VG_(strcmp)(pg_node_override_stack[i].base_name, base_name) == 0) {
++         return pg_node_override_stack[i].derived;
++      }
++   }
++   return NULL;
++}
++
++
+ // pgbovine version of ML_(pp_TyEnt_C_ishly)
+ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+                          UWord cuOff,
+@@ -565,9 +657,31 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+ 
+          AddrInfo ai;
+          VG_(describe_addr)(ptr_val, &ai);
++
++         // pgbovine/cpp-tutor: if the static pointee type is a known
++         // container node base (e.g. _List_node_base) and there's an
++         // active override for it (pushed by the enclosing list<T>
++         // container's Te_TyStOrUn decode), redirect both the decoded
++         // type and its size to the real derived node type so the
++         // element payload (e.g. _M_data) actually gets printed
++         // instead of just the base-class fields.
++         UWord pg_decode_typeR = ent->Te.TyPorR.typeR;
++         SizeT pg_override_szB = 0;
++         {
++            TyEnt* pointee = ML_(TyEnts__index_by_cuOff)(tyents, NULL, ent->Te.TyPorR.typeR);
++            if (pointee && pointee->tag == Te_TyStOrUn && pointee->Te.TyStOrUn.name) {
++               TyEnt* ov = pg_active_node_override(pointee->Te.TyStOrUn.name);
++               if (ov) {
++                  pg_decode_typeR = ov->cuOff;
++                  pg_override_szB = ov->Te.TyStOrUn.szB;
++               }
++            }
++         }
++
+          if (ai.tag == Addr_Block) {
+            // if this is a heap pointer ...
+-           SizeT element_size = pg_get_elt_size(tyents, ent->Te.TyPorR.typeR);
++           SizeT element_size = pg_override_szB ? pg_override_szB
++                                : pg_get_elt_size(tyents, ent->Te.TyPorR.typeR);
+ 
+            Addr block_base_addr = ptr_val - ai.Addr.Block.rwoffset;
+ 
+@@ -612,7 +726,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+                } else {
+                  VG_(fprintf)(trace_fp, ",\n  ");
+                }
+-               ML_(pg_pp_varinfo)(tyents, ent->Te.TyPorR.typeR, cur_addr,
++               ML_(pg_pp_varinfo)(tyents, pg_decode_typeR, cur_addr,
+                                   is_mem_defined_func, encoded_addrs, trace_fp);
+                cur_addr += element_size;
+              }
+@@ -683,7 +797,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+                      VG_(fprintf)(trace_fp, ",\n  ");
+                    }
+ 
+-                   ML_(pg_pp_varinfo)(tyents, ent->Te.TyPorR.typeR, cur_addr,
++                   ML_(pg_pp_varinfo)(tyents, pg_decode_typeR, cur_addr,
+                                       is_mem_defined_func, encoded_addrs, trace_fp);
+ 
+                    // if it's a '\0' character, then BREAK out of the
+@@ -770,6 +884,30 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+          // TODO: handle unions later, let's just focus on structs for now
+          vg_assert(ent->Te.TyStOrUn.isStruct);
+ 
++         // pgbovine/cpp-tutor: if this is a list<T>, resolve T's derived
++         // node type by name and push it as the active override for the
++         // duration of this container's decode (its field loop below will
++         // recurse into _M_impl/_M_node/_M_next, which is where the
++         // Te_TyPtr case will consult the override). Flat statements, no
++         // new block scope — matches this switch's existing style, and
++         // keeps `first_elt` visible to the later Te_TyArray case that
++         // reuses it without redeclaring.
++         Bool pg_pushed_override = False;
++         if (ent->Te.TyStOrUn.name &&
++             VG_(strncmp)(ent->Te.TyStOrUn.name, "list<", 5) == 0) {
++            HChar pg_elem[128];
++            pg_first_template_arg(ent->Te.TyStOrUn.name, pg_elem, sizeof(pg_elem));
++            if (pg_elem[0]) {
++               HChar pg_candidate[192];
++               VG_(snprintf)(pg_candidate, sizeof(pg_candidate), "_List_node<%s>", pg_elem);
++               TyEnt* pg_derived = pg_find_struct_by_name(tyents, pg_candidate);
++               if (pg_derived) {
++                  pg_push_node_override("_List_node_base", pg_derived);
++                  pg_pushed_override = True;
++               }
++            }
++         }
++
+          VG_(fprintf)(trace_fp,
+                       "{\"addr\":\"%p\", \"kind\":\"struct\", \"type\":\"%s\", \"val\": {\n  ",
+                       (void*)data_addr,
+@@ -838,6 +976,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+ 
+          VG_(fprintf)(trace_fp, "}}");
+ 
++         if (pg_pushed_override) { pg_pop_node_override(); }
+          break;
+       case Te_TyArray:
+          if (ent->Te.TyArray.boundRs) {

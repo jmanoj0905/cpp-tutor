@@ -35,6 +35,14 @@ RUN perl -i -pe 's{\Qreturn VG_(do_syscall2)(__NR_dup2, oldfd, newfd);\E}{#if de
 #        emits the element buffer automatically.
 COPY cpp-stl-dwarf-inheritance.patch /tmp/cpp-stl-dwarf-inheritance.patch
 RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-dwarf-inheritance.patch
+# Fix 5: recover std::list<T> node payload values. Stock (and Fix-4-patched)
+#        Valgrind decodes a list node via its type-erased _List_node_base
+#        (just _M_next/_M_prev) because that's the pointer's static DWARF
+#        type; the actual per-node value lives in the derived _List_node<T>,
+#        which is only reachable by resolving T's node type BY NAME from the
+#        enclosing list<T> container.
+COPY cpp-stl-node-payload.patch /tmp/cpp-stl-node-payload.patch
+RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-node-payload.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
