@@ -163,6 +163,16 @@ p {
   color: var(--ink-soft);
 }
 
+.editor .cm-lineNumbers .cm-gutterElement {
+  padding: 0 4px 0 6px;
+  min-width: 0;
+  color: rgba(85, 85, 85, 0.55); /* dimmed var(--ink-soft) */
+}
+.editor .cm-lineNumber-current {
+  color: var(--ink);
+  font-weight: 700;
+}
+
 .editor .cm-activeLine,
 .editor .cm-activeLineGutter {
   background: rgba(244, 194, 13, 0.18);

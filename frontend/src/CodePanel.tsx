@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
 import {
-  EditorView, keymap, lineNumbers, gutter, GutterMarker, Decoration,
+  EditorView, keymap, gutter, GutterMarker, Decoration,
   highlightActiveLine, highlightActiveLineGutter,
 } from "@codemirror/view";
 import { cpp, cppLanguage } from "@codemirror/lang-cpp";
@@ -110,6 +110,47 @@ function execGutter(onToggle: (line: number) => boolean) {
   });
 }
 
+class NumberMarker extends GutterMarker {
+  text: string;
+  current: boolean;
+  constructor(text: string, current: boolean) {
+    super();
+    this.text = text;
+    this.current = current;
+  }
+  toDOM() {
+    const span = document.createElement("span");
+    span.textContent = this.text;
+    if (this.current) span.className = "cm-lineNumber-current";
+    return span;
+  }
+}
+
+// vim-style relative numbers: the current line (cursor while editing, the
+// next-to-execute line while tracing) shows its absolute number, every
+// other line shows its distance from it.
+function relativeLineNumbers() {
+  return gutter({
+    class: "cm-lineNumbers cm-relative-numbers",
+    lineMarker(view, line) {
+      const { doc, readOnly } = view.state;
+      const ln = doc.lineAt(line.from).number;
+      const { exec } = view.state.field(panelField);
+      const current = readOnly
+        ? exec?.next ?? exec?.justExecuted ?? null
+        : doc.lineAt(view.state.selection.main.head).number;
+      const isCurrent = ln === current;
+      const text = isCurrent ? String(ln) : String(Math.abs(ln - (current ?? ln)));
+      return new NumberMarker(text, isCurrent);
+    },
+    lineMarkerChange: (u) =>
+      u.startState.field(panelField) !== u.state.field(panelField) ||
+      u.startState.selection.main.head !== u.state.selection.main.head ||
+      u.startState.doc.lines !== u.state.doc.lines,
+    initialSpacer: (view) => new NumberMarker(String(view.state.doc.lines), false),
+  });
+}
+
 const NO_DEAD_LINES = new Set<number>();
 
 export function CodePanel({
@@ -166,7 +207,7 @@ export function CodePanel({
             return true; // swallow cursor placement in trace mode
           },
         }),
-        lineNumbers(),
+        relativeLineNumbers(),
         foldGutter(),
         cpp(),
         cppLanguage.data.of({ autocomplete: cppCompletions }),
