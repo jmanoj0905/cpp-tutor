@@ -121,12 +121,12 @@ p {
 .codepanel { border: none; border-radius: 0; height: 100%; }
 .codepanel .cm-editor { height: 100%; }
 
-/* exec gutter arrows + breakpoint/next line */
+/* exec gutter arrows + breakpoint/current line */
 .cm-exec-gutter { width: 18px; }
 .exec-arrow { font-size: 11px; padding: 0 2px; cursor: pointer; font-weight: 700; }
 .exec-arrow.green { color: var(--green); }
 .exec-arrow.red { color: var(--red); }
-.cm-line.cm-next { background: rgba(214, 50, 42, 0.10); }
+.cm-line.cm-just-executed { background: rgba(46, 139, 61, 0.12); }
 .cm-line.cm-bp { box-shadow: inset 3px 0 0 var(--red); }
 /* breakpoint on a line the trace never reaches: hollow, not armed */
 .cm-line.cm-bp-dead { box-shadow: inset 3px 0 0 var(--ink-soft); opacity: 0.75; }

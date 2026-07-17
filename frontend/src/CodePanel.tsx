@@ -127,7 +127,7 @@ class NumberMarker extends GutterMarker {
 }
 
 // vim-style relative numbers: the current line (cursor while editing, the
-// next-to-execute line while tracing) shows its absolute number, every
+// just-executed line while tracing) shows its absolute number, every
 // other line shows its distance from it.
 function relativeLineNumbers() {
   return gutter({
@@ -137,7 +137,7 @@ function relativeLineNumbers() {
       const ln = doc.lineAt(line.from).number;
       const { exec } = view.state.field(panelField);
       const current = readOnly
-        ? exec?.next ?? exec?.justExecuted ?? null
+        ? exec?.justExecuted ?? exec?.next ?? null
         : doc.lineAt(view.state.selection.main.head).number;
       const isCurrent = ln === current;
       const text = isCurrent ? String(ln) : String(Math.abs(ln - (current ?? ln)));
@@ -236,7 +236,7 @@ export function CodePanel({
             list.push({ from: doc.line(line).from, deco: Decoration.line({ class: cls }) });
           };
           for (const bp of bps) add(bp, dead.has(bp) ? "cm-bp-dead" : "cm-bp");
-          if (ex?.next != null) add(ex.next, "cm-next");
+          if (ex?.justExecuted != null) add(ex.justExecuted, "cm-just-executed");
           if (errLn != null) add(errLn, "cm-error-line");
           list.sort((a, b) => a.from - b.from);
           return Decoration.set(list.map((r) => r.deco.range(r.from)));

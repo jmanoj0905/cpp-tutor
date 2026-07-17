@@ -174,4 +174,21 @@ describe("CodePanel exec arrows", () => {
     expect(container.querySelector(".exec-arrow.green")).toBeTruthy();
     expect(container.querySelector(".exec-arrow.red")).toBeTruthy();
   });
+
+  it("highlights the just-executed line instead of the next line", async () => {
+    const { container } = render(
+      <CodePanel
+        value={"one\ntwo\nthree"}
+        onChange={() => {}}
+        exec={{ justExecuted: 2, next: 3 }}
+        readOnly
+        breakpoints={new Set()}
+        onToggleBreakpoint={() => {}}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    const highlighted = container.querySelector(".cm-line.cm-just-executed");
+    expect(highlighted?.textContent).toBe("two");
+    expect(container.querySelector(".cm-line.cm-next")).toBeNull();
+  });
 });
