@@ -50,12 +50,13 @@ describe("node-based STL containers", () => {
     expect(allPlaceholders(um)).toBe(true);
   });
 
-  it("collapses a populated std::list by walking its node chain", () => {
+  it("recovers real values for a populated std::list by walking its node chain", () => {
     const l = bestCell("l");
     expect(l.containerKind).toBe("list");
     expect(l.length).toBe(3);
     expect(l.displayValue).toBe("list<int> · 3");
-    expect(allPlaceholders(l)).toBe(true);
+    expect(l.placeholders).toBeFalsy();
+    expect((l.children ?? []).map((c) => c.displayValue)).toEqual(["1", "2", "3"]);
   });
 
   it("renders a default-constructed empty std::list as · 0", () => {

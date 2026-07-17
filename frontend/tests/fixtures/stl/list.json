@@ -8,7 +8,7 @@
             "stack_to_render": [
                 {
                     "encoded_locals": {},
-                    "frame_id": "0xFFF000B60",
+                    "frame_id": "0xFFF000B60_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -16,13 +16,14 @@
                     "line": 3,
                     "ordered_varnames": [],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B60"
+                    "unique_hash": "main_0xFFF000B60_0"
                 }
             ],
             "heap": {},
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 3,
@@ -31,7 +32,7 @@
             "stack_to_render": [
                 {
                     "encoded_locals": {},
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -39,13 +40,14 @@
                     "line": 3,
                     "ordered_varnames": [],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {},
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 4,
@@ -54,7 +56,7 @@
             "stack_to_render": [
                 {
                     "encoded_locals": {},
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -62,13 +64,14 @@
                     "line": 3,
                     "ordered_varnames": [],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {},
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 5,
@@ -195,7 +198,7 @@
                             ]
                         ]
                     },
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -206,7 +209,7 @@
                         "f"
                     ],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {
@@ -216,46 +219,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92040",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92040",
-                                "pointer",
-                                "0x4B920A0"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92040",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92048",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92048",
-                                "pointer",
-                                "0xFFF000B50"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92050",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92050",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92058",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                1
                             ]
                         ]
                     ]
@@ -266,46 +263,40 @@
                     [
                         "C_STRUCT",
                         "0x4B920A0",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B920A0",
-                                "pointer",
-                                "0x4B92100"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A0",
+                                        "pointer",
+                                        "0x4B92100"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A8",
+                                        "pointer",
+                                        "0x4B92040"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920A8",
-                                "pointer",
-                                "0x4B92040"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B920B0",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B920B0",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920B8",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                2
                             ]
                         ]
                     ]
@@ -316,46 +307,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92100",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92100",
-                                "pointer",
-                                "0xFFF000B50"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92100",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92108",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92108",
-                                "pointer",
-                                "0x4B920A0"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92110",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92110",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92118",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                3
                             ]
                         ]
                     ]
@@ -363,7 +348,8 @@
             },
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 6,
@@ -490,7 +476,7 @@
                             ]
                         ]
                     },
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -501,7 +487,7 @@
                         "f"
                     ],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {
@@ -511,46 +497,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92040",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92040",
-                                "pointer",
-                                "0x4B920A0"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92040",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92048",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92048",
-                                "pointer",
-                                "0xFFF000B50"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92050",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92050",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92058",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                1
                             ]
                         ]
                     ]
@@ -561,46 +541,40 @@
                     [
                         "C_STRUCT",
                         "0x4B920A0",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B920A0",
-                                "pointer",
-                                "0x4B92100"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A0",
+                                        "pointer",
+                                        "0x4B92100"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A8",
+                                        "pointer",
+                                        "0x4B92040"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920A8",
-                                "pointer",
-                                "0x4B92040"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B920B0",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B920B0",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920B8",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                2
                             ]
                         ]
                     ]
@@ -611,46 +585,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92100",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92100",
-                                "pointer",
-                                "0xFFF000B50"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92100",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92108",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92108",
-                                "pointer",
-                                "0x4B920A0"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92110",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92110",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92118",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                3
                             ]
                         ]
                     ]
@@ -722,7 +690,8 @@
             },
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 5,
@@ -849,7 +818,7 @@
                             ]
                         ]
                     },
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -860,7 +829,7 @@
                         "f"
                     ],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {
@@ -870,46 +839,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92040",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92040",
-                                "pointer",
-                                "0x4B920A0"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92040",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92048",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92048",
-                                "pointer",
-                                "0xFFF000B50"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92050",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92050",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92058",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                1
                             ]
                         ]
                     ]
@@ -920,46 +883,40 @@
                     [
                         "C_STRUCT",
                         "0x4B920A0",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B920A0",
-                                "pointer",
-                                "0x4B92100"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A0",
+                                        "pointer",
+                                        "0x4B92100"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A8",
+                                        "pointer",
+                                        "0x4B92040"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920A8",
-                                "pointer",
-                                "0x4B92040"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B920B0",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B920B0",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920B8",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                2
                             ]
                         ]
                     ]
@@ -970,46 +927,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92100",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92100",
-                                "pointer",
-                                "0xFFF000B50"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92100",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92108",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92108",
-                                "pointer",
-                                "0x4B920A0"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92110",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92110",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92118",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                3
                             ]
                         ]
                     ]
@@ -1081,7 +1032,8 @@
             },
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 6,
@@ -1208,7 +1160,7 @@
                             ]
                         ]
                     },
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -1219,7 +1171,7 @@
                         "f"
                     ],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {
@@ -1229,46 +1181,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92040",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92040",
-                                "pointer",
-                                "0x4B920A0"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92040",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92048",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92048",
-                                "pointer",
-                                "0xFFF000B50"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92050",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92050",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92058",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                1
                             ]
                         ]
                     ]
@@ -1279,46 +1225,40 @@
                     [
                         "C_STRUCT",
                         "0x4B920A0",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B920A0",
-                                "pointer",
-                                "0x4B92100"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A0",
+                                        "pointer",
+                                        "0x4B92100"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A8",
+                                        "pointer",
+                                        "0x4B92040"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920A8",
-                                "pointer",
-                                "0x4B92040"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B920B0",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B920B0",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B920B8",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                2
                             ]
                         ]
                     ]
@@ -1329,46 +1269,40 @@
                     [
                         "C_STRUCT",
                         "0x4B92100",
-                        "_List_node_base",
+                        "_List_node<int>",
                         [
-                            "_M_next",
+                            "<anon_field>",
                             [
-                                "C_DATA",
+                                "C_STRUCT",
                                 "0x4B92100",
-                                "pointer",
-                                "0xFFF000B50"
+                                "_List_node_base",
+                                [
+                                    "_M_next",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92100",
+                                        "pointer",
+                                        "0xFFF000B50"
+                                    ]
+                                ],
+                                [
+                                    "_M_prev",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92108",
+                                        "pointer",
+                                        "0x4B920A0"
+                                    ]
+                                ]
                             ]
                         ],
                         [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92108",
-                                "pointer",
-                                "0x4B920A0"
-                            ]
-                        ]
-                    ],
-                    [
-                        "C_STRUCT",
-                        "0x4B92110",
-                        "_List_node_base",
-                        [
-                            "_M_next",
+                            "_M_data",
                             [
                                 "C_DATA",
                                 "0x4B92110",
-                                "pointer",
-                                "<UNINITIALIZED>"
-                            ]
-                        ],
-                        [
-                            "_M_prev",
-                            [
-                                "C_DATA",
-                                "0x4B92118",
-                                "pointer",
-                                "<UNALLOCATED>"
+                                "int",
+                                3
                             ]
                         ]
                     ]
@@ -1376,7 +1310,8 @@
             },
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 7,
@@ -1385,7 +1320,7 @@
             "stack_to_render": [
                 {
                     "encoded_locals": {},
-                    "frame_id": "0xFFF000B10",
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -1393,13 +1328,14 @@
                     "line": 7,
                     "ordered_varnames": [],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {},
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         },
         {
             "line": 7,
@@ -1407,8 +1343,15 @@
             "func_name": "main",
             "stack_to_render": [
                 {
-                    "encoded_locals": {},
-                    "frame_id": "0xFFF000B10",
+                    "encoded_locals": {
+                        "__return__": [
+                            "C_DATA",
+                            "<register>",
+                            "int",
+                            3
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
                     "func_name": "main",
                     "is_highlighted": true,
                     "is_parent": false,
@@ -1416,13 +1359,14 @@
                     "line": 7,
                     "ordered_varnames": [],
                     "parent_frame_id_list": [],
-                    "unique_hash": "main_0xFFF000B10"
+                    "unique_hash": "main_0xFFF000B10_0"
                 }
             ],
             "heap": {},
             "globals": {},
             "ordered_globals": [],
-            "stdout": ""
+            "stdout": "",
+            "exception_msg": ""
         }
     ]
 }

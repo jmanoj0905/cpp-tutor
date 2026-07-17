@@ -1,18 +1,22 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { containerChild, findMember, findPointer, templateArg } from "./helpers";
+import { containerChildren, findMember, findPointer, templateArg } from "./helpers";
 
 /**
  * Node-based STL container decoders (list, forward_list, map, set, multimap,
  * multiset, unordered_*).
  *
- * This old libstdc++ tracer does NOT emit node payload values (element values
- * and map keys are unrecoverable). We therefore collapse each container to a
- * sized summary with one opaque "?" placeholder per element, recovering only
- * the COUNT — from a count field (trees / unordered) or a node-chain walk
- * (list / forward_list). When the count is indeterminate (partial snapshot,
- * uninitialised field) we render "kind<...> · ?" with no slots, NEVER the raw
- * struct dump.
+ * The patched tracer now emits node payload values for `std::list<T>`
+ * (`_List_node<T>::_M_data`); `listDecoder` walks the node chain and recovers
+ * real element values. Every other node-based family (forward_list, map,
+ * set, multimap, multiset, unordered_*) is still payload-less on this old
+ * libstdc++ tracer, so those collapse to a sized summary with one opaque "?"
+ * placeholder per element, recovering only the COUNT — from a count field
+ * (trees / unordered) or a node-chain walk (forward_list). When the count is
+ * indeterminate (partial snapshot, uninitialised field) we render
+ * "kind<...> · ?" with no slots, NEVER the raw struct dump. `listDecoder`
+ * falls back to the same placeholder behavior when `_M_data` is absent (e.g.
+ * a stale/older trace) or the node-chain walk isn't trusted.
  */
 
 const WALK_CAP = 100_000;
@@ -164,8 +168,11 @@ function collectNodePayloads(
     if (!payload) return null;
     payloads.push(payload);
   }
-  return payloads.map((payload, i) => containerChild(parent, payload, `[${i}]`, i));
+  return containerChildren(parent, payloads);
 }
+
+/** Accepted payload-member names for a `std::list<T>` node (`_List_node<T>`). */
+const LIST_PAYLOAD_NAMES = ["_M_data"];
 
 /** std::map/set/multimap/multiset — red-black tree; size from _M_node_count. */
 export const treeDecoder: ContainerDecoder = {
@@ -206,7 +213,19 @@ export const listDecoder: ContainerDecoder = {
     const sentinel = findMember(cell, "_M_node");
     const sentinelAddr = sentinel?.address ?? undefined;
     const head = sentinel ? findPointer(sentinel, "_M_next") : undefined;
-    const count = walkChain(head, "_M_next", ctx, sentinelAddr);
+    const { nodes, complete } = walkChainNodes(head, "_M_next", ctx, sentinelAddr);
+    if (complete) {
+      const payloads = collectNodePayloads(cell, nodes, LIST_PAYLOAD_NAMES);
+      if (payloads) {
+        const elem = templateArg(cell.type ?? "", 0);
+        return {
+          ...cell, kind: "container", containerKind: "list",
+          children: payloads, length: payloads.length,
+          displayValue: `list<${elem}> · ${payloads.length}`,
+        };
+      }
+    }
+    const count = complete ? nodes.length : null;
     return nodeContainer(cell, "list", false, count);
   },
 };

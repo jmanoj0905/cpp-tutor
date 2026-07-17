@@ -97,6 +97,38 @@ function adaptorPoint(
   });
 }
 
+/** Raw shape for one `_List_node<int>` heap chunk: a C_ARRAY holding one
+ *  C_STRUCT with `_M_next`/`_M_prev` pointers plus an `_M_data` payload,
+ *  matching what the patched tracer emits (see fixtures/stl/list.json). */
+function listNodeChunk(addr: string, next: string, prev: string, value: number): unknown[] {
+  return ["C_ARRAY", addr,
+    ["C_STRUCT", addr, "std::_List_node<int>",
+      ["_M_next", ["C_DATA", addr, "pointer", next]],
+      ["_M_prev", ["C_DATA", addr, "pointer", prev]],
+      ["_M_data", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 0x10).toString(16)}`, "int", value]]],
+  ];
+}
+
+/** A std::list<int> at `sentinelAddr` with real node payloads for `values`. */
+function listPoint(sentinelAddr: string, values: number[]): ExecPoint {
+  const nodeAddrs = values.map((_, i) => `0x${(0x9600 + i * 0x20).toString(16)}`);
+  const heap: Record<string, unknown> = {};
+  values.forEach((value, i) => {
+    const addr = nodeAddrs[i];
+    const next = i + 1 < values.length ? nodeAddrs[i + 1] : sentinelAddr;
+    const prev = i > 0 ? nodeAddrs[i - 1] : sentinelAddr;
+    heap[addr] = listNodeChunk(addr, next, prev, value);
+  });
+  const firstNode = nodeAddrs[0] ?? sentinelAddr;
+  const lastNode = nodeAddrs[nodeAddrs.length - 1] ?? sentinelAddr;
+  return point({
+    l: ["C_STRUCT", sentinelAddr, "std::list<int, std::allocator<int> >",
+      ["_M_node", ["C_STRUCT", sentinelAddr, "_List_node_base",
+        ["_M_next", ["C_DATA", sentinelAddr, "pointer", firstNode]],
+        ["_M_prev", ["C_DATA", sentinelAddr, "pointer", lastNode]]]]],
+  }, ["l"], heap);
+}
+
 function stringPoint(text: string): ExecPoint {
   const chars = [...text].map((ch, i) => ["C_DATA", `0x${(0x9000 + i).toString(16)}`, "char", ch.charCodeAt(0)]);
   return point({
@@ -257,6 +289,15 @@ describe("changedCellIds", () => {
         ["_M_w", ["C_DATA", "0x50", "unsigned long", word]]],
     }, ["bs"]));
     expect(changedCellIds(mk(5), mk(7))).toEqual(new Set(["stack-f1-bs-2"]));
+  });
+
+  it("marks only the changed std::list element, not the list itself or its siblings", () => {
+    const mk = (last: number) => normalizeMemory(listPoint("0xFFF000B50", [1, 2, last]));
+    const ids = changedCellIds(mk(3), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-l-2"]));
+    expect(ids.has("stack-f1-l")).toBe(false);
+    expect(ids.has("stack-f1-l-0")).toBe(false);
+    expect(ids.has("stack-f1-l-1")).toBe(false);
   });
 
   it("marks a changed heap cell", () => {

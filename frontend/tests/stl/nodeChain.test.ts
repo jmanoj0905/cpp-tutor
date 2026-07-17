@@ -3,18 +3,21 @@
 // Node-container decode tests.
 //
 // Tracer limitation (verified against real traces): this old libstdc++ tracer
-// does NOT emit node payload values for any node-based container:
-//   - std::list/forward_list nodes: C_ARRAY with two _List_node_base entries;
-//     the value area appears as UNINITIALIZED/UNALLOCATED — int is gone.
+// emits node payload values only for std::list (`_List_node<T>::_M_data`,
+// recovered by listDecoder). Every other node-based container is still
+// payload-less:
+//   - std::forward_list nodes: C_ARRAY with only _Fwd_list_node_base; the
+//     value area appears as UNINITIALIZED/UNALLOCATED — int is gone.
 //   - std::map/set nodes: C_ARRAY with only _Rb_tree_node_base (color+parent+
 //     left+right); the key/value slot is absent entirely.
 //   - std::unordered_*/hash nodes: C_ARRAY with _Hash_node_base/_M_nxt only;
 //     the stored value is absent.
 //
-// All families collapse to kind:"container" with placeholder children.
-// Element values remain unrecoverable (tracer limitation).
+// list: listDecoder walks the node chain and recovers real _M_data values.
+// Every other family collapses to kind:"container" with placeholder children
+// (element values remain unrecoverable — tracer limitation).
 // map/set: treeDecoder uses _M_node_count for size.
-// list/forward_list: listDecoder/forwardListDecoder walk the node chain.
+// forward_list: forwardListDecoder walks the node chain for the count.
 // unordered_*: hashDecoder walks _M_nxt chain or falls back to _M_element_count.
 
 import { describe, it, expect } from "vitest";
@@ -40,14 +43,25 @@ function lastStep(fixture: { trace: unknown[] }, name: string): ExecPoint {
 }
 
 describe("node-chain decoders — container collapse", () => {
-  it("std::list collapses to a placeholder container", () => {
+  it("std::list recovers real element values (no placeholders)", () => {
     const step = lastStep(listFixture as any, "l");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "l")!;
+    const memory = normalizeMemory(step);
+    const cell = memory.frames[0].cells.find((c) => c.name === "l")!;
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("list");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(cell.displayValue).toBe("list<int> · 3");
+    expect((cell.children ?? []).map((c) => c.displayValue)).toEqual(["1", "2", "3"]);
+    // Rebased under the container's own logical id, not a transient heap id.
+    expect(cell.children![0].id).toBe(`${cell.id}-0`);
+    // Visited node heap chunks are consumed — hidden from the Heap section.
+    expect(memory.heap.length).toBe(0);
   });
+
+  // Empty-list coverage ("list<int> · 0" with no children) lives in
+  // node-containers.test.ts, which has a default-constructed `empty` local;
+  // this fixture's `l` is always initialised to {1, 2, 3}.
 
   it("std::forward_list collapses to a placeholder container", () => {
     const step = lastStep(listFixture as any, "f");
