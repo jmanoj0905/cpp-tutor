@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { findMember, findPointer, templateArg } from "./helpers";
+import { containerChild, findMember, findPointer, templateArg } from "./helpers";
 
 /**
  * Node-based STL container decoders (list, forward_list, map, set, multimap,
@@ -73,30 +73,98 @@ function nodeContainer(
   };
 }
 
+/** Result of a node-chain walk: the visited node cells plus whether the walk
+ *  reached a trusted terminator (so its findings are safe to rely on). */
+export interface ChainWalk {
+  nodes: NormalizedCell[];
+  complete: boolean;
+}
+
 /**
- * Count nodes in a singly-linked heap chain from `head`, following the `ptr`
- * member on each heap node, consuming every visited node address. Returns null
- * (size unreliable) if a node is missing from the snapshot, or — for a circular
- * chain — it never loops back to `stopAddr`.
+ * Walk a singly-linked heap chain from `head`, following the `ptr` member on
+ * each heap node, and return every visited node cell. Visited addresses are
+ * consumed (hidden from the Heap section) ONLY when the walk is `complete` —
+ * an untrusted/partial walk must leave its nodes visible so callers fall back
+ * to placeholders instead of silently hiding real heap state.
+ *
  *   • forward_list / unordered: stopAddr undefined, terminate at "0x0"/null.
  *   • list: stopAddr = sentinel address, terminate on loop-back.
+ *
+ * `complete` is false when a node is missing from the snapshot (walk stops
+ * early) or — for a `stopAddr`-terminated chain — it never loops back to it.
+ * Reaching `WALK_CAP` without a `stopAddr` is treated as complete (existing
+ * safety-valve behavior for very long null-terminated chains).
  */
-function walkChain(
+function walkChainNodes(
   head: string | undefined, ptr: string, ctx: DecodeCtx, stopAddr?: string,
-): number | null {
+): ChainWalk {
+  const nodes: NormalizedCell[] = [];
   const visited: string[] = [];
   let cur = head;
   let count = 0;
   while (cur && cur !== "0x0" && cur !== stopAddr && count < WALK_CAP) {
     const node = ctx.heapByAddress.get(cur);
-    if (!node) return null;
+    if (!node) return { nodes, complete: false };
+    nodes.push(node);
     visited.push(cur);
     cur = findPointer(node, ptr);
     count++;
   }
-  if (stopAddr !== undefined && cur !== stopAddr) return null;
-  for (const a of visited) ctx.consumed.add(a);
-  return count;
+  const complete = stopAddr === undefined || cur === stopAddr;
+  if (complete) for (const a of visited) ctx.consumed.add(a);
+  return { nodes, complete };
+}
+
+/**
+ * Count nodes in a singly-linked heap chain from `head` — thin wrapper over
+ * `walkChainNodes` kept for the current count-only decoders (tree/hash/list/
+ * forward_list). Returns null (size unreliable) when the walk isn't complete.
+ */
+function walkChain(
+  head: string | undefined, ptr: string, ctx: DecodeCtx, stopAddr?: string,
+): number | null {
+  const { nodes, complete } = walkChainNodes(head, ptr, ctx, stopAddr);
+  return complete ? nodes.length : null;
+}
+
+/**
+ * Find a node's payload member by an accepted-names list (tracer/ABI varies:
+ * `_M_data` for list on this GCC 4.8-era toolchain, `_M_value` expected for
+ * forward_list, `_M_value_field` expected for tree nodes, etc). Returns the
+ * first match, or undefined when no accepted name is present (old tracer /
+ * payload-less snapshot) — callers must fall back to placeholders.
+ */
+function findPayloadMember(
+  node: NormalizedCell, acceptedNames: string[],
+): NormalizedCell | undefined {
+  for (const name of acceptedNames) {
+    const found = findMember(node, name);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+/**
+ * Recover one adopted payload child per visited node, rebased under the owning
+ * container via `containerChild` so logical ids stay stable (`l[0]`, `l[1]`,
+ * ...) instead of tracking whichever heap address happened to hold that slot.
+ * Nested payload shape (pair, struct, container) is preserved as-is by
+ * `containerChild`'s recursive rebase.
+ *
+ * Returns null — signalling "fall back to a placeholder container" — if ANY
+ * visited node is missing its payload, so we never render a partial mix of
+ * real values and raw internals.
+ */
+function collectNodePayloads(
+  parent: NormalizedCell, nodes: NormalizedCell[], acceptedNames: string[],
+): NormalizedCell[] | null {
+  const payloads: NormalizedCell[] = [];
+  for (const node of nodes) {
+    const payload = findPayloadMember(node, acceptedNames);
+    if (!payload) return null;
+    payloads.push(payload);
+  }
+  return payloads.map((payload, i) => containerChild(parent, payload, `[${i}]`, i));
 }
 
 /** std::map/set/multimap/multiset — red-black tree; size from _M_node_count. */
@@ -157,4 +225,7 @@ export const forwardListDecoder: ContainerDecoder = {
 };
 
 // Helpers reused by later tasks (unordered / list / forward_list):
-export { scalarInt, placeholder, elemLabel, nodeKind, nodeContainer, walkChain };
+export {
+  scalarInt, placeholder, elemLabel, nodeKind, nodeContainer, walkChain,
+  walkChainNodes, findPayloadMember, collectNodePayloads,
+};
