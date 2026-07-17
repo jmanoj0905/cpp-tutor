@@ -26,6 +26,77 @@ function vectorPoint(start: string, values: number[]): ExecPoint {
   });
 }
 
+function vectorBoolPoint(varName: string, word: number, size: number): ExecPoint {
+  return point({
+    [varName]: ["C_STRUCT", "0x60", "std::vector<bool, std::allocator<bool> >",
+      ["_M_start", ["C_STRUCT", "0x60", "_Bit_iterator",
+        ["_M_p", ["C_DATA", "0x60", "_Bit_type*", "0x9100"]],
+        ["_M_offset", ["C_DATA", "0x68", "unsigned int", 0]]]],
+      ["_M_finish", ["C_STRUCT", "0x70", "_Bit_iterator",
+        ["_M_p", ["C_DATA", "0x70", "_Bit_type*", "0x9100"]],
+        ["_M_offset", ["C_DATA", "0x78", "unsigned int", size]]]],
+    ],
+  }, [varName], {
+    "0x9100": ["C_ARRAY", "0x9100", ["C_DATA", "0x9100", "unsigned long", word]],
+  });
+}
+
+/** Raw C_STRUCT array for a single-chunk std::deque<int> living at `structAddr`,
+ *  with its one chunk at `chunkAddr` holding `values`. Helper-shared by both the
+ *  standalone deque test and the stack/queue adaptor tests below (adaptors wrap
+ *  a deque/vector under a member named "c"). */
+function dequeStruct(structAddr: string, mapAddr: string, chunkAddr: string, values: number[]): unknown[] {
+  const base = Number.parseInt(chunkAddr, 16);
+  const finishCur = `0x${(base + values.length * 4).toString(16)}`;
+  const chunkEnd = `0x${(base + 512).toString(16)}`;
+  return ["C_STRUCT", structAddr, "std::deque<int, std::allocator<int> >",
+    ["_M_map", ["C_DATA", structAddr, "pointer", mapAddr]],
+    ["_M_map_size", ["C_DATA", structAddr, "size_t", 8]],
+    ["_M_start", ["C_STRUCT", structAddr, "iterator",
+      ["_M_cur", ["C_DATA", structAddr, "pointer", chunkAddr]],
+      ["_M_first", ["C_DATA", structAddr, "pointer", chunkAddr]],
+      ["_M_last", ["C_DATA", structAddr, "pointer", chunkEnd]],
+      ["_M_node", ["C_DATA", structAddr, "pointer", "0x2000"]]]],
+    ["_M_finish", ["C_STRUCT", structAddr, "iterator",
+      ["_M_cur", ["C_DATA", structAddr, "pointer", finishCur]],
+      ["_M_first", ["C_DATA", structAddr, "pointer", chunkAddr]],
+      ["_M_last", ["C_DATA", structAddr, "pointer", chunkEnd]],
+      ["_M_node", ["C_DATA", structAddr, "pointer", "0x2000"]]]],
+  ];
+}
+
+function dequePoint(mapAddr: string, chunkAddr: string, values: number[]): ExecPoint {
+  return point({
+    d: dequeStruct("0x80", mapAddr, chunkAddr, values) as unknown,
+  }, ["d"], {
+    [chunkAddr]: ["C_ARRAY", chunkAddr, ...values.map((value, i) =>
+      ["C_DATA", `0x${(Number.parseInt(chunkAddr, 16) + i * 4).toString(16)}`, "int", value])],
+  });
+}
+
+function vectorStruct(structAddr: string, start: string, values: number[]): unknown[] {
+  const base = Number.parseInt(start, 16);
+  const finish = `0x${(base + values.length * 4).toString(16)}`;
+  return ["C_STRUCT", structAddr, "std::vector<int, std::allocator<int> >",
+    ["_M_start", ["C_DATA", structAddr, "int*", start]],
+    ["_M_finish", ["C_DATA", structAddr, "int*", finish]]];
+}
+
+function adaptorPoint(
+  varName: string,
+  outerType: string,
+  innerStruct: unknown[],
+  heapAddr: string,
+  values: number[],
+): ExecPoint {
+  const elems = values.map((value, i) => ["C_DATA", `0x${(Number.parseInt(heapAddr, 16) + i * 4).toString(16)}`, "int", value]);
+  return point({
+    [varName]: ["C_STRUCT", "0x40", outerType, ["c", innerStruct]],
+  }, [varName], {
+    [heapAddr]: ["C_ARRAY", heapAddr, ...elems],
+  });
+}
+
 function stringPoint(text: string): ExecPoint {
   const chars = [...text].map((ch, i) => ["C_DATA", `0x${(0x9000 + i).toString(16)}`, "char", ch.charCodeAt(0)]);
   return point({
@@ -79,7 +150,11 @@ describe("changedCellIds", () => {
   it("marks only the changed std::vector element, even when the heap buffer moves", () => {
     const prev = normalizeMemory(vectorPoint("0x9000", [1, 2, 3]));
     const curr = normalizeMemory(vectorPoint("0xa000", [1, 9, 3]));
-    expect(changedCellIds(prev, curr)).toEqual(new Set(["stack-f1-v-1"]));
+    const ids = changedCellIds(prev, curr);
+    expect(ids).toEqual(new Set(["stack-f1-v-1"]));
+    expect(ids.has("stack-f1-v")).toBe(false);
+    expect(ids.has("stack-f1-v-0")).toBe(false);
+    expect(ids.has("stack-f1-v-2")).toBe(false);
   });
 
   it("marks only the changed std::array element", () => {
@@ -90,7 +165,75 @@ describe("changedCellIds", () => {
           ["C_DATA", "0x34", "int", middle],
           ["C_DATA", "0x38", "int", 3]]]],
     }, ["a"]));
-    expect(changedCellIds(mk(2), mk(9))).toEqual(new Set(["stack-f1-a-1"]));
+    const ids = changedCellIds(mk(2), mk(9));
+    expect(ids).toEqual(new Set(["stack-f1-a-1"]));
+    expect(ids.has("stack-f1-a")).toBe(false);
+    expect(ids.has("stack-f1-a-0")).toBe(false);
+    expect(ids.has("stack-f1-a-2")).toBe(false);
+  });
+
+  it("marks only the changed std::vector<bool> bit, not the vector", () => {
+    // word 0b0010 -> bits [false,true,false,false]; word 0b0110 -> bits [false,true,true,false].
+    // Only bit index 2 flips.
+    const mk = (word: number) => normalizeMemory(vectorBoolPoint("vb", word, 4));
+    const ids = changedCellIds(mk(0b0010), mk(0b0110));
+    expect(ids).toEqual(new Set(["stack-f1-vb-2"]));
+    expect(ids.has("stack-f1-vb")).toBe(false);
+    expect(ids.has("stack-f1-vb-0")).toBe(false);
+    expect(ids.has("stack-f1-vb-1")).toBe(false);
+    expect(ids.has("stack-f1-vb-3")).toBe(false);
+  });
+
+  it("marks only the changed std::deque element, even when chunk/map addresses move", () => {
+    const prev = normalizeMemory(dequePoint("0x2000", "0x9200", [10, 20, 30]));
+    const curr = normalizeMemory(dequePoint("0x3000", "0xb200", [10, 99, 30]));
+    const ids = changedCellIds(prev, curr);
+    expect(ids).toEqual(new Set(["stack-f1-d-1"]));
+    expect(ids.has("stack-f1-d")).toBe(false);
+    expect(ids.has("stack-f1-d-0")).toBe(false);
+    expect(ids.has("stack-f1-d-2")).toBe(false);
+  });
+
+  it("marks only the changed std::stack element, re-parented under the adaptor, not the underlying deque", () => {
+    const mk = (middle: number) => normalizeMemory(adaptorPoint(
+      "st", "std::stack<int, std::deque<int, std::allocator<int> > >",
+      dequeStruct("0x40", "0x2000", "0x9300", [1, middle, 3]),
+      "0x9300", [1, middle, 3],
+    ));
+    const ids = changedCellIds(mk(2), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-st-1"]));
+    expect(ids.has("stack-f1-st")).toBe(false);
+    expect(ids.has("stack-f1-st-0")).toBe(false);
+    expect(ids.has("stack-f1-st-2")).toBe(false);
+    expect(ids.has("stack-f1-st-c-1")).toBe(false);
+  });
+
+  it("marks only the changed std::queue element, re-parented under the adaptor, not the underlying deque", () => {
+    const mk = (middle: number) => normalizeMemory(adaptorPoint(
+      "q", "std::queue<int, std::deque<int, std::allocator<int> > >",
+      dequeStruct("0x40", "0x2000", "0x9400", [10, middle, 30]),
+      "0x9400", [10, middle, 30],
+    ));
+    const ids = changedCellIds(mk(20), mk(77));
+    expect(ids).toEqual(new Set(["stack-f1-q-1"]));
+    expect(ids.has("stack-f1-q")).toBe(false);
+    expect(ids.has("stack-f1-q-0")).toBe(false);
+    expect(ids.has("stack-f1-q-2")).toBe(false);
+    expect(ids.has("stack-f1-q-c-1")).toBe(false);
+  });
+
+  it("marks only the changed std::priority_queue element, re-parented under the adaptor, not the underlying vector", () => {
+    const mk = (middle: number) => normalizeMemory(adaptorPoint(
+      "pq", "std::priority_queue<int, std::vector<int, std::allocator<int> >, std::less<int> >",
+      vectorStruct("0x40", "0x9500", [9, middle, 1]),
+      "0x9500", [9, middle, 1],
+    ));
+    const ids = changedCellIds(mk(5), mk(6));
+    expect(ids).toEqual(new Set(["stack-f1-pq-1"]));
+    expect(ids.has("stack-f1-pq")).toBe(false);
+    expect(ids.has("stack-f1-pq-0")).toBe(false);
+    expect(ids.has("stack-f1-pq-2")).toBe(false);
+    expect(ids.has("stack-f1-pq-c-1")).toBe(false);
   });
 
   it("marks only the changed std::pair member", () => {
