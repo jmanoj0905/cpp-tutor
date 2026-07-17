@@ -1,7 +1,7 @@
 diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
 --- a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
 +++ b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
-@@ -391,6 +391,98 @@ SizeT pg_get_elt_size(const XArray* /* of TyEnt */ ents,
+@@ -391,6 +391,196 @@ SizeT pg_get_elt_size(const XArray* /* of TyEnt */ ents,
  }
  
  
@@ -96,11 +96,109 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
 +   return NULL;
 +}
 +
++/* Resolve through Te_TyTyDef (typedef) and Te_TyQual (const/volatile/restrict)
++ * layers to the underlying type entity. Tree/hash containers reach their nodes
++ * via _Base_ptr / _Link_type / __node_base_ptr TYPEDEFS, so the pointee type
++ * is a Te_TyTyDef (or a qualified typedef), not a direct Te_TyStOrUn — a plain
++ * `pointee->tag == Te_TyStOrUn` check silently misses them. list pointees are
++ * direct struct types, so for list this is a no-op that returns the same
++ * entity. Returns NULL if the chain dead-ends at an unknown type. */
++static TyEnt* pg_strip_typedefs_quals(const XArray* tyents, UWord typeR)
++{
++   TyEnt* e = ML_(TyEnts__index_by_cuOff)(tyents, NULL, typeR);
++   Int guard = 0;
++   while (e && (e->tag == Te_TyTyDef || e->tag == Te_TyQual) && guard++ < 64) {
++      UWord next = (e->tag == Te_TyTyDef) ? e->Te.TyTyDef.typeR
++                                          : e->Te.TyQual.typeR;
++      if (next == (UWord)(-1UL) /* D3_INVALID_CUOFF */) return NULL;
++      e = ML_(TyEnts__index_by_cuOff)(tyents, NULL, next);
++   }
++   return e;
++}
++
++// pgbovine/cpp-tutor: node-based container family table. Each row pairs a
++// container-type-name prefix with (a) the type-erased node base whose pointer
++// the heap-block walker sees, and (b) a printf-style template for constructing
++// the derived per-node struct name from the container's first template arg.
++// When a container's Te_TyStOrUn decode matches a row, we resolve the derived
++// node struct BY NAME and push it as a scoped override so the Te_TyPtr walker
++// substitutes it (and its real DWARF size) for the base — exposing the payload
++// member. This generalizes the original hardcoded list<T> pairing.
++//
++// Only `list` is wired here: its derived name is exactly
++// `_List_node<FIRST_ARG>` and its payload is a plain member. The other
++// node-based families were diagnosed (Task 5 gates) and DO carry recoverable
++// derived nodes + payload members in DWARF, but their derived names are not a
++// simple `<%s>` of the container's first template arg and so are deferred to
++// their own tasks:
++//   * forward_list -> `_Fwd_list_node<int>`, payload `_M_storage`
++//     (an __aligned_membuf `type`, not a plain scalar).
++//   * set/multiset  -> `_Rb_tree_node<int>`, payload `_M_value_field`;
++//     nodes reached via the `_Base_ptr`/`_Link_type` TYPEDEFS (needs the
++//     typedef stripping below).
++//   * map/multimap  -> `_Rb_tree_node<std::pair<K const, V> >`, payload
++//     `_M_value_field`; derived name needs the pair type assembled, not the
++//     container's first arg.
++//   * unordered_*   -> `_Hash_node<T, false>` in namespace std::__detail,
++//     payload `_M_v`; derived name needs the trailing cache-hash-code bool;
++//     nodes reached via the `__node_base` typedef.
++typedef struct {
++   const HChar* container_prefix; // container type-name prefix, e.g. "list<"
++   SizeT        prefix_len;       // strlen(container_prefix)
++   const HChar* base_name;        // type-erased node base, e.g. "_List_node_base"
++   const HChar* derived_fmt;      // derived name template, one %s, e.g. "_List_node<%s>"
++} PgNodeFamily;
++
++static const PgNodeFamily pg_node_families[] = {
++   { "list<", 5, "_List_node_base", "_List_node<%s>" },
++   // forward_list / tree / hash families: gates PASS (see Task 5 report) but
++   // wiring deferred to Tasks 6-8 (see comment above for their derived-name /
++   // payload specifics).
++};
++#define PG_NUM_NODE_FAMILIES \
++   (sizeof(pg_node_families) / sizeof(pg_node_families[0]))
++
++/* If `container_name` matches a node-family row, construct the derived node
++ * type name from its first template arg, resolve it BY NAME, and return the
++ * matching row (via *out_family) plus the resolved derived TyEnt. Returns NULL
++ * if no family matches or the derived type isn't present in this CU's DWARF. */
++static TyEnt* pg_resolve_node_override(const XArray* tyents,
++                                       const HChar* container_name,
++                                       const PgNodeFamily** out_family)
++{
++   SizeT k;
++   for (k = 0; k < PG_NUM_NODE_FAMILIES; k++) {
++      const PgNodeFamily* fam = &pg_node_families[k];
++      if (VG_(strncmp)(container_name, fam->container_prefix,
++                       fam->prefix_len) != 0)
++         continue;
++      {
++         HChar elem[128];
++         pg_first_template_arg(container_name, elem, sizeof(elem));
++         if (elem[0]) {
++            HChar candidate[192];
++            TyEnt* derived;
++            VG_(snprintf)(candidate, sizeof(candidate), fam->derived_fmt, elem);
++            derived = pg_find_struct_by_name(tyents, candidate);
++            if (derived) {
++               if (out_family) *out_family = fam;
++               return derived;
++            }
++         }
++      }
++      // matched the prefix but couldn't resolve a derived type: stop looking
++      // (a container name matches at most one family) and fall through to
++      // today's base-only behavior.
++      break;
++   }
++   return NULL;
++}
++
 +
  // pgbovine version of ML_(pp_TyEnt_C_ishly)
  void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
                           UWord cuOff,
-@@ -565,9 +657,31 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+@@ -565,9 +755,36 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
  
           AddrInfo ai;
           VG_(describe_addr)(ptr_val, &ai);
@@ -115,7 +213,12 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
 +         UWord pg_decode_typeR = ent->Te.TyPorR.typeR;
 +         SizeT pg_override_szB = 0;
 +         {
-+            TyEnt* pointee = ML_(TyEnts__index_by_cuOff)(tyents, NULL, ent->Te.TyPorR.typeR);
++            // Resolve through typedef/qualifier layers before comparing the
++            // pointee's base name: tree/hash node pointers are TYPEDEFS
++            // (_Base_ptr / _Link_type / __node_base), so a direct
++            // `tag == Te_TyStOrUn` check would silently miss them. list
++            // pointees are direct structs, so this is a no-op for list.
++            TyEnt* pointee = pg_strip_typedefs_quals(tyents, ent->Te.TyPorR.typeR);
 +            if (pointee && pointee->tag == Te_TyStOrUn && pointee->Te.TyStOrUn.name) {
 +               TyEnt* ov = pg_active_node_override(pointee->Te.TyStOrUn.name);
 +               if (ov) {
@@ -133,7 +236,7 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
  
             Addr block_base_addr = ptr_val - ai.Addr.Block.rwoffset;
  
-@@ -612,7 +726,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+@@ -612,7 +829,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
                 } else {
                   VG_(fprintf)(trace_fp, ",\n  ");
                 }
@@ -142,7 +245,7 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
                                    is_mem_defined_func, encoded_addrs, trace_fp);
                 cur_addr += element_size;
               }
-@@ -683,7 +797,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+@@ -683,7 +900,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
                       VG_(fprintf)(trace_fp, ",\n  ");
                     }
  
@@ -151,38 +254,33 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
                                        is_mem_defined_func, encoded_addrs, trace_fp);
  
                     // if it's a '\0' character, then BREAK out of the
-@@ -770,6 +884,30 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+@@ -770,6 +987,25 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
           // TODO: handle unions later, let's just focus on structs for now
           vg_assert(ent->Te.TyStOrUn.isStruct);
  
-+         // pgbovine/cpp-tutor: if this is a list<T>, resolve T's derived
-+         // node type by name and push it as the active override for the
-+         // duration of this container's decode (its field loop below will
-+         // recurse into _M_impl/_M_node/_M_next, which is where the
-+         // Te_TyPtr case will consult the override). Flat statements, no
-+         // new block scope — matches this switch's existing style, and
-+         // keeps `first_elt` visible to the later Te_TyArray case that
-+         // reuses it without redeclaring.
++         // pgbovine/cpp-tutor: if this container matches a node-based family
++         // (see pg_node_families[]), resolve the derived per-node type by name
++         // and push it as the active override for the duration of this
++         // container's decode (its field loop below recurses into
++         // _M_impl/_M_node/_M_next, where the Te_TyPtr case consults the
++         // override). Flat statements, no new block scope — matches this
++         // switch's existing style, and keeps `first_elt` visible to the later
++         // Te_TyArray case that reuses it without redeclaring.
 +         Bool pg_pushed_override = False;
-+         if (ent->Te.TyStOrUn.name &&
-+             VG_(strncmp)(ent->Te.TyStOrUn.name, "list<", 5) == 0) {
-+            HChar pg_elem[128];
-+            pg_first_template_arg(ent->Te.TyStOrUn.name, pg_elem, sizeof(pg_elem));
-+            if (pg_elem[0]) {
-+               HChar pg_candidate[192];
-+               VG_(snprintf)(pg_candidate, sizeof(pg_candidate), "_List_node<%s>", pg_elem);
-+               TyEnt* pg_derived = pg_find_struct_by_name(tyents, pg_candidate);
-+               if (pg_derived) {
-+                  pg_push_node_override("_List_node_base", pg_derived);
-+                  pg_pushed_override = True;
-+               }
++         if (ent->Te.TyStOrUn.name) {
++            const PgNodeFamily* pg_fam = NULL;
++            TyEnt* pg_derived = pg_resolve_node_override(
++                                   tyents, ent->Te.TyStOrUn.name, &pg_fam);
++            if (pg_derived && pg_fam) {
++               pg_push_node_override(pg_fam->base_name, pg_derived);
++               pg_pushed_override = True;
 +            }
 +         }
 +
           VG_(fprintf)(trace_fp,
                        "{\"addr\":\"%p\", \"kind\":\"struct\", \"type\":\"%s\", \"val\": {\n  ",
                        (void*)data_addr,
-@@ -838,6 +976,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+@@ -838,6 +1074,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
  
           VG_(fprintf)(trace_fp, "}}");
  
