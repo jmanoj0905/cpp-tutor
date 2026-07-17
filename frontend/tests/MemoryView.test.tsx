@@ -24,6 +24,16 @@ describe("MemoryCell", () => {
     expect(screen.getByText("20")).toBeDefined();
   });
 
+  it("does not tint a composite container body when the container id is marked changed", () => {
+    const { container } = render(<MemoryCell
+      cell={cell({ id: "v", name: "v", kind: "container", containerKind: "vector", displayValue: "vector<int> · 2",
+        children: [cell({ id: "v0", name: "[0]", displayValue: "10" })] })}
+      changedIds={new Set(["v"])}
+    />);
+    expect(container.querySelector('[data-cell-id="v"]')?.className).not.toContain("cell-changed");
+    expect(container.querySelector(".cell-head")?.className).toContain("cell-changed");
+  });
+
   it("renders globals, stack frames by name, and heap sections", () => {
     const point: ExecPoint = {
       line: 1, event: "step_line", func_name: "main", stdout: "",

@@ -202,6 +202,14 @@ function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
   return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
 }
 
+function buildAddressMap(cells: NormalizedCell[]): Map<string, NormalizedCell> {
+  const addressMap = new Map<string, NormalizedCell>();
+  for (const cell of flattenCells(cells)) {
+    if (cell.address && !addressMap.has(cell.address)) addressMap.set(cell.address, cell);
+  }
+  return addressMap;
+}
+
 function resolveContainers(cells: NormalizedCell[], ctx: DecodeCtx): NormalizedCell[] {
   return cells.map((cell) => {
     const children = cell.children ? resolveContainers(cell.children, ctx) : cell.children;
@@ -224,10 +232,7 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
   // Pointers commonly target stack/global variables (e.g. `int* p = &a`), not
   // only the heap. Resolve references against every decoded cell that owns an
   // address so those pointers draw connector lines too.
-  const addressMap = new Map<string, NormalizedCell>();
-  for (const cell of flattenCells([...rawGlobals, ...rawFrames.flatMap((f) => f.cells), ...heapRaw])) {
-    if (cell.address && !addressMap.has(cell.address)) addressMap.set(cell.address, cell);
-  }
+  const initialAddressMap = buildAddressMap([...rawGlobals, ...rawFrames.flatMap((f) => f.cells), ...heapRaw]);
 
   const consumed = new Set<string>();
   const ctx: DecodeCtx = { heapByAddress, consumed };
@@ -236,22 +241,40 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
   // Smart-pointer decoders (sharedPtrDecoder, etc.) emit a NEW reference cell
   // DURING resolveContainers — after the first resolveReferences pass already ran —
   // so their targetId/link would never be computed without the second pass.
-  const resolve = (cells: NormalizedCell[]) =>
-    resolveReferences(resolveContainers(resolveReferences(cells, addressMap), ctx), addressMap);
+  const resolveForDecoding = (cells: NormalizedCell[]) =>
+    resolveContainers(resolveReferences(cells, initialAddressMap), ctx);
 
   // Resolve the heap FIRST, then re-point heapByAddress at the decoded buffers.
   // Container decoders (vector/deque/string) inline a heap buffer by address; a
   // nested container like vector<vector<int>> has buffer elements that are
   // themselves containers, so the buffer must already be decoded when the outer
   // container inlines it — otherwise the inner elements render as raw structs.
-  const heapResolved = resolve(heapRaw);
+  const heapResolved = resolveForDecoding(heapRaw);
   for (const cell of heapResolved) {
     if (cell.address) heapByAddress.set(cell.address, cell);
   }
 
-  const globals = resolve(rawGlobals);
-  const frames = rawFrames.map((frame) => ({ ...frame, cells: resolve(frame.cells) }));
-  const heap = heapResolved.filter((cell) => !(cell.address && consumed.has(cell.address)));
+  const globalsWithContainers = resolveForDecoding(rawGlobals);
+  const framesWithContainers = rawFrames.map((frame) => ({
+    ...frame,
+    cells: resolveForDecoding(frame.cells),
+  }));
+  const visibleHeap = heapResolved.filter((cell) => !(cell.address && consumed.has(cell.address)));
+
+  // Rebuild address targets from the final visible tree. Container elements now
+  // have logical IDs (v-1) instead of heap-buffer IDs, and consumed heap buffers
+  // are hidden, so pointer/iterator links must resolve against this decoded view.
+  const finalAddressMap = buildAddressMap([
+    ...globalsWithContainers,
+    ...framesWithContainers.flatMap((f) => f.cells),
+    ...visibleHeap,
+  ]);
+  const globals = resolveReferences(globalsWithContainers, finalAddressMap);
+  const frames = framesWithContainers.map((frame) => ({
+    ...frame,
+    cells: resolveReferences(frame.cells, finalAddressMap),
+  }));
+  const heap = resolveReferences(visibleHeap, finalAddressMap);
 
   const links = flattenCells([...globals, ...frames.flatMap((f) => f.cells), ...heap])
     .filter((cell) => cell.kind === "reference" && cell.targetId && cell.targetAddress)

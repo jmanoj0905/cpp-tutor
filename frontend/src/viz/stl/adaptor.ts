@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { findMember, templateArg } from "./helpers";
+import { containerChildren, findMember, templateArg } from "./helpers";
 import { decodeContainer } from "./registry";
 
 /**
@@ -37,7 +37,7 @@ export const stackDecoder: ContainerDecoder = {
       ...cell,
       kind: "container",
       containerKind: "stack",
-      children: inner.children,
+      children: containerChildren(cell, inner.children ?? []),
       length: inner.length,
       elementType: elem,
       note: "top = last",
@@ -56,7 +56,7 @@ export const queueDecoder: ContainerDecoder = {
       ...cell,
       kind: "container",
       containerKind: "queue",
-      children: inner.children,
+      children: containerChildren(cell, inner.children ?? []),
       length: inner.length,
       elementType: elem,
       note: "front → back",
@@ -75,7 +75,7 @@ export const priorityQueueDecoder: ContainerDecoder = {
       ...cell,
       kind: "container",
       containerKind: "priority_queue",
-      children: inner.children,
+      children: containerChildren(cell, inner.children ?? []),
       length: inner.length,
       elementType: elem,
       note: "heap; top = [0]",

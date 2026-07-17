@@ -37,3 +37,40 @@ export function templateArg(type: string, n = 0): string {
   }
   return idx === n ? inner.slice(start).trim() : "";
 }
+
+function idSegment(name: string, index?: number): string {
+  const indexed = name.match(/^\[(\d+)\]$/);
+  const raw = indexed ? indexed[1] : name;
+  const segment = raw.replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  if (segment) return segment;
+  return index === undefined ? "item" : String(index);
+}
+
+function rebaseCell(cell: NormalizedCell, id: string, name: string): NormalizedCell {
+  return {
+    ...cell,
+    id,
+    name,
+    children: cell.children?.map((child, index) =>
+      rebaseCell(child, `${id}-${idSegment(child.name, index)}`, child.name),
+    ),
+  };
+}
+
+/**
+ * Adopt a decoded child under a container's logical identity. Heap-backed STL
+ * buffers move as containers grow; UI diffing must track `v[1]`, not whatever
+ * heap address happened to hold that slot on this step.
+ */
+export function containerChild(
+  parent: NormalizedCell,
+  child: NormalizedCell,
+  name: string,
+  index?: number,
+): NormalizedCell {
+  return rebaseCell(child, `${parent.id}-${idSegment(name, index)}`, name);
+}
+
+export function containerChildren(parent: NormalizedCell, children: NormalizedCell[]): NormalizedCell[] {
+  return children.map((child, index) => containerChild(parent, child, `[${index}]`, index));
+}

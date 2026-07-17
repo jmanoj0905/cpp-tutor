@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { parseAddr, findMember, findPointer, templateArg } from "./helpers";
+import { containerChild, containerChildren, parseAddr, findMember, findPointer, templateArg } from "./helpers";
 
 /**
  * std::deque<T> — chunk-map layout.
@@ -81,7 +81,7 @@ export const dequeDecoder: ContainerDecoder = {
         for (const slot of chunk.children ?? []) {
           const a = parseAddr(slot.address);
           if (a !== null && a >= startCur && a < finishCur) {
-            children.push({ ...slot, name: `[${children.length}]` });
+            children.push(containerChild(cell, slot, `[${children.length}]`, children.length));
           }
         }
         ctx.consumed.add(startFirstStr);
@@ -93,7 +93,7 @@ export const dequeDecoder: ContainerDecoder = {
         for (const slot of startChunk.children ?? []) {
           const a = parseAddr(slot.address);
           if (a !== null && a >= startCur && a < startLast) {
-            children.push({ ...slot, name: `[${children.length}]` });
+            children.push(containerChild(cell, slot, `[${children.length}]`, children.length));
           }
         }
         ctx.consumed.add(startFirstStr);
@@ -109,7 +109,7 @@ export const dequeDecoder: ContainerDecoder = {
         const chunk = chunkForSlotAddr(nodeAddr);
         if (chunk) {
           for (const slot of chunk.children ?? []) {
-            children.push({ ...slot, name: `[${children.length}]` });
+            children.push(containerChild(cell, slot, `[${children.length}]`, children.length));
           }
           if (chunk.address) ctx.consumed.add(chunk.address);
         }
@@ -121,7 +121,7 @@ export const dequeDecoder: ContainerDecoder = {
         for (const slot of finishChunk.children ?? []) {
           const a = parseAddr(slot.address);
           if (a !== null && a >= finishFirstAddr && a < finishCur) {
-            children.push({ ...slot, name: `[${children.length}]` });
+            children.push(containerChild(cell, slot, `[${children.length}]`, children.length));
           }
         }
         ctx.consumed.add(finishFirstStr);
@@ -279,7 +279,9 @@ export const vectorDecoder: ContainerDecoder = {
     ctx.consumed.add(start!); // start is defined: buffer truthy implies start was defined above
     const finish = findPointer(cell, "_M_finish");
     const size = vectorSize(start, finish, buffer);
-    const children = (buffer.children ?? []).slice(0, size).map((c, i) => ({ ...c, name: `[${i}]` }));
+    const children = (buffer.children ?? [])
+      .slice(0, size)
+      .map((c, i) => containerChild(cell, c, `[${i}]`, i));
     return { ...cell, kind: "container", containerKind: "vector",
       children, length: size, elementType: elem,
       displayValue: `vector<${elem}> · ${size}` };
@@ -295,7 +297,7 @@ export const arrayDecoder: ContainerDecoder = {
   match: (type) => /\barray\s*</.test(type),
   decode(cell) {
     const elems = findMember(cell, "_M_elems");
-    const children = (elems?.children ?? []).map((c, i) => ({ ...c, name: `[${i}]` }));
+    const children = containerChildren(cell, elems?.children ?? []);
     if (children.length === 0) return null;
     const elem = templateArg(cell.type ?? "");
     return {
@@ -363,6 +365,16 @@ export const stringDecoder: ContainerDecoder = {
       chars.push(String.fromCharCode(n));
     }
     const text = chars.join("");
+    const children = chars.map((ch, i) => ({
+      id: `${cell.id}-${i}`,
+      name: `[${i}]`,
+      source: cell.source,
+      kind: "scalar" as const,
+      address: charSlice[i]?.address ?? null,
+      type: "char",
+      displayValue: ch,
+      rawValue: charSlice[i]?.rawValue ?? ch,
+    }));
 
     if (bufAddr) ctx.consumed.add(bufAddr);
 
@@ -370,7 +382,9 @@ export const stringDecoder: ContainerDecoder = {
       ...cell,
       kind: "container",
       containerKind: "string",
-      children: undefined,
+      children,
+      length: children.length,
+      elementType: "char",
       displayValue: `"${text}"`,
     };
   },

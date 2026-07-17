@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder } from "./types";
-import { findMember, findPointer } from "./helpers";
+import { containerChild, findMember, findPointer } from "./helpers";
 
 /**
  * Count the number of top-level template arguments in a type string.
@@ -58,7 +58,10 @@ export const pairDecoder: ContainerDecoder = {
       ...cell,
       kind: "container",
       containerKind: "pair",
-      children: [{ ...first, name: "first" }, { ...second, name: "second" }],
+      children: [
+        containerChild(cell, first, "first", 0),
+        containerChild(cell, second, "second", 1),
+      ],
       displayValue: `(${first.displayValue}, ${second.displayValue})`,
     };
   },
@@ -83,7 +86,7 @@ export const tupleDecoder: ContainerDecoder = {
     // display a misleading partial container.
     const declaredN = countTopLevelArgs(cell.type ?? "");
     if (declaredN > 0 && items.length < declaredN) return null;
-    const children = items.map((c, i) => ({ ...c, name: `[${i}]` }));
+    const children = items.map((c, i) => containerChild(cell, c, `[${i}]`, i));
     return {
       ...cell,
       kind: "container",
@@ -115,11 +118,23 @@ export const bitsetDecoder: ContainerDecoder = {
     if (Number.isNaN(raw)) return null;
     // Render as N-bit binary string, MSB first, truncated to N bits.
     const bits = raw.toString(2).padStart(n, "0").slice(-n);
+    const children = [...bits].map((bit, i) => ({
+      id: `${cell.id}-${i}`,
+      name: `[${i}]`,
+      source: cell.source,
+      kind: "scalar" as const,
+      address: null,
+      type: "bit",
+      displayValue: bit,
+      rawValue: bit,
+    }));
     return {
       ...cell,
       kind: "container",
       containerKind: "bitset",
-      children: undefined,
+      children,
+      length: children.length,
+      elementType: "bit",
       displayValue: bits,
     };
   },

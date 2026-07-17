@@ -6,15 +6,18 @@ const COLLAPSE_AT = 8;
 
 export function MemoryCell({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; highlightedIds?: Set<string>; changedIds?: Set<string> }) {
   const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
-  const changed = changedIds?.has(cell.id) ? " cell-changed" : "";
+  const changed = changedIds?.has(cell.id) ?? false;
+  const hasKids = hasChildren(cell);
+  const cellChanged = changed && !hasKids ? " cell-changed" : "";
+  const headChanged = changed && hasKids ? " cell-changed" : "";
   return (
-    <div className={`cell cell-${cell.kind}${hot}${changed}${cell.internal ? " cell-internal" : ""}`} data-cell-id={cell.id}>
-      <div className="cell-head">
+    <div className={`cell cell-${cell.kind}${hot}${cellChanged}${cell.internal ? " cell-internal" : ""}`} data-cell-id={cell.id}>
+      <div className={`cell-head${headChanged}`}>
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} />
       </div>
-      {hasChildren(cell) && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} />}
+      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} />}
     </div>
   );
 }
