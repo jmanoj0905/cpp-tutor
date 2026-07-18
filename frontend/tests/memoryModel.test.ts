@@ -169,6 +169,26 @@ describe("memoryModel", () => {
     expect(targets).toContainEqual(["next", "0xB0"]);
   });
 
+  it("hides empty untyped heap arrays (freed node remnants at destructor steps)", () => {
+    // Mid-destruction, the tracer loses the typed view of not-yet-freed
+    // container nodes and emits bare ["C_ARRAY", addr] heap entries with no
+    // elements. They carry no information and must not render in Heap.
+    const dtorPoint: ExecPoint = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {},
+      heap: {
+        "0x4B92200": ["C_ARRAY", "0x4B92200"],
+        "0x100": ["C_DATA", "0x100", "int", 7],
+      },
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: [], encoded_locals: {},
+      }] as any,
+    };
+    const memory = normalizeMemory(dtorPoint);
+    expect(memory.heap.map((c) => c.address)).toEqual(["0x100"]);
+  });
+
   it("decodes std::vector with size from pointer arithmetic and inlined elements", () => {
     // Real trace captured from the patched Valgrind backend. The last step
     // where `v` is still in scope holds all three pushed elements.

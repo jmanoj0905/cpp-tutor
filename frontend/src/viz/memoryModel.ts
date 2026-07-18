@@ -320,7 +320,14 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
     ...frame,
     cells: resolveForDecoding(frame.cells),
   }));
-  const visibleHeap = heapResolved.filter((cell) => !(cell.address && consumed.has(cell.address)));
+  const visibleHeap = heapResolved.filter(
+    (cell) =>
+      !(cell.address && consumed.has(cell.address)) &&
+      // Bare ["C_ARRAY", addr] entries appear mid-destruction when the tracer
+      // loses the typed view of a container's not-yet-freed nodes; they have
+      // no elements and no information, so keep them out of the Heap section.
+      !(cell.kind === "array" && (cell.children?.length ?? 0) === 0),
+  );
 
   // Rebuild address targets from the final visible tree. Container elements now
   // have logical IDs (v-1) instead of heap-buffer IDs, and consumed heap buffers
