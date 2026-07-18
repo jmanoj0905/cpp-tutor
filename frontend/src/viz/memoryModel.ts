@@ -132,11 +132,11 @@ export function decodeMemoryValue(
 
     if (tag === "C_MULTIDIMENSIONAL_ARRAY") {
       const address = toOptionalString(rawValue[1]);
-      const dims = Array.isArray(rawValue[2]) ? (rawValue[2] as number[]) : [];
       const elements = rawValue.slice(3);
-      const children = elements.map((el, i) =>
-        decodeMemoryValue(el, `[${i}]`, source, childPrefix(idPrefix, name)),
-      );
+      const dims = normalizedDimensions(rawValue[2]);
+      const children = dims.length > 1
+        ? buildMultiDimensionalChildren(elements, dims, source, childPrefix(idPrefix, name))
+        : elements.map((el, i) => decodeMemoryValue(el, `[${i}]`, source, childPrefix(idPrefix, name)));
       return {
         ...base,
         kind: "array",
@@ -187,15 +187,76 @@ export function decodeMemoryValue(
   };
 }
 
+function buildMultiDimensionalChildren(
+  elements: unknown[],
+  dims: number[],
+  source: MemorySource,
+  idPrefix: string,
+): NormalizedCell[] {
+  const count = dims[0] ?? elements.length;
+  if (dims.length <= 1) {
+    return elements.slice(0, count).map((el, i) => decodeMemoryValue(el, `[${i}]`, source, idPrefix));
+  }
+
+  const rest = dims.slice(1);
+  const stride = dimensionProduct(rest);
+  const children: NormalizedCell[] = [];
+  for (let i = 0; i < count; i++) {
+    const name = `[${i}]`;
+    const start = i * stride;
+    const slice = elements.slice(start, start + stride);
+    const nested = buildMultiDimensionalChildren(slice, rest, source, childPrefix(idPrefix, name));
+    children.push({
+      id: toCellId(source, idPrefix, name),
+      name,
+      source,
+      kind: "array",
+      address: null,
+      type: "array",
+      length: nested.length,
+      children: nested,
+      displayValue: `array[${rest.join("][")}]`,
+      rawValue: slice,
+    });
+  }
+  return children;
+}
+
+function normalizedDimensions(value: unknown): number[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((dim) => Number(dim))
+    .filter((dim) => Number.isInteger(dim) && dim > 0);
+}
+
+function dimensionProduct(dims: number[]): number {
+  return dims.reduce((product, dim) => product * dim, 1);
+}
+
+export function collectionDepth(cell: NormalizedCell): number {
+  if (!isIndexedCollection(cell)) return 0;
+  const children = cell.children ?? [];
+  if (children.length === 0) return 1;
+  const childDepths = children.map(collectionDepth);
+  const nestedDepths = childDepths.filter((depth) => depth > 0);
+  if (nestedDepths.length === 0) return 1;
+  return 1 + Math.max(...nestedDepths);
+}
+
 export function gridShape(cell: NormalizedCell): { rows: number; cols: number } | null {
-  if (cell.kind !== "array" && cell.kind !== "container") return null;
+  if (collectionDepth(cell) !== 2) return null;
   const rows = cell.children ?? [];
   if (rows.length < 2) return null;
+  if (!rows.every(isIndexedCollection)) return null;
   const cols = rows[0].children?.length ?? 0;
   if (cols === 0) return null;
   const rectangular = rows.every((r) => (r.children?.length ?? 0) === cols);
   if (!rectangular) return null;
   return { rows: rows.length, cols };
+}
+
+function isIndexedCollection(cell: NormalizedCell): boolean {
+  return cell.kind === "array" || cell.kind === "container";
 }
 
 function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {

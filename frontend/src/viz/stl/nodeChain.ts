@@ -6,17 +6,10 @@ import { containerChildren, findMember, findPointer, templateArg } from "./helpe
  * Node-based STL container decoders (list, forward_list, map, set, multimap,
  * multiset, unordered_*).
  *
- * The patched tracer now emits node payload values for `std::list<T>`
- * (`_List_node<T>::_M_data`); `listDecoder` walks the node chain and recovers
- * real element values. Every other node-based family (forward_list, map,
- * set, multimap, multiset, unordered_*) is still payload-less on this old
- * libstdc++ tracer, so those collapse to a sized summary with one opaque "?"
- * placeholder per element, recovering only the COUNT — from a count field
- * (trees / unordered) or a node-chain walk (forward_list). When the count is
- * indeterminate (partial snapshot, uninitialised field) we render
- * "kind<...> · ?" with no slots, NEVER the raw struct dump. `listDecoder`
- * falls back to the same placeholder behavior when `_M_data` is absent (e.g.
- * a stale/older trace) or the node-chain walk isn't trusted.
+ * The patched tracer emits node payload values on heap nodes. These decoders
+ * walk the owning container's node topology, adopt recovered payload members as
+ * stable logical children, and fall back to sized opaque placeholders when a
+ * walk is incomplete or an older trace lacks payload fields.
  */
 
 const WALK_CAP = 100_000;
@@ -173,13 +166,67 @@ function collectNodePayloads(
 
 /** Accepted payload-member names for a `std::list<T>` node (`_List_node<T>`). */
 const LIST_PAYLOAD_NAMES = ["_M_data"];
+const FORWARD_LIST_PAYLOAD_NAMES = ["_M_value", "_M_storage", "_M_data"];
+const TREE_PAYLOAD_NAMES = ["_M_value_field"];
+const HASH_PAYLOAD_NAMES = ["_M_v", "_M_value", "_M_value_field"];
+
+function realNodeContainer(
+  cell: NormalizedCell,
+  kind: string,
+  pairKind: boolean,
+  children: NormalizedCell[],
+): NormalizedCell {
+  const elem = elemLabel(cell.type ?? "", pairKind);
+  return {
+    ...cell,
+    kind: "container",
+    containerKind: kind,
+    children,
+    length: children.length,
+    elementType: elem,
+    displayValue: `${kind}<${elem}> · ${children.length}`,
+  };
+}
+
+function trustedTreeWalk(
+  root: string | undefined,
+  ctx: DecodeCtx,
+  expectedCount: number | null,
+): ChainWalk {
+  const nodes: NormalizedCell[] = [];
+  const visited = new Set<string>();
+
+  const visit = (addr: string | undefined): boolean => {
+    if (!addr || addr === "0x0") return true;
+    if (visited.has(addr) || visited.size >= WALK_CAP) return false;
+    const node = ctx.heapByAddress.get(addr);
+    if (!node) return false;
+    visited.add(addr);
+    if (!visit(findPointer(node, "_M_left"))) return false;
+    nodes.push(node);
+    if (!visit(findPointer(node, "_M_right"))) return false;
+    return true;
+  };
+
+  const countOk = () => expectedCount === null || nodes.length === expectedCount;
+  const complete = visit(root) && countOk();
+  if (complete) for (const addr of visited) ctx.consumed.add(addr);
+  return { nodes, complete };
+}
 
 /** std::map/set/multimap/multiset — red-black tree; size from _M_node_count. */
 export const treeDecoder: ContainerDecoder = {
   match: (type) => /\b(multimap|multiset|map|set)\s*</.test(type),
-  decode(cell) {
+  decode(cell, ctx) {
     const kind = nodeKind(cell.type ?? "");
     const count = scalarInt(findMember(cell, "_M_node_count"));
+    const header = findMember(cell, "_M_header");
+    const root = header ? findPointer(header, "_M_parent") : undefined;
+    const walk = trustedTreeWalk(root, ctx, count);
+    if (walk.complete) {
+      const payloads = collectNodePayloads(cell, walk.nodes, TREE_PAYLOAD_NAMES);
+      if (payloads) return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), payloads);
+    }
     return nodeContainer(cell, kind, PAIR_KINDS.has(kind), count);
   },
 };
@@ -194,10 +241,17 @@ export const hashDecoder: ContainerDecoder = {
   match: (type) => /unordered_(multimap|multiset|map|set)\s*</.test(type),
   decode(cell, ctx) {
     const kind = nodeKind(cell.type ?? "");
+    const expectedCount = scalarInt(findMember(cell, "_M_element_count"));
+    const buckets = findPointer(cell, "_M_buckets");
+    if (buckets) ctx.consumed.add(buckets);
     const head = findPointer(cell, "_M_nxt");
-    let count = walkChain(head, "_M_nxt", ctx);
-    if (count === null) count = scalarInt(findMember(cell, "_M_element_count"));
-    return nodeContainer(cell, kind, PAIR_KINDS.has(kind), count);
+    const walk = walkChainNodes(head, "_M_nxt", ctx);
+    if (walk.complete && (expectedCount === null || walk.nodes.length === expectedCount)) {
+      const payloads = collectNodePayloads(cell, walk.nodes, HASH_PAYLOAD_NAMES);
+      if (payloads) return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), payloads);
+      return nodeContainer(cell, kind, PAIR_KINDS.has(kind), walk.nodes.length);
+    }
+    return nodeContainer(cell, kind, PAIR_KINDS.has(kind), expectedCount);
   },
 };
 
@@ -217,12 +271,7 @@ export const listDecoder: ContainerDecoder = {
     if (complete) {
       const payloads = collectNodePayloads(cell, nodes, LIST_PAYLOAD_NAMES);
       if (payloads) {
-        const elem = templateArg(cell.type ?? "", 0);
-        return {
-          ...cell, kind: "container", containerKind: "list",
-          children: payloads, length: payloads.length,
-          displayValue: `list<${elem}> · ${payloads.length}`,
-        };
+        return realNodeContainer(cell, "list", false, payloads);
       }
     }
     const count = complete ? nodes.length : null;
@@ -238,8 +287,12 @@ export const forwardListDecoder: ContainerDecoder = {
   match: (type) => /forward_list\s*</.test(type),
   decode(cell, ctx) {
     const head = findPointer(cell, "_M_next");
-    const count = walkChain(head, "_M_next", ctx);
-    return nodeContainer(cell, "forward_list", false, count);
+    const { nodes, complete } = walkChainNodes(head, "_M_next", ctx);
+    if (complete) {
+      const payloads = collectNodePayloads(cell, nodes, FORWARD_LIST_PAYLOAD_NAMES);
+      if (payloads) return realNodeContainer(cell, "forward_list", false, payloads);
+    }
+    return nodeContainer(cell, "forward_list", false, complete ? nodes.length : null);
   },
 };
 

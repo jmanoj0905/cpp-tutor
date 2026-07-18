@@ -49,7 +49,7 @@ function leaves(cell: NormalizedCell): NormalizedCell[] {
  * Type string: "pair<T1, T2>" (tracer may include std:: prefix or not).
  */
 export const pairDecoder: ContainerDecoder = {
-  match: (type) => /\bpair\s*</.test(type),
+  match: (type) => /^(?:std::)?pair\s*</.test(type),
   decode(cell) {
     const first = findMember(cell, "first");
     const second = findMember(cell, "second");

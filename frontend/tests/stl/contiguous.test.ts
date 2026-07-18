@@ -18,6 +18,26 @@ describe("contiguous decoders", () => {
     expect(s.containerKind).toBe("string");
     expect(s.displayValue).toContain("hello world");
   });
+  it("hides std::string internals when the backing pointer is unavailable", () => {
+    const point: ExecPoint = {
+      line: 1, event: "step_line", func_name: "main", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
+        ordered_varnames: ["s"],
+        encoded_locals: {
+          s: ["C_STRUCT", "0x20", "string",
+            ["_M_dataplus", ["C_STRUCT", "0x20", "_Alloc_hider",
+              ["_M_p", ["C_DATA", "0x20", "pointer", "<UNALLOCATED>"]]]]],
+        },
+      }] as any,
+    };
+    const s = normalizeMemory(point).frames[0].cells.find((c) => c.name === "s")!;
+    expect(s.kind).toBe("container");
+    expect(s.containerKind).toBe("string");
+    expect(s.displayValue).toBe("string · ?");
+    expect(s.children).toEqual([]);
+  });
   it("decodes std::array elements", () => {
     const m = normalizeMemory(lastWith("a"));
     const a = m.frames[0].cells.find((c) => c.name === "a")!;

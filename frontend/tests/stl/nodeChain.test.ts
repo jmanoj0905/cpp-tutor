@@ -2,23 +2,10 @@
 //
 // Node-container decode tests.
 //
-// Tracer limitation (verified against real traces): this old libstdc++ tracer
-// emits node payload values only for std::list (`_List_node<T>::_M_data`,
-// recovered by listDecoder). Every other node-based container is still
-// payload-less:
-//   - std::forward_list nodes: C_ARRAY with only _Fwd_list_node_base; the
-//     value area appears as UNINITIALIZED/UNALLOCATED — int is gone.
-//   - std::map/set nodes: C_ARRAY with only _Rb_tree_node_base (color+parent+
-//     left+right); the key/value slot is absent entirely.
-//   - std::unordered_*/hash nodes: C_ARRAY with _Hash_node_base/_M_nxt only;
-//     the stored value is absent.
-//
-// list: listDecoder walks the node chain and recovers real _M_data values.
-// Every other family collapses to kind:"container" with placeholder children
-// (element values remain unrecoverable — tracer limitation).
-// map/set: treeDecoder uses _M_node_count for size.
-// forward_list: forwardListDecoder walks the node chain for the count.
-// unordered_*: hashDecoder walks _M_nxt chain or falls back to _M_element_count.
+// The patched tracer emits node payload values for list, forward_list,
+// red-black-tree nodes, and hash nodes. These fixture-backed tests assert
+// real payload recovery; the synthetic helper tests below preserve fallback
+// coverage for old or partial traces.
 
 import { describe, it, expect } from "vitest";
 import { normalizeMemory } from "../../src/viz/memoryModel";
@@ -34,25 +21,50 @@ import {
   collectNodePayloads,
 } from "../../src/viz/stl/nodeChain";
 
-/** Last step in a fixture where `name` appears in frame locals. */
-function lastStep(fixture: { trace: unknown[] }, name: string): ExecPoint {
+/** Best decoded snapshot for `name` (destructor frames can keep stale locals). */
+function bestDecoded(fixture: { trace: unknown[] }, name: string): {
+  cell: NormalizedCell;
+  memory: ReturnType<typeof normalizeMemory>;
+} {
   const steps = fixture.trace as ExecPoint[];
-  return [...steps].reverse().find(
-    (s) => (s.stack_to_render as any)?.[0]?.encoded_locals?.[name],
-  )!;
+  let best: { cell: NormalizedCell; memory: ReturnType<typeof normalizeMemory> } | undefined;
+  for (const step of steps) {
+    const locals = (step.stack_to_render as any)?.[0]?.encoded_locals;
+    if (!locals?.[name]) continue;
+    const memory = normalizeMemory(step);
+    const cell = memory.frames[0].cells.find((c) => c.name === name);
+    if (cell && (!best || (cell.length ?? -1) > (best.cell.length ?? -1))) {
+      best = { cell, memory };
+    }
+  }
+  return best!;
 }
 
-describe("node-chain decoders — container collapse", () => {
+function displayValues(cell: NormalizedCell): string[] {
+  return (cell.children ?? []).map((c) => c.displayValue);
+}
+
+function sorted(values: string[]): string[] {
+  return [...values].sort();
+}
+
+function pairRows(cell: NormalizedCell): string[] {
+  return (cell.children ?? []).map((row) => {
+    const first = row.children?.find((c) => c.name === "first")?.displayValue;
+    const second = row.children?.find((c) => c.name === "second")?.displayValue;
+    return `${first}->${second}`;
+  });
+}
+
+describe("node-chain decoders — payload recovery", () => {
   it("std::list recovers real element values (no placeholders)", () => {
-    const step = lastStep(listFixture as any, "l");
-    const memory = normalizeMemory(step);
-    const cell = memory.frames[0].cells.find((c) => c.name === "l")!;
+    const { cell, memory } = bestDecoded(listFixture as any, "l");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("list");
     expect(cell.placeholders).toBeFalsy();
     expect(cell.displayValue).toBe("list<int> · 3");
-    expect((cell.children ?? []).map((c) => c.displayValue)).toEqual(["1", "2", "3"]);
+    expect(displayValues(cell)).toEqual(["1", "2", "3"]);
     // Rebased under the container's own logical id, not a transient heap id.
     expect(cell.children![0].id).toBe(`${cell.id}-0`);
     // Visited node heap chunks are consumed — hidden from the Heap section.
@@ -63,57 +75,91 @@ describe("node-chain decoders — container collapse", () => {
   // node-containers.test.ts, which has a default-constructed `empty` local;
   // this fixture's `l` is always initialised to {1, 2, 3}.
 
-  it("std::forward_list collapses to a placeholder container", () => {
-    const step = lastStep(listFixture as any, "f");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "f")!;
+  it("std::forward_list recovers real values in chain order", () => {
+    const { cell } = bestDecoded(listFixture as any, "f");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("forward_list");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(cell.displayValue).toBe("forward_list<int> · 3");
+    expect(displayValues(cell)).toEqual(["4", "5", "6"]);
   });
 
-  it("std::map collapses to a placeholder container (treeDecoder)", () => {
-    const step = lastStep(treeFixture as any, "m");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "m")!;
+  it("std::map recovers sorted key/value rows", () => {
+    const { cell } = bestDecoded(treeFixture as any, "m");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("map");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(cell.displayValue).toBe("map<int,int> · 2");
+    expect(pairRows(cell)).toEqual(["1->10", "2->20"]);
   });
 
-  it("std::set collapses to a placeholder container (treeDecoder)", () => {
-    const step = lastStep(treeFixture as any, "s");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "s")!;
+  it("std::set recovers sorted values", () => {
+    const { cell } = bestDecoded(treeFixture as any, "s");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("set");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(displayValues(cell)).toEqual(["1", "2", "3"]);
   });
 
-  it("std::unordered_map collapses to a placeholder container", () => {
-    const step = lastStep(hashFixture as any, "um");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "um")!;
+  it("std::multimap preserves duplicate-key rows", () => {
+    const { cell } = bestDecoded(treeFixture as any, "mm");
+    expect(cell.containerKind).toBe("multimap");
+    expect(cell.displayValue).toBe("multimap<int,int> · 3");
+    expect(cell.placeholders).toBeFalsy();
+    expect(pairRows(cell)).toEqual(["1->10", "1->11", "2->20"]);
+  });
+
+  it("std::multiset preserves duplicate values", () => {
+    const { cell } = bestDecoded(treeFixture as any, "ms");
+    expect(cell.containerKind).toBe("multiset");
+    expect(cell.displayValue).toBe("multiset<int> · 4");
+    expect(cell.placeholders).toBeFalsy();
+    expect(displayValues(cell)).toEqual(["1", "1", "2", "3"]);
+  });
+
+  it("std::unordered_map recovers key/value rows", () => {
+    const { cell } = bestDecoded(hashFixture as any, "um");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("unordered_map");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(cell.displayValue).toBe("unordered_map<int,int> · 2");
+    expect(sorted(pairRows(cell))).toEqual(["1->100", "2->200"]);
   });
 
-  it("std::unordered_set collapses to a placeholder container", () => {
-    const step = lastStep(hashFixture as any, "us");
-    const cell = normalizeMemory(step).frames[0].cells.find((c) => c.name === "us")!;
+  it("std::unordered_set recovers values", () => {
+    const { cell } = bestDecoded(hashFixture as any, "us");
     expect(cell).toBeDefined();
     expect(cell.kind).toBe("container");
     expect(cell.containerKind).toBe("unordered_set");
-    expect(cell.placeholders).toBe(true);
+    expect(cell.placeholders).toBeFalsy();
+    expect(sorted(displayValues(cell))).toEqual(["7", "8"]);
+  });
+
+  it("std::unordered_multimap preserves duplicate-key rows", () => {
+    const { cell } = bestDecoded(hashFixture as any, "umm");
+    expect(cell.containerKind).toBe("unordered_multimap");
+    expect(cell.displayValue).toBe("unordered_multimap<int,int> · 3");
+    expect(cell.placeholders).toBeFalsy();
+    expect(sorted(pairRows(cell))).toEqual(["1->100", "1->101", "2->200"]);
+  });
+
+  it("std::unordered_multiset preserves duplicate values", () => {
+    const { cell } = bestDecoded(hashFixture as any, "ums");
+    expect(cell.containerKind).toBe("unordered_multiset");
+    expect(cell.displayValue).toBe("unordered_multiset<int> · 3");
+    expect(cell.placeholders).toBeFalsy();
+    expect(sorted(displayValues(cell))).toEqual(["7", "7", "8"]);
   });
 });
 
 // ------------------------------------------------------------------ shared
 // node-payload helper tests (Task 3). These exercise walkChainNodes,
 // findPayloadMember, and collectNodePayloads directly against hand-built
-// synthetic node cells — they do NOT depend on the tracer emitting real
-// payload values, since no current fixture has one yet.
+// synthetic node cells.
 
 /** A scalar leaf cell, as memoryModel would decode a C_DATA int. */
 function scalar(id: string, name: string, address: string, value: string): NormalizedCell {

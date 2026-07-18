@@ -129,6 +129,81 @@ function listPoint(sentinelAddr: string, values: number[]): ExecPoint {
   }, ["l"], heap);
 }
 
+function fwdNodeChunk(addr: string, next: string, value: number): unknown[] {
+  return ["C_ARRAY", addr,
+    ["C_STRUCT", addr, "std::_Fwd_list_node<int>",
+      ["_M_next", ["C_DATA", addr, "pointer", next]],
+      ["_M_storage", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 8).toString(16)}`, "int", value]]],
+  ];
+}
+
+function forwardListPoint(values: number[]): ExecPoint {
+  const nodeAddrs = values.map((_, i) => `0x${(0x9700 + i * 0x20).toString(16)}`);
+  const heap: Record<string, unknown> = {};
+  values.forEach((value, i) => {
+    heap[nodeAddrs[i]] = fwdNodeChunk(nodeAddrs[i], nodeAddrs[i + 1] ?? "0x0", value);
+  });
+  return point({
+    fl: ["C_STRUCT", "0x60", "forward_list<int, std::allocator<int> >",
+      ["_M_head", ["C_STRUCT", "0x60", "_Fwd_list_node_base",
+        ["_M_next", ["C_DATA", "0x60", "pointer", nodeAddrs[0] ?? "0x0"]]]]],
+  }, ["fl"], heap);
+}
+
+function pairValue(addr: string, key: number, value: number): unknown[] {
+  return ["C_STRUCT", addr, "pair<int const, int>",
+    ["first", ["C_DATA", addr, "int", key]],
+    ["second", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 4).toString(16)}`, "int", value]],
+  ];
+}
+
+function treeValuePoint(varName: string, type: string, values: unknown[]): ExecPoint {
+  const addrs = values.map((_, i) => `0x${(0x9800 + i * 0x40).toString(16)}`);
+  const heap: Record<string, unknown> = {};
+  values.forEach((value, i) => {
+    const addr = addrs[i];
+    heap[addr] = ["C_ARRAY", addr,
+      ["C_STRUCT", addr, "std::_Rb_tree_node",
+        ["_M_color", ["C_DATA", addr, "_Rb_tree_color", 1]],
+        ["_M_parent", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 8).toString(16)}`, "pointer", "0x0"]],
+        ["_M_left", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 16).toString(16)}`, "pointer", i === 1 ? addrs[0] : "0x0"]],
+        ["_M_right", ["C_DATA", `0x${(Number.parseInt(addr, 16) + 24).toString(16)}`, "pointer", i === 1 ? addrs[2] ?? "0x0" : "0x0"]],
+        ["_M_value_field", value]],
+    ];
+  });
+  return point({
+    [varName]: ["C_STRUCT", "0x70", type,
+      ["_M_header", ["C_STRUCT", "0x78", "_Rb_tree_node_base",
+        ["_M_parent", ["C_DATA", "0x80", "pointer", addrs[1] ?? addrs[0] ?? "0x0"]]]],
+      ["_M_node_count", ["C_DATA", "0x88", "size_type", values.length]]],
+  }, [varName], heap);
+}
+
+function hashValuePoint(varName: string, type: string, values: unknown[]): ExecPoint {
+  const addrs = values.map((_, i) => `0x${(0x9900 + i * 0x20).toString(16)}`);
+  const heap: Record<string, unknown> = {
+    "0x99f0": ["C_ARRAY", "0x99f0"],
+  };
+  values.forEach((value, i) => {
+    const addr = addrs[i];
+    heap[addr] = ["C_ARRAY", addr,
+      ["C_STRUCT", addr, "std::__detail::_Hash_node",
+        ["_M_nxt", ["C_DATA", addr, "pointer", addrs[i + 1] ?? "0x0"]],
+        ["_M_v", value]],
+    ];
+  });
+  const table = ["C_STRUCT", "0x90", "_Hashtable",
+    ["_M_buckets", ["C_DATA", "0x90", "pointer", "0x99f0"]],
+    ["_M_bbegin", ["C_STRUCT", "0x98", "__before_begin",
+      ["_M_node", ["C_STRUCT", "0x98", "_Hash_node_base",
+        ["_M_nxt", ["C_DATA", "0x98", "pointer", addrs[0] ?? "0x0"]]]]]],
+    ["_M_element_count", ["C_DATA", "0xa0", "size_type", values.length]],
+  ];
+  return point({
+    [varName]: ["C_STRUCT", "0x90", type, ["_M_h", table]],
+  }, [varName], heap);
+}
+
 function stringPoint(text: string): ExecPoint {
   const chars = [...text].map((ch, i) => ["C_DATA", `0x${(0x9000 + i).toString(16)}`, "char", ch.charCodeAt(0)]);
   return point({
@@ -298,6 +373,125 @@ describe("changedCellIds", () => {
     expect(ids.has("stack-f1-l")).toBe(false);
     expect(ids.has("stack-f1-l-0")).toBe(false);
     expect(ids.has("stack-f1-l-1")).toBe(false);
+  });
+
+  it("marks only the changed std::forward_list element", () => {
+    const mk = (middle: number) => normalizeMemory(forwardListPoint([4, middle, 6]));
+    const ids = changedCellIds(mk(5), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-fl-1"]));
+    expect(ids.has("stack-f1-fl")).toBe(false);
+    expect(ids.has("stack-f1-fl-0")).toBe(false);
+    expect(ids.has("stack-f1-fl-2")).toBe(false);
+  });
+
+  it("marks only the changed std::set child", () => {
+    const type = "set<int, std::less<int>, std::allocator<int> >";
+    const mk = (middle: number) => normalizeMemory(treeValuePoint(
+      "s", type,
+      [
+        ["C_DATA", "0x9820", "int", 1],
+        ["C_DATA", "0x9860", "int", middle],
+        ["C_DATA", "0x98a0", "int", 3],
+      ],
+    ));
+    const ids = changedCellIds(mk(2), mk(9));
+    expect(ids).toEqual(new Set(["stack-f1-s-1"]));
+    expect(ids.has("stack-f1-s")).toBe(false);
+    expect(ids.has("stack-f1-s-0")).toBe(false);
+    expect(ids.has("stack-f1-s-2")).toBe(false);
+  });
+
+  it("marks only the changed std::multiset child", () => {
+    const type = "multiset<int, std::less<int>, std::allocator<int> >";
+    const mk = (middle: number) => normalizeMemory(treeValuePoint(
+      "ms", type,
+      [
+        ["C_DATA", "0x9820", "int", 1],
+        ["C_DATA", "0x9860", "int", middle],
+        ["C_DATA", "0x98a0", "int", 2],
+      ],
+    ));
+    const ids = changedCellIds(mk(1), mk(9));
+    expect(ids).toEqual(new Set(["stack-f1-ms-1"]));
+    expect(ids.has("stack-f1-ms")).toBe(false);
+    expect(ids.has("stack-f1-ms-0")).toBe(false);
+    expect(ids.has("stack-f1-ms-2")).toBe(false);
+  });
+
+  it("marks only the changed std::map value member", () => {
+    const type = "map<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >";
+    const mk = (value: number) => normalizeMemory(treeValuePoint(
+      "m", type,
+      [pairValue("0x9820", 1, 10), pairValue("0x9860", 2, value)],
+    ));
+    const ids = changedCellIds(mk(20), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-m-1-second"]));
+    expect(ids.has("stack-f1-m")).toBe(false);
+    expect(ids.has("stack-f1-m-0-second")).toBe(false);
+    expect(ids.has("stack-f1-m-1-first")).toBe(false);
+  });
+
+  it("marks only the changed std::multimap value member", () => {
+    const type = "multimap<int, int, std::less<int>, std::allocator<std::pair<int const, int> > >";
+    const mk = (value: number) => normalizeMemory(treeValuePoint(
+      "mm", type,
+      [pairValue("0x9820", 1, 10), pairValue("0x9860", 1, value)],
+    ));
+    const ids = changedCellIds(mk(11), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-mm-1-second"]));
+    expect(ids.has("stack-f1-mm")).toBe(false);
+    expect(ids.has("stack-f1-mm-0-second")).toBe(false);
+    expect(ids.has("stack-f1-mm-1-first")).toBe(false);
+  });
+
+  it("marks only the changed std::unordered_set child", () => {
+    const type = "unordered_set<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >";
+    const mk = (second: number) => normalizeMemory(hashValuePoint(
+      "us", type,
+      [["C_DATA", "0x9908", "int", 7], ["C_DATA", "0x9928", "int", second]],
+    ));
+    const ids = changedCellIds(mk(8), mk(9));
+    expect(ids).toEqual(new Set(["stack-f1-us-1"]));
+    expect(ids.has("stack-f1-us")).toBe(false);
+    expect(ids.has("stack-f1-us-0")).toBe(false);
+  });
+
+  it("marks only the changed std::unordered_multiset child", () => {
+    const type = "unordered_multiset<int, std::hash<int>, std::equal_to<int>, std::allocator<int> >";
+    const mk = (second: number) => normalizeMemory(hashValuePoint(
+      "ums", type,
+      [["C_DATA", "0x9908", "int", 7], ["C_DATA", "0x9928", "int", second]],
+    ));
+    const ids = changedCellIds(mk(7), mk(9));
+    expect(ids).toEqual(new Set(["stack-f1-ums-1"]));
+    expect(ids.has("stack-f1-ums")).toBe(false);
+    expect(ids.has("stack-f1-ums-0")).toBe(false);
+  });
+
+  it("marks only the changed std::unordered_map value member", () => {
+    const type = "unordered_map<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >";
+    const mk = (value: number) => normalizeMemory(hashValuePoint(
+      "um", type,
+      [pairValue("0x9908", 1, 10), pairValue("0x9928", 2, value)],
+    ));
+    const ids = changedCellIds(mk(20), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-um-1-second"]));
+    expect(ids.has("stack-f1-um")).toBe(false);
+    expect(ids.has("stack-f1-um-0-second")).toBe(false);
+    expect(ids.has("stack-f1-um-1-first")).toBe(false);
+  });
+
+  it("marks only the changed std::unordered_multimap value member", () => {
+    const type = "unordered_multimap<int, int, std::hash<int>, std::equal_to<int>, std::allocator<std::pair<int const, int> > >";
+    const mk = (value: number) => normalizeMemory(hashValuePoint(
+      "umm", type,
+      [pairValue("0x9908", 1, 10), pairValue("0x9928", 1, value)],
+    ));
+    const ids = changedCellIds(mk(11), mk(99));
+    expect(ids).toEqual(new Set(["stack-f1-umm-1-second"]));
+    expect(ids.has("stack-f1-umm")).toBe(false);
+    expect(ids.has("stack-f1-umm-0-second")).toBe(false);
+    expect(ids.has("stack-f1-umm-1-first")).toBe(false);
   });
 
   it("marks a changed heap cell", () => {

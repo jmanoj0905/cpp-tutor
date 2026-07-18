@@ -154,6 +154,22 @@ function rawCharCode(cell: NormalizedCell): number | null {
   return null;
 }
 
+function stringContainer(
+  cell: NormalizedCell,
+  text: string | null,
+  children: NormalizedCell[] = [],
+): NormalizedCell {
+  return {
+    ...cell,
+    kind: "container",
+    containerKind: "string",
+    children,
+    length: children.length,
+    elementType: "char",
+    displayValue: text === null ? "string · ?" : JSON.stringify(text),
+  };
+}
+
 function vectorSize(start?: string, finish?: string, buffer?: NormalizedCell): number {
   const elems = buffer?.children ?? [];
   const s = parseAddr(start), f = parseAddr(finish);
@@ -328,10 +344,12 @@ export const arrayDecoder: ContainerDecoder = {
 export const stringDecoder: ContainerDecoder = {
   match: (type) => /basic_string|\bstring\b/.test(type),
   decode(cell, ctx) {
-    const p = findPointer(cell, "_M_p");
-    if (!p) return null;
+    const pMember = findMember(cell, "_M_p");
+    if (!pMember) return null;
+    const p = pMember.kind === "reference" ? pMember.targetAddress : undefined;
+    if (!p) return stringContainer(cell, null);
     const pAddr = parseAddr(p);
-    if (pAddr === null) return null;
+    if (pAddr === null) return stringContainer(cell, null);
 
     // Find the heap buffer containing _M_p (may be offset from buffer start).
     let charSlice: NormalizedCell[] = [];
@@ -353,7 +371,7 @@ export const stringDecoder: ContainerDecoder = {
       charSlice = local?.children ?? [];
     }
 
-    if (charSlice.length === 0) return null;
+    if (charSlice.length === 0) return stringContainer(cell, null);
 
     // Extract chars until null terminator or uninitialized. Codes are read from
     // rawValue, not displayValue: char scalars display as glyphs ('h'), and
@@ -378,14 +396,6 @@ export const stringDecoder: ContainerDecoder = {
 
     if (bufAddr) ctx.consumed.add(bufAddr);
 
-    return {
-      ...cell,
-      kind: "container",
-      containerKind: "string",
-      children,
-      length: children.length,
-      elementType: "char",
-      displayValue: `"${text}"`,
-    };
+    return stringContainer(cell, text, children);
   },
 };

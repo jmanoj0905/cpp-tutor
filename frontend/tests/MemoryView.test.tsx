@@ -24,6 +24,36 @@ describe("MemoryCell", () => {
     expect(screen.getByText("20")).toBeDefined();
   });
 
+  it("keeps std::string characters collapsed behind the quoted value", () => {
+    const chars = [
+      cell({ id: "s0", name: "[0]", displayValue: "a" }),
+      cell({ id: "s1", name: "[1]", displayValue: "b" }),
+      cell({ id: "s2", name: "[2]", displayValue: "c" }),
+    ];
+    const { container } = render(<MemoryCell cell={cell({
+      id: "s", name: "s", kind: "container", containerKind: "string",
+      displayValue: "\"abc\"", children: chars,
+    })} />);
+    expect(screen.getByText("\"abc\"")).toBeDefined();
+    expect(container.querySelector('[data-cell-id="s0"]')).toBeNull();
+    fireEvent.click(screen.getByText("show 3 chars"));
+    expect(container.querySelector('[data-cell-id="s0"]')).not.toBeNull();
+  });
+
+  it("auto-shows changed std::string characters", () => {
+    const chars = [
+      cell({ id: "s0", name: "[0]", displayValue: "a" }),
+      cell({ id: "s1", name: "[1]", displayValue: "x" }),
+    ];
+    const { container } = render(<MemoryCell
+      cell={cell({ id: "s", name: "s", kind: "container", containerKind: "string",
+        displayValue: "\"ax\"", children: chars })}
+      changedIds={new Set(["s1"])}
+    />);
+    expect(container.querySelector('[data-cell-id="s1"]')).not.toBeNull();
+    expect(container.querySelector('[data-cell-id="s1"]')?.className).toContain("cell-changed");
+  });
+
   it("does not tint a composite container body when the container id is marked changed", () => {
     const { container } = render(<MemoryCell
       cell={cell({ id: "v", name: "v", kind: "container", containerKind: "vector", displayValue: "vector<int> · 2",
@@ -79,6 +109,25 @@ describe("MemoryCell", () => {
     expect(container.querySelector(".cell-children.kv")).toBeNull();
   });
 
+  it("renders recovered unordered_multimap rows with key/value layout", () => {
+    const row = (id: string, key: string, value: string) => cell({
+      id, name: "[0]", kind: "container", containerKind: "pair",
+      displayValue: `(${key}, ${value})`,
+      children: [
+        cell({ id: `${id}-first`, name: "first", displayValue: key }),
+        cell({ id: `${id}-second`, name: "second", displayValue: value }),
+      ],
+    });
+    const { container } = render(<MemoryCell cell={cell({
+      id: "um", name: "um", kind: "container", containerKind: "unordered_multimap",
+      length: 2, displayValue: "unordered_multimap<int,int> · 2",
+      children: [row("um0", "1", "10"), row("um1", "1", "11")],
+    })} />);
+    const parent = container.querySelector('[data-cell-id="um"]');
+    expect(parent?.querySelector(":scope > .cell-children.kv")).toBeTruthy();
+    expect(parent?.querySelector(":scope > .cell-children.grid")).toBeNull();
+  });
+
   it("renders a rectangular 2D container as aligned matrix rows", () => {
     const mkRow = (id: string, a: string, b: string, c: string) =>
       cell({ id, name: id, kind: "container", containerKind: "vector",
@@ -96,6 +145,57 @@ describe("MemoryCell", () => {
     // every element still individually addressable for connectors
     expect(container.querySelector('[data-cell-id="r00"]')).not.toBeNull();
     expect(container.querySelector('[data-cell-id="r12"]')).not.toBeNull();
+  });
+
+  it("renders a 3D container as an indexed list of 2D matrix slices", () => {
+    const mkRow = (id: string, a: string, b: string) =>
+      cell({ id, name: id, kind: "container", containerKind: "vector",
+        children: [
+          cell({ id: `${id}0`, name: "[0]", displayValue: a }),
+          cell({ id: `${id}1`, name: "[1]", displayValue: b }),
+        ] });
+    const mkSlice = (id: string, name: string, base: number) =>
+      cell({ id, name, kind: "container", containerKind: "vector",
+        displayValue: "vector<vector<int>> · 2",
+        children: [
+          mkRow(`${id}r0`, String(base), String(base + 1)),
+          mkRow(`${id}r1`, String(base + 2), String(base + 3)),
+        ] });
+    const cube = cell({ id: "cube", name: "cube", kind: "container", containerKind: "vector",
+      displayValue: "vector<vector<vector<int>>> · 2",
+      children: [mkSlice("s0", "[0]", 1), mkSlice("s1", "[1]", 5)] });
+
+    const { container } = render(<MemoryCell cell={cube} />);
+    expect(container.querySelector(".matrix-slices")).toBeTruthy();
+    expect(container.querySelectorAll(".matrix-slices > .cell")).toHaveLength(2);
+    expect(container.querySelectorAll(".matrix-row")).toHaveLength(4);
+    expect(container.querySelector('[data-cell-id="s0"] .cell-name')?.textContent).toBe("[0]");
+    expect(container.querySelector('[data-cell-id="s1"] .cell-name')?.textContent).toBe("[1]");
+  });
+
+  it("renders 4D and deeper containers as indexed linear nesting", () => {
+    const mkLine = (id: string, a: string, b: string) =>
+      cell({ id, name: id, kind: "container", containerKind: "vector",
+        children: [
+          cell({ id: `${id}0`, name: "[0]", displayValue: a }),
+          cell({ id: `${id}1`, name: "[1]", displayValue: b }),
+        ] });
+    const mkMatrix = (id: string) =>
+      cell({ id, name: "[0]", kind: "container", containerKind: "vector",
+        children: [mkLine(`${id}r0`, "1", "2"), mkLine(`${id}r1`, "3", "4")] });
+    const mkCube = (id: string, name: string) =>
+      cell({ id, name, kind: "container", containerKind: "vector",
+        children: [mkMatrix(`${id}m0`), mkMatrix(`${id}m1`)] });
+    const hyper = cell({ id: "h", name: "h", kind: "container", containerKind: "vector",
+      displayValue: "vector<vector<vector<vector<int>>>> · 2",
+      children: [mkCube("c0", "[0]"), mkCube("c1", "[1]")] });
+
+    const { container } = render(<MemoryCell cell={hyper} />);
+    expect(container.querySelector(".cell-children.linear")).toBeTruthy();
+    expect(container.querySelector(".matrix-slices")).toBeNull();
+    expect(container.querySelector(".matrix")).toBeNull();
+    expect(container.querySelector('[data-cell-id="c0"] .cell-name')?.textContent).toBe("[0]");
+    expect(container.querySelector('[data-cell-id="c1"] .cell-name')?.textContent).toBe("[1]");
   });
 
   it("renders a stack pane and a heap pane side by side", () => {

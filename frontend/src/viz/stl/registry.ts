@@ -19,12 +19,10 @@ import { pairDecoder, tupleDecoder, bitsetDecoder, sharedPtrDecoder, uniquePtrDe
 // priorityQueueDecoder before queueDecoder: priority_queue type string contains
 // "queue", so the more specific pattern must match first.
 
-// --- Node-based containers (struct fallback) ---
-// list/forward_list, map/set/multi*, and unordered_* all decode() -> null,
-// keeping the generic struct render.  The old libstdc++ tracer does not emit
-// node payload values (see nodeChain.ts), so rich decode is impossible.
-// These entries serve as the canonical registration point: to enable rich
-// decode when a future tracer emits payloads, implement decode() in nodeChain.ts.
+// --- Node-based containers ---
+// list/forward_list, map/set/multi*, and unordered_* walk the owning node
+// topology and adopt payload fields emitted by the patched tracer. They still
+// return placeholder containers for older traces or incomplete walks.
 // hashDecoder before treeDecoder: the treeDecoder \b word-boundary already
 // excludes "unordered_map/set" (the char before "map"/"set" is "_", not a
 // word boundary), so hashDecoder first is future-proofing for nested types

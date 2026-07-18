@@ -1,10 +1,17 @@
 import { useState } from "react";
 import type { NormalizedCell } from "./memoryModel";
-import { gridShape } from "./memoryModel";
+import { collectionDepth, gridShape } from "./memoryModel";
 
 const COLLAPSE_AT = 8;
 
-export function MemoryCell({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; highlightedIds?: Set<string>; changedIds?: Set<string> }) {
+interface MemoryCellProps {
+  cell: NormalizedCell;
+  highlightedIds?: Set<string>;
+  changedIds?: Set<string>;
+  forceLinear?: boolean;
+}
+
+export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false }: MemoryCellProps) {
   const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
   const changed = changedIds?.has(cell.id) ?? false;
   const hasKids = hasChildren(cell);
@@ -17,7 +24,7 @@ export function MemoryCell({ cell, highlightedIds, changedIds }: { cell: Normali
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} />
       </div>
-      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} />}
+      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} />}
     </div>
   );
 }
@@ -46,11 +53,17 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; highlightedIds?: Set<string>; changedIds?: Set<string> }) {
+function Children({ cell, highlightedIds, changedIds, forceLinear }: MemoryCellProps) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
-  const shape = gridShape(cell);
+  const depth = collectionDepth(cell);
+  const linear = forceLinear || depth >= 4;
+  const kv = !cell.placeholders
+    && ["map", "unordered_map", "multimap", "unordered_multimap"].includes(cell.containerKind ?? "");
+  const isString = cell.containerKind === "string";
+  const hasMarkedChild = all.some((child) => changedIds?.has(child.id) || highlightedIds?.has(child.id));
+  const shape = linear || kv ? null : gridShape(cell);
   if (shape) {
     return (
       <div className="matrix" style={{ gridTemplateColumns: `repeat(${shape.cols}, auto)` }}>
@@ -67,11 +80,45 @@ function Children({ cell, highlightedIds, changedIds }: { cell: NormalizedCell; 
 
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
   const hidden = all.length - shown.length;
-  const kv = !cell.placeholders && ["map", "unordered_map", "multimap"].includes(cell.containerKind ?? "");
-  const grid = !kv && (cell.kind === "array" || cell.kind === "container");
+
+  if (isString && all.length > 0 && !expanded && !hasMarkedChild) {
+    return (
+      <div className="cell-children string-collapsed">
+        <button className="more-toggle" onClick={() => setExpanded(true)}>show {all.length} chars</button>
+      </div>
+    );
+  }
+
+  if (depth === 3 && !linear) {
+    return (
+      <div className="matrix-slices">
+        {shown.map((slice) => (
+          <MemoryCell
+            key={slice.id}
+            cell={slice}
+            highlightedIds={highlightedIds}
+            changedIds={changedIds}
+          />
+        ))}
+        {hidden > 0 && (
+          <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
+        )}
+      </div>
+    );
+  }
+
+  const grid = !linear && !kv && (cell.kind === "array" || cell.kind === "container");
   return (
-    <div className={`cell-children ${kv ? "kv" : grid ? "grid" : ""}`}>
-      {shown.map((child) => <MemoryCell key={child.id} cell={child} highlightedIds={highlightedIds} changedIds={changedIds} />)}
+    <div className={`cell-children ${kv ? "kv" : grid ? "grid" : linear ? "linear" : ""}`}>
+      {shown.map((child) => (
+        <MemoryCell
+          key={child.id}
+          cell={child}
+          highlightedIds={highlightedIds}
+          changedIds={changedIds}
+          forceLinear={linear}
+        />
+      ))}
       {hidden > 0 && (
         <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
       )}

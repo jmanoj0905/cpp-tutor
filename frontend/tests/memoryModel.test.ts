@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decodeMemoryValue, normalizeMemory, gridShape } from "../src/viz/memoryModel";
+import { collectionDepth, decodeMemoryValue, normalizeMemory, gridShape } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
@@ -115,6 +115,25 @@ describe("memoryModel", () => {
     );
     expect(cell).toMatchObject({ kind: "array", address: "0x40", length: 2, displayValue: "int[2]" });
     expect(cell.children?.map((c) => [c.name, c.displayValue])).toEqual([["[0]", "1"], ["[1]", "2"]]);
+  });
+
+  it("decodes flat multidimensional arrays into nested indexed slices", () => {
+    const cell = decodeMemoryValue(
+      [
+        "C_MULTIDIMENSIONAL_ARRAY", "0x40", [2, 2, 2],
+        ["C_DATA", "0x40", "int", 1], ["C_DATA", "0x44", "int", 2],
+        ["C_DATA", "0x48", "int", 3], ["C_DATA", "0x4c", "int", 4],
+        ["C_DATA", "0x50", "int", 5], ["C_DATA", "0x54", "int", 6],
+        ["C_DATA", "0x58", "int", 7], ["C_DATA", "0x5c", "int", 8],
+      ],
+      "cube", "stack", "frame-1",
+    );
+    expect(collectionDepth(cell)).toBe(3);
+    expect(cell.children?.map((c) => [c.name, c.displayValue])).toEqual([
+      ["[0]", "array[2][2]"],
+      ["[1]", "array[2][2]"],
+    ]);
+    expect(cell.children?.[0].children?.[1].children?.map((c) => c.displayValue)).toEqual(["3", "4"]);
   });
 
   it("decodes structs recursively with named member children", () => {
@@ -308,6 +327,14 @@ describe("empty vector decode", () => {
 });
 
 describe("gridShape", () => {
+  it("reports collection rank for nested indexed containers", () => {
+    const inner = (id: string) => gcell({ id, kind: "container", children: [row(`${id}a`, ["1", "2"]), row(`${id}b`, ["3", "4"])] });
+    const cube = gcell({ id: "cube", kind: "container", children: [inner("x"), inner("y")] });
+    expect(collectionDepth(row("r0", ["1", "2", "3"]))).toBe(1);
+    expect(collectionDepth(inner("matrix"))).toBe(2);
+    expect(collectionDepth(cube)).toBe(3);
+  });
+
   it("returns rows×cols for a rectangular 2D container", () => {
     const m = gcell({ id: "m", kind: "container", containerKind: "vector",
       children: [row("r0", ["1", "2", "3"]), row("r1", ["4", "5", "6"])] });
@@ -329,10 +356,10 @@ describe("gridShape", () => {
     const s = gcell({ id: "s", kind: "struct", children: [row("r0", ["1"]), row("r1", ["2"])] });
     expect(gridShape(s)).toBeNull();
   });
-  it("returns the outer shape for a 3D container (inner recurses)", () => {
+  it("returns null for a 3D container so the renderer can show 2D slices", () => {
     const inner = (id: string) => gcell({ id, kind: "container", children: [row(`${id}a`, ["1", "2"]), row(`${id}b`, ["3", "4"])] });
     const m = gcell({ id: "m", kind: "container", children: [inner("x"), inner("y")] });
-    expect(gridShape(m)).toEqual({ rows: 2, cols: 2 });
+    expect(gridShape(m)).toBeNull();
   });
 });
 
