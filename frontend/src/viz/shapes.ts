@@ -3,6 +3,8 @@
 // exactly 2 is a binary-tree candidate. Detection is by member TYPE, not kind:
 // a null `next` decodes as a scalar but keeps its `ListNode *` type.
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "./memoryModel";
+import { normalizeMemory } from "./memoryModel";
+import type { ExecPoint } from "../types/trace";
 
 export interface ShapeEdge {
   fromId: string;
@@ -23,6 +25,40 @@ export function selfPtrMembers(cell: NormalizedCell): NormalizedCell[] {
   if (!own) return [];
   const re = new RegExp(`^(struct\\s+|class\\s+)?${escapeRe(own)}\\s*\\*$`);
   return (cell.children ?? []).filter((c) => c.type !== null && re.test(c.type));
+}
+
+/** Member names that are provably self-referential pointers on this struct type:
+ *  either the member's own type string names this exact struct type (works when
+ *  the trace preserves pointee types), or — real backend traces collapse every
+ *  pointer member's type to the literal string "pointer", losing pointee info —
+ *  the member resolves, in at least one instance within this same-type cell
+ *  group, to another cell of this exact type via address. The address check is
+ *  a strong signal: an unrelated pointer (e.g. `char*`, `int*`) essentially
+ *  never resolves to a cell of the SAME struct type, so it can't false-positive.
+ *
+ *  A null "pointer"-typed member is NOT granted self-status here — that's
+ *  undecidable from a single step's evidence alone (it could be a genuine
+ *  self-pointer that's currently unset, or a genuinely unrelated field that's
+ *  also null right now). Whole-trace evidence (see `confirmShapeTypes`) is
+ *  what resolves members that are only ever proven self-referential at a
+ *  LATER step; this per-cells-group function only ever sees one step. */
+function selfPointerMemberNames(cells: NormalizedCell[]): Set<string> {
+  const byAddr = new Map(cells.map((c) => [c.address as string, c]));
+  const own = baseType(cells[0]?.type ?? null);
+  const typedRe = own ? new RegExp(`^(struct\\s+|class\\s+)?${escapeRe(own)}\\s*\\*$`) : null;
+  const names = new Set<string>();
+  for (const cell of cells) {
+    for (const m of cell.children ?? []) {
+      if (!m.type) continue;
+      if (typedRe && typedRe.test(m.type)) { names.add(m.name); continue; }
+      if (m.type === "pointer" && m.targetAddress && byAddr.has(m.targetAddress)) names.add(m.name);
+    }
+  }
+  return names;
+}
+
+function selfMembersOf(cell: NormalizedCell, selfNames: Set<string>): NormalizedCell[] {
+  return (cell.children ?? []).filter((c) => selfNames.has(c.name));
 }
 
 export function candidateKind(cell: NormalizedCell): "list" | "tree" | null {
@@ -56,17 +92,49 @@ export interface ShapeModel {
 
 export interface ShapeResult { memory: NormalizedMemory; shapes: ShapeModel[] }
 
-interface TypeGroup { kind: "list" | "tree"; typeName: string; cells: NormalizedCell[] }
+interface TypeGroup {
+  kind: "list" | "tree";
+  typeName: string;
+  cells: NormalizedCell[];
+  selfNames: Set<string>;
+}
 
-export function collectGroups(memory: NormalizedMemory): Map<string, TypeGroup> {
-  const groups = new Map<string, TypeGroup>();
-  for (const cell of memory.heap) {
-    const kind = candidateKind(cell);
-    if (!kind || !cell.address) continue;
+/** Buckets heap structs (and struct elements of heap arrays) by type name. */
+function bucketStructCells(memory: NormalizedMemory, byType: Map<string, NormalizedCell[]>): void {
+  const bucket = (cell: NormalizedCell) => {
+    if (cell.kind !== "struct" || !cell.address) return;
     const typeName = shapeTypeName(cell);
-    let g = groups.get(typeName);
-    if (!g) { g = { kind, typeName, cells: [] }; groups.set(typeName, g); }
-    g.cells.push(cell);
+    if (!typeName) return;
+    const arr = byType.get(typeName) ?? [];
+    arr.push(cell);
+    byType.set(typeName, arr);
+  };
+  for (const cell of memory.heap) {
+    bucket(cell);
+    if (cell.kind === "array" && cell.children) {
+      for (const child of cell.children) bucket(child);
+    }
+  }
+}
+
+/** `namesOverride`, when provided, supplies whole-trace-proven self-pointer
+ *  member names per type (see `confirmShapeTypes`) and wins over this single
+ *  step's (possibly incomplete) per-step evidence. Without it, self-pointer
+ *  names are derived fresh from this step's cells alone — the standalone/
+ *  isolated-call fallback used by tests that build fictional well-typed data. */
+export function collectGroups(
+  memory: NormalizedMemory,
+  namesOverride?: Map<string, Set<string>>,
+): Map<string, TypeGroup> {
+  const byType = new Map<string, NormalizedCell[]>();
+  bucketStructCells(memory, byType);
+
+  const groups = new Map<string, TypeGroup>();
+  for (const [typeName, cells] of byType) {
+    const selfNames = namesOverride?.get(typeName) ?? selfPointerMemberNames(cells);
+    if (selfNames.size === 1 || selfNames.size === 2) {
+      groups.set(typeName, { kind: selfNames.size === 1 ? "list" : "tree", typeName, cells, selfNames });
+    }
   }
   return groups;
 }
@@ -75,7 +143,7 @@ export function buildEdges(g: TypeGroup): ShapeEdge[] {
   const byAddr = new Map(g.cells.map((c) => [c.address as string, c]));
   const edges: ShapeEdge[] = [];
   for (const cell of g.cells) {
-    selfPtrMembers(cell).forEach((m, slot) => {
+    selfMembersOf(cell, g.selfNames).forEach((m, slot) => {
       const target = m.targetAddress ? byAddr.get(m.targetAddress) : undefined;
       if (target) edges.push({ fromId: cell.id, toId: target.id, member: m.name, memberCellId: m.id, slot });
     });
@@ -98,8 +166,8 @@ function fingerTargets(links: MemoryLink[], nodeIds: Set<string>): Set<string> {
   return out;
 }
 
-function toShapeNode(cell: NormalizedCell): ShapeNode {
-  const self = new Set(selfPtrMembers(cell).map((m) => m.id));
+function toShapeNode(cell: NormalizedCell, selfNames: Set<string>): ShapeNode {
+  const self = new Set(selfMembersOf(cell, selfNames).map((m) => m.id));
   const payload = (cell.children ?? []).filter((c) => !self.has(c.id));
   const leaves = (cs: NormalizedCell[]): NormalizedCell[] =>
     cs.flatMap((c) => (c.children?.length ? leaves(c.children) : [c]));
@@ -145,7 +213,7 @@ function buildListModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
   const detached = chains.filter((ch) => !ch.some((id) => fingers.has(id))).flat();
   return {
     kind: "list", typeName: g.typeName,
-    nodes: g.cells.map(toShapeNode), edges, groups: chains, detached,
+    nodes: g.cells.map((c) => toShapeNode(c, g.selfNames)), edges, groups: chains, detached,
   };
 }
 
@@ -153,10 +221,11 @@ export function applyShapes(
   memory: NormalizedMemory,
   confirmed: Map<string, "list" | "tree">,
   disabledTypes: Set<string>,
+  selfNamesOverride?: Map<string, Set<string>>,
 ): ShapeResult {
   const shapes: ShapeModel[] = [];
   const consumedIds = new Set<string>();
-  for (const g of collectGroups(memory).values()) {
+  for (const g of collectGroups(memory, selfNamesOverride).values()) {
     const kind = confirmed.get(g.typeName);
     if (!kind || disabledTypes.has(g.typeName)) continue;
     const shape = kind === "list" ? buildListModel(g, memory.links) : buildTreeModel(g, memory.links);
@@ -208,5 +277,94 @@ function buildTreeModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
   for (const c of g.cells) preorder(c.id); // leftover = cycle component; still shown
 
   const detached = groups.filter((grp) => !grp.some((id) => fingers.has(id))).flat();
-  return { kind: "tree", typeName: g.typeName, nodes: g.cells.map(toShapeNode), edges, groups, detached };
+  return { kind: "tree", typeName: g.typeName, nodes: g.cells.map((c) => toShapeNode(c, g.selfNames)), edges, groups, detached };
+}
+
+export interface ShapeInfo {
+  confirmed: Map<string, "list" | "tree">; // typeName -> kind, sticky for the whole trace
+  firstSeen: Map<string, number>;          // heap address -> first step index (detail box "allocated at")
+  selfNames: Map<string, Set<string>>;     // typeName -> proven self-pointer member names, whole-trace evidence
+}
+
+/** Strict clean-shape check used only for confirmation (never for rendering). */
+function confirmGroup(g: TypeGroup): boolean {
+  const edges = buildEdges(g);
+  const indeg = inDegrees(g.cells, edges);
+
+  if (g.kind === "tree") {
+    if ([...indeg.values()].some((d) => d > 1)) return false;
+    const children = new Map<string, string[]>();
+    for (const e of edges) children.set(e.fromId, [...(children.get(e.fromId) ?? []), e.toId]);
+    const visited = new Set<string>();
+    const stack = g.cells.filter((c) => (indeg.get(c.id) ?? 0) === 0).map((c) => c.id);
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (visited.has(id)) return false; // in-degree check makes this a cycle
+      visited.add(id);
+      for (const kid of children.get(id) ?? []) stack.push(kid);
+    }
+    return visited.size === g.cells.length; // leftover nodes = cycle component
+  }
+
+  // list: chains from heads; a revisit is legal only as a back-edge into the
+  // SAME chain (cycle). Convergence between chains = not a list.
+  const next = new Map(edges.map((e) => [e.fromId, e.toId]));
+  const chainOf = new Map<string, number>();
+  let chain = 0;
+  const walkStrict = (startId: string): boolean => {
+    let id: string | undefined = startId;
+    while (id !== undefined) {
+      const seen = chainOf.get(id);
+      if (seen !== undefined) return seen === chain; // own chain: cycle OK
+      chainOf.set(id, chain);
+      id = next.get(id);
+    }
+    return true;
+  };
+  for (const c of g.cells.filter((c) => (indeg.get(c.id) ?? 0) === 0)) {
+    if (!walkStrict(c.id)) return false;
+    chain++;
+  }
+  for (const c of g.cells) {
+    if (chainOf.has(c.id)) continue; // pure cycle components
+    if (!walkStrict(c.id)) return false;
+    chain++;
+  }
+  return true;
+}
+
+/** One pass over the whole trace. A type is confirmed if ANY step shows it as
+ *  a clean list/tree; confirmation is sticky. Also records each heap address's
+ *  first step for the "allocated at step N" detail line. */
+export function confirmShapeTypes(trace: ExecPoint[]): ShapeInfo {
+  const firstSeen = new Map<string, number>();
+  const cellsByType = new Map<string, NormalizedCell[]>();
+  const perStepMemory: NormalizedMemory[] = [];
+
+  trace.forEach((point, step) => {
+    const heapKeys = Object.keys(point.heap ?? {});
+    for (const addr of heapKeys) if (!firstSeen.has(addr)) firstSeen.set(addr, step);
+    const memory = normalizeMemory(point);
+    perStepMemory.push(memory);
+    bucketStructCells(memory, cellsByType);
+  });
+
+  // Whole-trace evidence: a member proven self-referential at ANY step is
+  // proven for the whole type, so e.g. a `right` child only ever populated
+  // at a later step still counts even at earlier steps where it's null.
+  const selfNames = new Map<string, Set<string>>();
+  for (const [typeName, cells] of cellsByType) {
+    const names = selfPointerMemberNames(cells);
+    if (names.size === 1 || names.size === 2) selfNames.set(typeName, names);
+  }
+
+  const confirmed = new Map<string, "list" | "tree">();
+  for (const memory of perStepMemory) {
+    if (memory.heap.length === 0) continue;
+    for (const g of collectGroups(memory, selfNames).values()) {
+      if (confirmed.has(g.typeName)) continue;
+      if (confirmGroup(g)) confirmed.set(g.typeName, g.kind);
+    }
+  }
+  return { confirmed, firstSeen, selfNames };
 }
