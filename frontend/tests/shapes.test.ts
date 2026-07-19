@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyShapes, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes } from "../src/viz/shapes";
-import type { MemoryLink, NormalizedMemory } from "../src/viz/memoryModel";
+import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import { listNode, structCell, treeNode } from "./shapeHelpers";
 
@@ -148,6 +148,36 @@ describe("applyShapes — lists", () => {
     const n = shapes[0].nodes[0];
     expect(n.payloadIds).toEqual(["heap-heap-0x1-val"]);
     expect(n.label).toBe("7");
+  });
+});
+
+describe("applyShapes — array-wrapped struct (real-tracer new-allocation shape)", () => {
+  it("aliases the inner struct's ShapeNode id to the wrapper's id so links resolve and the finger is recognized", () => {
+    // The real tracer wraps every `new`-allocated struct in a single-element
+    // C_ARRAY at the same heap address. resolveReferences (memoryModel.ts)
+    // always points MemoryLink.toId at the WRAPPER's id (`heap-heap-0x1`),
+    // never the inner struct's array-indexed id — so bucketStructCells must
+    // alias the struct it finds inside the wrapper to the wrapper's id.
+    const inner = listNode("0x1", 7, null);
+    expect(inner.id).toBe("heap-heap-0x1"); // sanity: shapeHelpers' listNode id, before we diverge it below
+    const innerStructCell = { ...inner, id: "heap-heap-0x1--0-" }; // distinct from wrapper id, proving the alias does something
+    const wrapper: NormalizedCell = {
+      id: "heap-heap-0x1", name: "0x1", source: "heap", kind: "array",
+      address: "0x1", type: "array", displayValue: "ListNode[1]", rawValue: null,
+      children: [innerStructCell],
+    };
+
+    const link: MemoryLink = {
+      fromId: "stack-main-head", fromName: "head",
+      toId: "heap-heap-0x1", targetAddress: "0x1",
+    };
+
+    const { shapes } = applyShapes(memoryWith([wrapper], [link]), CONFIRMED_LIST, NONE);
+    expect(shapes).toHaveLength(1);
+    const s = shapes[0];
+    expect(s.nodes).toHaveLength(1);
+    expect(s.nodes[0].id).toBe("heap-heap-0x1"); // aliased to the wrapper's id, matching link.toId
+    expect(s.detached).toEqual([]); // finger correctly recognized — not detached
   });
 });
 

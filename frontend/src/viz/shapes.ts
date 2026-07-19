@@ -112,7 +112,17 @@ function bucketStructCells(memory: NormalizedMemory, byType: Map<string, Normali
   for (const cell of memory.heap) {
     bucket(cell);
     if (cell.kind === "array" && cell.children) {
-      for (const child of cell.children) bucket(child);
+      // The real tracer wraps every `new`-allocated struct in a single-
+      // element C_ARRAY at the same heap address. MemoryLink.toId (built by
+      // resolveReferences) always points at the WRAPPER's id, never the
+      // inner struct's array-indexed id. Alias the struct's id to the
+      // wrapper's id here so ShapeNode.id (and therefore data-cell-id and
+      // fingerTargets' nodeIds) matches what links actually resolve to.
+      if (cell.children.length === 1 && cell.children[0].address === cell.address) {
+        bucket({ ...cell.children[0], id: cell.id });
+      } else {
+        for (const child of cell.children) bucket(child);
+      }
     }
   }
 }
