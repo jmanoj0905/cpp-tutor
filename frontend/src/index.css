@@ -632,3 +632,33 @@ p {
   border: var(--border-thin);
   cursor: pointer;
 }
+
+/* --- shape panels (ListNode / TreeNode auto-layout) --- */
+.shape-panel { border: 1px dotted var(--border); background: var(--panel); margin-bottom: 8px; }
+.shape-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font: 12px var(--mono); padding: 2px 6px; border-bottom: 1px dotted var(--border);
+}
+.shape-head button {
+  font: 11px var(--mono); background: none; border: 1px dotted var(--border);
+  cursor: pointer; padding: 0 4px;
+}
+.shape-scroll { overflow: auto; max-height: 340px; padding: 12px; }
+.shape-canvas { position: relative; }
+.shape-edges { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+.shape-edge { stroke: var(--ink); fill: none; }
+.shape-edge-changed { stroke: var(--blue); stroke-width: 2; }
+.shape-edges marker path { fill: var(--ink); }
+.shape-node {
+  position: absolute; box-sizing: border-box; height: 30px;
+  border: 1px dotted var(--border); background: var(--panel);
+  font: 12px var(--mono); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: left 0.2s, top 0.2s;
+}
+.shape-node-changed { background: var(--yellow); }
+.shape-node-selected { outline: 2px solid var(--blue); outline-offset: -1px; }
+.shape-node-detached { opacity: 0.55; }
+.shape-detail { border-top: 1px dotted var(--border); padding: 6px; font: 12px var(--mono); }
+.shape-detail-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.shape-detail-head button { background: none; border: none; cursor: pointer; font: 14px var(--mono); }
+.shape-detail-steps { margin-top: 4px; color: var(--ink-soft); }
