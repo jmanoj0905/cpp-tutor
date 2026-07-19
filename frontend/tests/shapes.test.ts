@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { candidateKind, selfPtrMembers } from "../src/viz/shapes";
+import { applyShapes, candidateKind, selfPtrMembers } from "../src/viz/shapes";
+import type { MemoryLink, NormalizedMemory } from "../src/viz/memoryModel";
 import { listNode, structCell, treeNode } from "./shapeHelpers";
 
 describe("candidacy", () => {
@@ -35,5 +36,86 @@ describe("candidacy", () => {
   it("selfPtrMembers returns members in declaration order (slot order)", () => {
     const t = treeNode("0x1", 5, "0x2", "0x3");
     expect(selfPtrMembers(t).map((m) => m.name)).toEqual(["left", "right"]);
+  });
+});
+
+function memoryWith(heap: NormalizedCell[], links: MemoryLink[] = []): NormalizedMemory {
+  return { globals: [], frames: [], heap, links };
+}
+const fingerLink = (name: string, toAddr: string): MemoryLink => ({
+  fromId: `stack-main-${name}`, fromName: name, toId: `heap-heap-${toAddr}`, targetAddress: toAddr,
+});
+const CONFIRMED_LIST = new Map<string, "list" | "tree">([["ListNode", "list"]]);
+const NONE = new Set<string>();
+
+describe("applyShapes — lists", () => {
+  it("builds one chain in pointer order and consumes the heap cells", () => {
+    // allocation order deliberately scrambled: chain is 0x3 -> 0x1 -> 0x2
+    const heap = [listNode("0x1", 2, "0x2"), listNode("0x2", 3, null), listNode("0x3", 1, "0x1")];
+    const { memory, shapes } = applyShapes(
+      memoryWith(heap, [fingerLink("head", "0x3")]), CONFIRMED_LIST, NONE);
+    expect(shapes).toHaveLength(1);
+    const s = shapes[0];
+    expect(s.kind).toBe("list");
+    expect(s.typeName).toBe("ListNode");
+    expect(s.groups).toEqual([["heap-heap-0x3", "heap-heap-0x1", "heap-heap-0x2"]]);
+    expect(s.nodes.map((n) => n.label)).toContain("1");
+    expect(s.edges).toHaveLength(2);
+    expect(memory.heap).toHaveLength(0); // consumed
+    expect(s.detached).toEqual([]);
+  });
+
+  it("keeps unconfirmed and disabled types generic", () => {
+    const heap = [listNode("0x1", 1, null)];
+    const none = applyShapes(memoryWith(heap), new Map(), NONE);
+    expect(none.shapes).toHaveLength(0);
+    expect(none.memory.heap).toHaveLength(1);
+    const disabled = applyShapes(memoryWith(heap), CONFIRMED_LIST, new Set(["ListNode"]));
+    expect(disabled.shapes).toHaveLength(0);
+    expect(disabled.memory.heap).toHaveLength(1);
+  });
+
+  it("marks a cycle back-edge instead of looping forever", () => {
+    const heap = [
+      listNode("0x1", 1, "0x2"), listNode("0x2", 2, "0x3"),
+      listNode("0x3", 3, "0x2"), // tail -> 0x2
+    ];
+    const { shapes } = applyShapes(
+      memoryWith(heap, [fingerLink("head", "0x1")]), CONFIRMED_LIST, NONE);
+    const s = shapes[0];
+    expect(s.groups).toEqual([["heap-heap-0x1", "heap-heap-0x2", "heap-heap-0x3"]]);
+    const back = s.edges.find((e) => e.fromId === "heap-heap-0x3");
+    expect(back?.cycleBack).toBe(true);
+  });
+
+  it("renders two disjoint chains as two rows; unfingered chain is detached", () => {
+    const heap = [
+      listNode("0x1", 1, "0x2"), listNode("0x2", 2, null),
+      listNode("0x8", 9, "0x9"), listNode("0x9", 10, null),
+    ];
+    const { shapes } = applyShapes(
+      memoryWith(heap, [fingerLink("head", "0x1")]), CONFIRMED_LIST, NONE);
+    const s = shapes[0];
+    expect(s.groups).toHaveLength(2);
+    expect(s.groups[0][0]).toBe("heap-heap-0x1"); // finger-entered chain first
+    expect(s.detached).toEqual(["heap-heap-0x8", "heap-heap-0x9"]);
+  });
+
+  it("survives transient convergence mid-mutation without dropping nodes", () => {
+    // two heads both pointing at 0x3 (mid list-merge state)
+    const heap = [listNode("0x1", 1, "0x3"), listNode("0x2", 2, "0x3"), listNode("0x3", 3, null)];
+    const { shapes, memory } = applyShapes(memoryWith(heap), CONFIRMED_LIST, NONE);
+    const s = shapes[0];
+    expect(s.nodes).toHaveLength(3);
+    expect(s.groups.flat().sort()).toEqual(["heap-heap-0x1", "heap-heap-0x2", "heap-heap-0x3"]);
+    expect(s.edges).toHaveLength(2); // both edges kept and drawn
+    expect(memory.heap).toHaveLength(0);
+  });
+
+  it("node payloadIds cover payload leaves, not the self pointer", () => {
+    const { shapes } = applyShapes(memoryWith([listNode("0x1", 7, null)]), CONFIRMED_LIST, NONE);
+    const n = shapes[0].nodes[0];
+    expect(n.payloadIds).toEqual(["heap-heap-0x1-val"]);
+    expect(n.label).toBe("7");
   });
 });
