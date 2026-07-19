@@ -129,7 +129,7 @@ function Workspace({
           {tab === "memory" ? (
             <MemoryView point={player.point} prevPoint={player.prevPoint} />
           ) : (
-            <CallTreePanel tree={callTree} step={player.index} />
+            <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />
           )}
         </div>
       </section>

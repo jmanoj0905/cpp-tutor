@@ -9,9 +9,12 @@ interface MemoryCellProps {
   highlightedIds?: Set<string>;
   changedIds?: Set<string>;
   forceLinear?: boolean;
+  /** Skip data-port-id ports on reference cells — for read-only inspection
+   *  contexts (call-tree detail expansions) that draw no connector lines. */
+  noPorts?: boolean;
 }
 
-export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false }: MemoryCellProps) {
+export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false }: MemoryCellProps) {
   const hot = highlightedIds?.has(cell.id) ? " cell-highlight" : "";
   const changed = changedIds?.has(cell.id) ?? false;
   const hasKids = hasChildren(cell);
@@ -22,20 +25,20 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
       <div className={`cell-head${headChanged}`}>
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
-        <CellValue cell={cell} />
+        <CellValue cell={cell} noPorts={noPorts} />
       </div>
-      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} />}
+      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} />}
     </div>
   );
 }
 
-function CellValue({ cell }: { cell: NormalizedCell }) {
+function CellValue({ cell, noPorts }: { cell: NormalizedCell; noPorts?: boolean }) {
   if (cell.kind === "reference") {
     return (
       <span className={`cell-value ref ${cell.unresolved ? "unresolved" : ""}`}>
         {cell.displayValue}
         {cell.note ? <em className="cell-note"> {cell.note}</em> : null}
-        <span className="port" data-port-id={cell.id} />
+        {!noPorts && <span className="port" data-port-id={cell.id} />}
       </span>
     );
   }
@@ -53,7 +56,7 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds, changedIds, forceLinear }: MemoryCellProps) {
+function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts }: MemoryCellProps) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
@@ -70,7 +73,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear }: MemoryCellP
         {all.map((rowCell) => (
           <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
             {(rowCell.children ?? []).map((el) => (
-              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} />
+              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} />
             ))}
           </div>
         ))}
@@ -96,8 +99,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear }: MemoryCellP
           <MemoryCell
             key={slice.id}
             cell={slice}
-            highlightedIds={highlightedIds}
-            changedIds={changedIds}
+            highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts}
           />
         ))}
         {hidden > 0 && (
@@ -117,6 +119,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear }: MemoryCellP
           highlightedIds={highlightedIds}
           changedIds={changedIds}
           forceLinear={linear}
+          noPorts={noPorts}
         />
       ))}
       {hidden > 0 && (

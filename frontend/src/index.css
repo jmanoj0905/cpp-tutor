@@ -588,6 +588,29 @@ p {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
+.ct-detail-var {
+  cursor: pointer;
+  flex-wrap: wrap;
+}
+.ct-detail-var:hover dt,
+.ct-detail-var:focus-visible dt {
+  color: var(--ink);
+}
+.ct-detail-inspect {
+  flex-basis: 100%;
+  margin: 4px 0 6px;
+  border: var(--border-dotted);
+  background: var(--panel);
+  padding: 6px;
+  max-height: 220px;
+  overflow: auto;
+  cursor: default;
+}
+.ct-detail-inspect-head {
+  color: var(--ink-soft);
+  font-style: italic;
+  margin-bottom: 4px;
+}
 .ct-detail-steps {
   margin-top: 6px;
   color: var(--ink-soft);

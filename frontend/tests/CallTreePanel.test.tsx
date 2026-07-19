@@ -29,21 +29,21 @@ const [f, g] = tree.roots[0].children;
 
 describe("CallTreePanel", () => {
   it("renders the whole tree; not-yet-called nodes are future ghosts", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={1} />);
+    const { container } = render(<CallTreePanel tree={tree} step={1} trace={trace} />);
     expect(container.querySelectorAll(".ct-node")).toHaveLength(3); // main, f, g
     const gNode = container.querySelector(`[data-testid="ct-node-${g.id}"]`)!;
     expect(gNode.classList.contains("ct-future")).toBe(true);
   });
 
   it("tags nodes with their state classes", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     expect(container.querySelector(`[data-testid="ct-node-${g.id}"]`)!.classList.contains("ct-current")).toBe(true);
     expect(container.querySelector(`[data-testid="ct-node-${f.id}"]`)!.classList.contains("ct-returned")).toBe(true);
     expect(container.querySelector('[data-testid="ct-node-0"]')!.classList.contains("ct-on-stack")).toBe(true);
   });
 
   it("labels args and marks returned calls with → ?", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     const fText = container.querySelector(`[data-testid="ct-node-${f.id}"] text`)!;
     expect(fText.textContent).toBe("f(3) → ?");
     const gText = container.querySelector(`[data-testid="ct-node-${g.id}"] text`)!;
@@ -51,20 +51,20 @@ describe("CallTreePanel", () => {
   });
 
   it("draws every edge; edges to future nodes are ghosted", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={1} />);
+    const { container } = render(<CallTreePanel tree={tree} step={1} trace={trace} />);
     expect(container.querySelectorAll(".ct-edge")).toHaveLength(2); // main→f, main→g
     expect(container.querySelectorAll(".ct-edge-future")).toHaveLength(1); // main→g
   });
 
   it("sizes each box to its (final) label and squares the corners", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     const rect = container.querySelector(`[data-testid="ct-node-${f.id}"] rect`)!;
     expect(Number(rect.getAttribute("width"))).toBe(nodeWidth(finalLabel(f)));
     expect(rect.getAttribute("rx")).toBeNull();
   });
 
   it("dragging the background pans the canvas", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={0} />);
+    const { container } = render(<CallTreePanel tree={tree} step={0} trace={trace} />);
     const svg = container.querySelector(".calltree-svg")!;
     const g0 = container.querySelector("svg > g")!.getAttribute("transform");
     fireEvent.pointerDown(svg, { pointerId: 1, clientX: 100, clientY: 100 });
@@ -74,7 +74,7 @@ describe("CallTreePanel", () => {
   });
 
   it("wheel zooms", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={0} />);
+    const { container } = render(<CallTreePanel tree={tree} step={0} trace={trace} />);
     const svg = container.querySelector(".calltree-svg")!;
     const g0 = container.querySelector("svg > g")!.getAttribute("transform")!;
     fireEvent.wheel(svg, { deltaY: -100, clientX: 50, clientY: 50 });
@@ -84,7 +84,7 @@ describe("CallTreePanel", () => {
   });
 
   it("clicking a node opens the detail panel — signature, args, return, address, steps", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     fireEvent.click(container.querySelector(`[data-testid="ct-node-${f.id}"]`)!);
     const detail = container.querySelector('[data-testid="ct-detail"]')!;
     expect(detail.textContent).toContain("f(3) → ?");
@@ -102,7 +102,7 @@ describe("CallTreePanel", () => {
   });
 
   it("says 'not returned yet' for a live invocation", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     fireEvent.click(container.querySelector(`[data-testid="ct-node-${g.id}"]`)!);
     const detail = container.querySelector('[data-testid="ct-detail"]')!;
     expect(detail.textContent).toContain("not returned yet");
@@ -110,7 +110,7 @@ describe("CallTreePanel", () => {
   });
 
   it("selection preview-lights every node called up to the selected one", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={0} />);
+    const { container } = render(<CallTreePanel tree={tree} step={0} trace={trace} />);
     fireEvent.click(container.querySelector(`[data-testid="ct-node-${g.id}"]`)!);
     // f entered (step 1) before g (step 3) → lit despite step=0
     expect(container.querySelector(`[data-testid="ct-node-${f.id}"]`)!
@@ -120,7 +120,7 @@ describe("CallTreePanel", () => {
   });
 
   it("Esc, close button, and background click all deselect", () => {
-    const { container } = render(<CallTreePanel tree={tree} step={3} />);
+    const { container } = render(<CallTreePanel tree={tree} step={3} trace={trace} />);
     const fNode = () => container.querySelector(`[data-testid="ct-node-${f.id}"]`)!;
     const detail = () => container.querySelector('[data-testid="ct-detail"]');
 
@@ -136,5 +136,81 @@ describe("CallTreePanel", () => {
     fireEvent.click(fNode());
     fireEvent.click(container.querySelector(".calltree-svg")!);
     expect(detail()).toBeNull();
+  });
+});
+
+// h has two vars (n scalar, p pointer to main's x) so expansions can be
+// pinned independently and deref has a resolvable stack target.
+const hLocals = {
+  n: ["C_DATA", "0xA0", "int", 3],
+  p: ["C_DATA", "0xA8", "int *", "0xB0"],
+};
+const mainX = { x: ["C_DATA", "0xB0", "int", 7] };
+const inspectTrace = [
+  pt([["main", "0x1", mainX]]),
+  pt([["main", "0x1", mainX], ["h", "0x2", hLocals]], "call"),
+  pt([["main", "0x1", mainX], ["h", "0x2", hLocals]]),
+  pt([["main", "0x1", mainX], ["k", "0x3"]], "call"),
+];
+const inspectTree = buildCallTree(inspectTrace);
+const h = inspectTree.roots[0].children[0];
+
+function openDetail() {
+  const utils = render(<CallTreePanel tree={inspectTree} step={3} trace={inspectTrace} />);
+  fireEvent.click(utils.container.querySelector(`[data-testid="ct-node-${h.id}"]`)!);
+  return utils.container;
+}
+
+const rowFor = (container: HTMLElement, name: string) =>
+  Array.from(container.querySelectorAll(".ct-detail-rows [aria-expanded]"))
+    .find((el) => el.querySelector("dt")?.textContent === name)!;
+
+describe("CallTreePanel variable inspector", () => {
+  it("clicking a variable row expands its decoded cell with the step number", () => {
+    const container = openDetail();
+    expect(container.querySelector(".ct-detail-inspect")).toBeNull();
+    fireEvent.click(rowFor(container, "n"));
+    const inspect = container.querySelector(".ct-detail-inspect")!;
+    expect(inspect).not.toBeNull();
+    expect(inspect.textContent).toContain("at step 1");
+    expect(inspect.querySelector('[data-cell-id^="ct-inspect-"]')!.textContent).toContain("3");
+  });
+
+  it("auto-derefs a pointer variable to its target value", () => {
+    const container = openDetail();
+    fireEvent.click(rowFor(container, "p"));
+    const inspect = container.querySelector(".ct-detail-inspect")!;
+    expect(inspect.textContent).toContain("7"); // main's x, not the raw address
+  });
+
+  it("pins multiple expansions and collapses each independently", () => {
+    const container = openDetail();
+    fireEvent.click(rowFor(container, "n"));
+    fireEvent.click(rowFor(container, "p"));
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(2);
+    fireEvent.click(rowFor(container, "n"));
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(1);
+  });
+
+  it("clears expansions when a different node is selected", () => {
+    const container = openDetail();
+    fireEvent.click(rowFor(container, "n"));
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(1);
+    const k = inspectTree.roots[0].children[1];
+    fireEvent.click(container.querySelector(`[data-testid="ct-node-${k.id}"]`)!);
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(0);
+  });
+
+  it("non-variable rows (returns, frame) are not expandable", () => {
+    const container = openDetail();
+    const expandables = Array.from(container.querySelectorAll(".ct-detail-rows [aria-expanded]"))
+      .map((el) => el.querySelector("dt")?.textContent);
+    expect(expandables).toEqual(["n", "p"]);
+  });
+
+  it("expansion cells carry no data-port-id", () => {
+    const container = openDetail();
+    fireEvent.click(rowFor(container, "p"));
+    expect(container.querySelector(".ct-detail-inspect [data-port-id]")).toBeNull();
   });
 });
