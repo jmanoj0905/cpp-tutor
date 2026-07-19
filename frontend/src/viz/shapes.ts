@@ -233,10 +233,29 @@ export function applyShapes(
     for (const n of shape.nodes) consumedIds.add(n.id);
   }
   if (shapes.length === 0) return { memory, shapes };
-  return {
-    memory: { ...memory, heap: memory.heap.filter((c) => !consumedIds.has(c.id)) },
-    shapes,
-  };
+  return { memory: { ...memory, heap: filterConsumedHeap(memory.heap, consumedIds) }, shapes };
+}
+
+/** Drops consumed struct cells from the top-level heap. A `new T()` struct
+ *  is bucketed for shape detection from inside its wrapping single-element
+ *  C_ARRAY (see `bucketStructCells`), so the struct's own id lands in
+ *  `consumedIds` while the array wrapper's id does not — filter recurses
+ *  into array cells so a fully-consumed wrapper (and not just its child)
+ *  disappears from the generic heap render, while an array with any
+ *  unconsumed sibling elements keeps those elements visible. */
+function filterConsumedHeap(cells: NormalizedCell[], consumedIds: Set<string>): NormalizedCell[] {
+  const out: NormalizedCell[] = [];
+  for (const c of cells) {
+    if (consumedIds.has(c.id)) continue;
+    if (c.kind === "array" && c.children) {
+      const kids = filterConsumedHeap(c.children, consumedIds);
+      if (kids.length === 0) continue;
+      out.push(kids.length === c.children.length ? c : { ...c, children: kids });
+      continue;
+    }
+    out.push(c);
+  }
+  return out;
 }
 
 /** Tolerant per-step tree walk: pre-order from in-degree-0 roots; a node is

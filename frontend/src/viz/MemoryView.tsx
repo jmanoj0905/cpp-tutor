@@ -1,12 +1,18 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { ExecPoint } from "../types/trace";
 import { normalizeMemory, type NormalizedFrame } from "./memoryModel";
 import { changedCellIds } from "./memoryDiff";
 import { MemoryCell } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
 import { Divider } from "../Divider.tsx";
+import { applyShapes, confirmShapeTypes } from "./shapes";
+import { ShapePanel } from "./ShapePanel";
 
-export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?: ExecPoint | null }) {
+export function MemoryView({ point, prevPoint, trace }: {
+  point: ExecPoint;
+  prevPoint?: ExecPoint | null;
+  trace: ExecPoint[];
+}) {
   // Intentionally recomputed every render (not memoized on [point]): the
   // per-frame internals toggle relies on `memory.links` getting a fresh array
   // identity so the Connectors effect re-measures after newly-revealed internal
@@ -17,6 +23,15 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
   const [selected, setSelected] = useState<ConnectorSelection | null>(null);
   const [expandedFrames, setExpandedFrames] = useState<Set<string>>(new Set());
   const [split, setSplit] = useState(50);
+  const shapeInfo = useMemo(() => confirmShapeTypes(trace), [trace]);
+  const [disabledShapes, setDisabledShapes] = useState<Set<string>>(new Set());
+  const { memory: shaped, shapes } = applyShapes(memory, shapeInfo.confirmed, disabledShapes, shapeInfo.selfNames);
+  const toggleShape = (typeName: string) =>
+    setDisabledShapes((prev) => {
+      const next = new Set(prev);
+      if (next.has(typeName)) next.delete(typeName); else next.add(typeName);
+      return next;
+    });
 
   useEffect(() => { setSelected(null); }, [point]);
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
@@ -56,8 +71,23 @@ export function MemoryView({ point, prevPoint }: { point: ExecPoint; prevPoint?:
         <Divider container=".panes" onResize={setSplit} />
         <section className="heap-pane">
           <h3>Heap</h3>
+          {shapes.map((s) => (
+            <ShapePanel
+              key={s.typeName}
+              shape={s}
+              changedIds={changedIds}
+              firstSeen={shapeInfo.firstSeen}
+              onToggleGeneric={() => toggleShape(s.typeName)}
+              stepKey={point.line}
+            />
+          ))}
+          {disabledShapes.size > 0 && (
+            <button className="internals-toggle" onClick={() => setDisabledShapes(new Set())}>
+              ▸ shape view off for {[...disabledShapes].join(", ")} — restore
+            </button>
+          )}
           <div className="frame-cells">
-            {memory.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />)}
+            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />)}
           </div>
         </section>
       </div>

@@ -3,7 +3,15 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryCell } from "../src/viz/MemoryCell";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import { MemoryView } from "../src/viz/MemoryView";
-import type { ExecPoint } from "../src/types/trace";
+import type { ExecPoint, Trace } from "../src/types/trace";
+import listReverseFx from "./fixtures/shapes/list-reverse.json";
+
+Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
+// jsdom has no CSS.escape either; minimal polyfill so ShapePanel's
+// scroll-into-view effect's querySelector doesn't throw.
+if (typeof (globalThis as any).CSS === "undefined") {
+  (globalThis as any).CSS = { escape: (s: string) => s.replace(/[^a-zA-Z0-9_-]/g, "\\$&") };
+}
 
 function cell(p: Partial<NormalizedCell>): NormalizedCell {
   return { id: "id", name: "n", source: "stack", kind: "scalar", address: null, type: null, displayValue: "", rawValue: null, ...p };
@@ -72,7 +80,7 @@ describe("MemoryCell", () => {
       stack_to_render: [{ unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
         ordered_varnames: ["x"], encoded_locals: { x: ["C_DATA", "0x10", "int", 41] } }] as any,
     };
-    render(<MemoryView point={point} />);
+    render(<MemoryView point={point} trace={[point]} />);
     expect(screen.getByText("Globals")).toBeDefined();
     expect(screen.getByText("main")).toBeDefined();
     expect(screen.getByText("Heap")).toBeDefined();
@@ -93,7 +101,7 @@ describe("MemoryCell", () => {
           ["_M_finish", ["C_DATA", "0x18", "pointer", ["REF", "0x9008"]]]] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     expect(container.querySelector(".cell-container")).toBeTruthy();
     expect(container.textContent).toContain("vector<int>");
   });
@@ -209,7 +217,7 @@ describe("MemoryCell", () => {
         encoded_locals: { p: ["C_DATA", "0x18", "int *", ["REF", "0x100"]] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     expect(container.querySelector(".stack-pane")).toBeTruthy();
     expect(container.querySelector(".heap-pane")).toBeTruthy();
   });
@@ -227,7 +235,7 @@ describe("MemoryCell", () => {
         },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     // internal cell hidden by default
     expect(container.querySelector('[data-cell-id="stack-f1-__for_range"]')).toBeNull();
     // toggle present
@@ -251,7 +259,7 @@ describe("MemoryCell", () => {
         },
       }],
     }) as any;
-    const { container } = render(<MemoryView point={mk(2)} prevPoint={mk(1)} />);
+    const { container } = render(<MemoryView point={mk(2)} prevPoint={mk(1)} trace={[mk(1), mk(2)]} />);
     expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
     expect(container.querySelector('[data-cell-id="stack-f1-y"]')?.className).not.toContain("cell-changed");
   });
@@ -266,7 +274,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} prevPoint={null} />);
+    const { container } = render(<MemoryView point={point} prevPoint={null} trace={[point]} />);
     expect(container.querySelector(".cell-changed")).toBeNull();
   });
 
@@ -280,7 +288,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     const divider = container.querySelector(".panes .divider");
     expect(divider).toBeTruthy();
     expect(divider?.getAttribute("role")).toBe("separator");
@@ -296,7 +304,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     const panes = container.querySelector(".panes") as HTMLElement;
     panes.getBoundingClientRect = () =>
       ({ left: 0, width: 1000, top: 0, right: 1000, bottom: 100, height: 100 } as DOMRect);
@@ -318,7 +326,33 @@ describe("MemoryCell", () => {
         encoded_locals: { v: ["C_DATA", "0x10", "int", 5] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} />);
     expect(container.querySelector(".internals-toggle")).toBeNull();
+  });
+});
+
+describe("MemoryView shape integration", () => {
+  const t = (listReverseFx as Trace).trace;
+  const shapedStep = t.findIndex((p) => Object.keys(p.heap ?? {}).length >= 3);
+  const point = t[shapedStep];
+
+  it("renders a ShapePanel instead of raw ListNode heap cells", () => {
+    render(<MemoryView point={point} prevPoint={t[shapedStep - 1]} trace={t} />);
+    expect(screen.getByTestId("shape-ListNode")).toBeTruthy();
+    // consumed: no generic struct cell rendered in the heap pane outside the
+    // shape panel for ListNode (jsdom's :not() doesn't match ancestors, so
+    // filter with closest() instead of a single compound selector)
+    const heapPane = document.querySelector(".heap-pane")!;
+    const outsideShapePanel = [...heapPane.querySelectorAll("[data-cell-id]")]
+      .filter((el) => !el.closest(".shape-panel"));
+    expect(outsideShapePanel.length).toBe(0);
+  });
+
+  it("raw toggle brings the generic cells back, and the panel goes away", () => {
+    render(<MemoryView point={point} prevPoint={null} trace={t} />);
+    fireEvent.click(screen.getByRole("button", { name: /raw/i }));
+    expect(screen.queryByTestId("shape-ListNode")).toBeNull();
+    const heapPane = document.querySelector(".heap-pane")!;
+    expect(heapPane.querySelectorAll("[data-cell-id]").length).toBeGreaterThan(0);
   });
 });
