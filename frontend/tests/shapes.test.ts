@@ -119,3 +119,53 @@ describe("applyShapes — lists", () => {
     expect(n.label).toBe("7");
   });
 });
+
+const CONFIRMED_TREE = new Map<string, "list" | "tree">([["TreeNode", "tree"]]);
+
+describe("applyShapes — trees", () => {
+  it("builds a pre-order group with slot-tagged edges", () => {
+    const heap = [
+      treeNode("0x5", 5, "0x3", "0x8"),
+      treeNode("0x3", 3, null, null),
+      treeNode("0x8", 8, null, null),
+    ];
+    const { shapes, memory } = applyShapes(
+      memoryWith(heap, [fingerLink("root", "0x5")]), CONFIRMED_TREE, NONE);
+    const s = shapes[0];
+    expect(s.kind).toBe("tree");
+    expect(s.groups).toEqual([["heap-heap-0x5", "heap-heap-0x3", "heap-heap-0x8"]]);
+    const left = s.edges.find((e) => e.toId === "heap-heap-0x3");
+    const right = s.edges.find((e) => e.toId === "heap-heap-0x8");
+    expect(left?.slot).toBe(0);
+    expect(right?.slot).toBe(1);
+    expect(memory.heap).toHaveLength(0);
+    expect(s.detached).toEqual([]);
+  });
+
+  it("renders a forest: detached second root goes to detached", () => {
+    const heap = [
+      treeNode("0x5", 5, null, null),
+      treeNode("0x9", 9, null, null),
+    ];
+    const { shapes } = applyShapes(
+      memoryWith(heap, [fingerLink("root", "0x5")]), CONFIRMED_TREE, NONE);
+    const s = shapes[0];
+    expect(s.groups).toHaveLength(2);
+    expect(s.groups[0]).toEqual(["heap-heap-0x5"]);
+    expect(s.detached).toEqual(["heap-heap-0x9"]);
+  });
+
+  it("tolerates a transient double-parent without duplicating the child", () => {
+    // mid-rotation: both 0x5.left and 0x9.left point at 0x3
+    const heap = [
+      treeNode("0x5", 5, "0x3", null),
+      treeNode("0x9", 9, "0x3", null),
+      treeNode("0x3", 3, null, null),
+    ];
+    const { shapes } = applyShapes(memoryWith(heap), CONFIRMED_TREE, NONE);
+    const s = shapes[0];
+    expect(s.groups.flat().sort()).toEqual(["heap-heap-0x3", "heap-heap-0x5", "heap-heap-0x9"]);
+    expect(s.groups.flat()).toHaveLength(3); // each node laid out once
+    expect(s.edges).toHaveLength(2); // both edges still drawn
+  });
+});

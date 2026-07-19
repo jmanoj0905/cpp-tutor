@@ -170,8 +170,43 @@ export function applyShapes(
   };
 }
 
-// Implemented in Task 4; declared here so applyShapes compiles.
+/** Tolerant per-step tree walk: pre-order from in-degree-0 roots; a node is
+ *  laid out under its first-seen parent; extra edges (transient double parent,
+ *  cycles) stay in `edges` but do not re-enter the traversal. */
 function buildTreeModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
-  void links;
-  return { kind: "tree", typeName: g.typeName, nodes: g.cells.map(toShapeNode), edges: buildEdges(g), groups: [], detached: [] };
+  const edges = buildEdges(g);
+  const indeg = inDegrees(g.cells, edges);
+  const nodeIds = new Set(g.cells.map((c) => c.id));
+  const fingers = fingerTargets(links, nodeIds);
+  const children = new Map<string, ShapeEdge[]>();
+  for (const e of edges) {
+    const list = children.get(e.fromId) ?? [];
+    list.push(e);
+    children.set(e.fromId, list);
+  }
+
+  const visited = new Set<string>();
+  const groups: string[][] = [];
+  const preorder = (rootId: string) => {
+    if (visited.has(rootId)) return;
+    const order: string[] = [];
+    const stack = [rootId];
+    while (stack.length) {
+      const id = stack.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+      order.push(id);
+      const kids = (children.get(id) ?? []).slice().sort((a, b) => b.slot - a.slot);
+      for (const e of kids) stack.push(e.toId);
+    }
+    groups.push(order);
+  };
+
+  const rootIds = g.cells.filter((c) => (indeg.get(c.id) ?? 0) === 0).map((c) => c.id);
+  for (const id of rootIds.filter((r) => fingers.has(r))) preorder(id);
+  for (const id of rootIds) preorder(id);
+  for (const c of g.cells) preorder(c.id); // leftover = cycle component; still shown
+
+  const detached = groups.filter((grp) => !grp.some((id) => fingers.has(id))).flat();
+  return { kind: "tree", typeName: g.typeName, nodes: g.cells.map(toShapeNode), edges, groups, detached };
 }
