@@ -127,7 +127,7 @@ function Workspace({
             </button>
           </div>
           {tab === "memory" ? (
-            <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} />
+            <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} />
           ) : (
             <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />
           )}

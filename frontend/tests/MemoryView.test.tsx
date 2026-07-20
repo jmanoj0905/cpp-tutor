@@ -80,7 +80,7 @@ describe("MemoryCell", () => {
       stack_to_render: [{ unique_hash: "main_0x1", frame_id: "0x1", func_name: "main",
         ordered_varnames: ["x"], encoded_locals: { x: ["C_DATA", "0x10", "int", 41] } }] as any,
     };
-    render(<MemoryView point={point} trace={[point]} />);
+    render(<MemoryView point={point} trace={[point]} code="" />);
     expect(screen.getByText("Globals")).toBeDefined();
     expect(screen.getByText("main")).toBeDefined();
     expect(screen.getByText("Heap")).toBeDefined();
@@ -101,7 +101,7 @@ describe("MemoryCell", () => {
           ["_M_finish", ["C_DATA", "0x18", "pointer", ["REF", "0x9008"]]]] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     expect(container.querySelector(".cell-container")).toBeTruthy();
     expect(container.textContent).toContain("vector<int>");
   });
@@ -217,7 +217,7 @@ describe("MemoryCell", () => {
         encoded_locals: { p: ["C_DATA", "0x18", "int *", ["REF", "0x100"]] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     expect(container.querySelector(".stack-pane")).toBeTruthy();
     expect(container.querySelector(".heap-pane")).toBeTruthy();
   });
@@ -235,7 +235,7 @@ describe("MemoryCell", () => {
         },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     // internal cell hidden by default
     expect(container.querySelector('[data-cell-id="stack-f1-__for_range"]')).toBeNull();
     // toggle present
@@ -259,7 +259,7 @@ describe("MemoryCell", () => {
         },
       }],
     }) as any;
-    const { container } = render(<MemoryView point={mk(2)} prevPoint={mk(1)} trace={[mk(1), mk(2)]} />);
+    const { container } = render(<MemoryView point={mk(2)} prevPoint={mk(1)} trace={[mk(1), mk(2)]} code="" />);
     expect(container.querySelector('[data-cell-id="stack-f1-x"]')?.className).toContain("cell-changed");
     expect(container.querySelector('[data-cell-id="stack-f1-y"]')?.className).not.toContain("cell-changed");
   });
@@ -274,7 +274,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} prevPoint={null} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} prevPoint={null} trace={[point]} code="" />);
     expect(container.querySelector(".cell-changed")).toBeNull();
   });
 
@@ -288,7 +288,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     const divider = container.querySelector(".panes .divider");
     expect(divider).toBeTruthy();
     expect(divider?.getAttribute("role")).toBe("separator");
@@ -304,7 +304,7 @@ describe("MemoryCell", () => {
         encoded_locals: { x: ["C_DATA", "0x10", "int", 1] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     const panes = container.querySelector(".panes") as HTMLElement;
     panes.getBoundingClientRect = () =>
       ({ left: 0, width: 1000, top: 0, right: 1000, bottom: 100, height: 100 } as DOMRect);
@@ -326,7 +326,7 @@ describe("MemoryCell", () => {
         encoded_locals: { v: ["C_DATA", "0x10", "int", 5] },
       }],
     } as any;
-    const { container } = render(<MemoryView point={point} trace={[point]} />);
+    const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     expect(container.querySelector(".internals-toggle")).toBeNull();
   });
 });
@@ -337,7 +337,7 @@ describe("MemoryView shape integration", () => {
   const point = t[shapedStep];
 
   it("renders a ShapePanel instead of raw ListNode heap cells", () => {
-    render(<MemoryView point={point} prevPoint={t[shapedStep - 1]} trace={t} />);
+    render(<MemoryView point={point} prevPoint={t[shapedStep - 1]} trace={t} code={(listReverseFx as Trace).code} />);
     expect(screen.getByTestId("shape-ListNode")).toBeTruthy();
     // consumed: no generic struct cell rendered in the heap pane outside the
     // shape panel for ListNode (jsdom's :not() doesn't match ancestors, so
@@ -349,7 +349,7 @@ describe("MemoryView shape integration", () => {
   });
 
   it("raw toggle brings the generic cells back, and the panel goes away", () => {
-    render(<MemoryView point={point} prevPoint={null} trace={t} />);
+    render(<MemoryView point={point} prevPoint={null} trace={t} code={(listReverseFx as Trace).code} />);
     fireEvent.click(screen.getByRole("button", { name: /raw/i }));
     expect(screen.queryByTestId("shape-ListNode")).toBeNull();
     const heapPane = document.querySelector(".heap-pane")!;

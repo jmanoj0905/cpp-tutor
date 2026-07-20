@@ -7,11 +7,14 @@ import { Connectors, type ConnectorSelection } from "./Connectors";
 import { Divider } from "../Divider.tsx";
 import { applyShapes, confirmShapeTypes } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
+import { detectDpTables } from "./dp/detect";
+import { buildDpView, type DpTableView } from "./dp/dpModel";
 
-export function MemoryView({ point, prevPoint, trace }: {
+export function MemoryView({ point, prevPoint, trace, code }: {
   point: ExecPoint;
   prevPoint?: ExecPoint | null;
   trace: ExecPoint[];
+  code: string;
 }) {
   // Intentionally recomputed every render (not memoized on [point]): the
   // per-frame internals toggle relies on `memory.links` getting a fresh array
@@ -33,6 +36,27 @@ export function MemoryView({ point, prevPoint, trace }: {
       return next;
     });
 
+  const dpCandidates = useMemo(() => detectDpTables(trace, code), [trace, code]);
+  const [disabledDp, setDisabledDp] = useState<Set<string>>(new Set());
+  const step = trace.indexOf(point);
+  const codeLines = useMemo(() => code.split("\n"), [code]);
+  const dpViews = useMemo(() => {
+    const m = new Map<string, DpTableView>();
+    for (const c of dpCandidates) {
+      if (disabledDp.has(c.cellId)) continue;
+      m.set(c.cellId, buildDpView(c, step, point, memory, codeLines));
+    }
+    return m;
+    // memory identity changes every render; safe: views derive from point
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dpCandidates, disabledDp, step, point, codeLines]);
+  const toggleDp = (cellId: string) =>
+    setDisabledDp((prev) => {
+      const n = new Set(prev);
+      if (n.has(cellId)) n.delete(cellId); else n.add(cellId);
+      return n;
+    });
+
   useEffect(() => { setSelected(null); }, [point]);
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
 
@@ -52,7 +76,7 @@ export function MemoryView({ point, prevPoint, trace }: {
             <div className="frame">
               <div className="frame-name">Globals</div>
               <div className="frame-cells">
-                {memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />)}
+                {memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} />)}
               </div>
             </div>
           )}
@@ -65,8 +89,15 @@ export function MemoryView({ point, prevPoint, trace }: {
               onToggle={() => toggleFrame(frame.id)}
               highlightedIds={highlightedIds}
               changedIds={changedIds}
+              dpViews={dpViews}
+              onDpToggle={toggleDp}
             />
           ))}
+          {disabledDp.size > 0 && (
+            <button className="internals-toggle" onClick={() => setDisabledDp(new Set())}>
+              ▸ DP view off for {dpCandidates.filter((c) => disabledDp.has(c.cellId)).map((c) => c.name).join(", ")} — restore
+            </button>
+          )}
         </section>
         <Divider container=".panes" onResize={setSplit} />
         <section className="heap-pane">
@@ -87,7 +118,7 @@ export function MemoryView({ point, prevPoint, trace }: {
             </button>
           )}
           <div className="frame-cells">
-            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />)}
+            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} />)}
           </div>
         </section>
       </div>
@@ -103,7 +134,7 @@ export function MemoryView({ point, prevPoint, trace }: {
 }
 
 function FrameView({
-  frame, current, expanded, onToggle, highlightedIds, changedIds,
+  frame, current, expanded, onToggle, highlightedIds, changedIds, dpViews, onDpToggle,
 }: {
   frame: NormalizedFrame;
   current: boolean;
@@ -111,6 +142,8 @@ function FrameView({
   onToggle: () => void;
   highlightedIds?: Set<string>;
   changedIds?: Set<string>;
+  dpViews?: Map<string, DpTableView>;
+  onDpToggle?: (cellId: string) => void;
 }) {
   const visible = frame.cells.filter((c) => !c.internal);
   const internal = frame.cells.filter((c) => c.internal);
@@ -118,14 +151,14 @@ function FrameView({
     <div className={`frame${current ? " frame-current" : ""}`}>
       <div className="frame-name">{frame.name}</div>
       <div className="frame-cells">
-        {visible.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />)}
+        {visible.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} />)}
         {internal.length > 0 && (
           <>
             <button className="internals-toggle" onClick={onToggle}>
               {expanded ? "▾" : "▸"} {internal.length} internal{internal.length > 1 ? "s" : ""}
             </button>
             {expanded && internal.map((c) => (
-              <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} />
+              <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} />
             ))}
           </>
         )}
