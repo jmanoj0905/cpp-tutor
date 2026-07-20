@@ -170,4 +170,13 @@ describe("collectReadSteps", () => {
     expect(steps).toBeDefined();
     expect(steps!.length).toBeGreaterThan(0);
   });
+
+  it("climb-bottomup: coord \"4\" is read later (computing dp[5], dp[6]) but its own write step is excluded", () => {
+    const log = collectReadSteps(t.trace, cand, codeLines);
+    const writeStep4 = cand.writes.find((w) => w.coord[0] === 4)!.step;
+    const steps = log.get("4");
+    expect(steps).toBeDefined();
+    expect(steps!.length).toBeGreaterThan(0);
+    expect(steps).not.toContain(writeStep4);
+  });
 });
