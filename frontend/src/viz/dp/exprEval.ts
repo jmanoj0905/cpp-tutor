@@ -31,7 +31,12 @@ function tokenize(src: string): Token[] | null {
 
 class Parser {
   private i = 0;
-  constructor(private tokens: Token[], private env: ReadonlyMap<string, number>) {}
+  private tokens: Token[];
+  private env: ReadonlyMap<string, number>;
+  constructor(tokens: Token[], env: ReadonlyMap<string, number>) {
+    this.tokens = tokens;
+    this.env = env;
+  }
   done() { return this.i === this.tokens.length; }
   private peekOp(...ops: string[]): string | null {
     const t = this.tokens[this.i];
