@@ -2,15 +2,6 @@
 
 A [Python Tutor](https://pythontutor.com/)-style step-through visualizer for C and C++. Paste code, press run, and step through execution while watching the stack, heap, and pointer relationships update live.
 
-## Features
-
-- **Step-through execution** — VCR-style controls and keyboard shortcuts move through a full trace of the program; the current source line and stack frame are highlighted at every step.
-- **Stack, heap, and globals** — every step renders the live frames, heap allocations, and globals as memory cells, with an SVG overlay drawing pointer arrows from each pointer to its target (dashed red when unresolved).
-- **STL container decoding** — containers render their logical contents, not raw internals: `vector` (incl. `vector<bool>`), `deque`, `array`, `string`, `pair`, `tuple`, `bitset`; adaptors `stack`/`queue`/`priority_queue`; node containers `list`, `forward_list`, `map`/`set`/`multimap`/`multiset` and the `unordered_` family with real node payloads; plus `unique_ptr`/`shared_ptr`/`weak_ptr` and iterators as pointer cells.
-- **Shape-aware heap rendering** — self-referential structs are detected across the whole trace and drawn as the data structure they form: linked lists as rows (with cycle arcs) and trees as slot-aware layouts, with a detail box per node and a raw-view escape hatch.
-- **Call tree** — a panel showing the full call history as a tree; clicking a node inspects its arguments and locals as they were at call time.
-- **Change highlighting** — cells that changed since the previous step are tinted, down to the individual container element (`v[1]`, `pair.second`, a single string char) rather than the whole container.
-
 ## Run with Docker
 
 No setup beyond Docker itself:
