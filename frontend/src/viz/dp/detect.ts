@@ -92,21 +92,22 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       //   (b) the guard line — the line the write's own frame executed
       //       immediately before the write line first began, recovered from
       //       the trace, not from source position — has >= 2 occurrences on
-      //       that one line AND contains the literal substring "return"
-      //       (top-down: "if (memo[n] != -1) return memo[n];"). The "return"
-      //       requirement encodes the actual memoization idiom (an early
-      //       return gated on a self-lookup) rather than mere adjacency: a
-      //       leaf-recursion write (single visit per invocation, no loop) has
-      //       every previous-line-in-invocation land on whatever line ran
-      //       right before it — a debug printf, an assert, an unrelated
-      //       second read — and any such line with a coincidental 2nd
-      //       subscript occurrence would otherwise trip this fallback even
-      //       though it is never derived from the array's own prior value.
+      //       that one line AND hands the array's own value back early: the
+      //       token "return" is immediately followed (only whitespace
+      //       between) by a subscript of this array
+      //       (top-down: "if (memo[n] != -1) return memo[n];" — "return" is
+      //       directly followed by "memo[n]"). A plain `.includes("return")`
+      //       is not enough: `if (arr[n] < 0 || arr[n] > 100) return -1;` also
+      //       has "return" and 2 occurrences on one line, but returns -1, not
+      //       arr[n] — ordinary bounds validation, not a memo short-circuit.
+      //       Requiring the returned expression to literally be the array's
+      //       own subscript is what actually distinguishes "handing back a
+      //       previously-computed value" from any other early-return guard.
       let selfRef = countSubscripts(lineText, info.name) >= 2;
       if (!selfRef) {
         const guardLine = guardLineBeforeWrite(trace, step - 1);
         const guardText = guardLine !== null ? (codeLines[guardLine - 1] ?? "") : "";
-        if (guardText.includes("return") && countSubscripts(guardText, info.name) >= 2) {
+        if (returnsOwnSubscript(guardText, info.name) && countSubscripts(guardText, info.name) >= 2) {
           selfRef = true;
         }
       }
@@ -165,6 +166,22 @@ function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | nu
 
 function frameKey(frame: StackFrameLike): string {
   return frame.unique_hash ?? frame.frame_id ?? frame.func_name ?? "?";
+}
+
+/** True when `lineText` contains the literal pattern `return <ws>* name[` —
+ *  i.e. the "return" keyword immediately (modulo whitespace) followed by a
+ *  subscript of this array. This is the actual signature of a memoization
+ *  short-circuit ("hand back the array's own previously-computed value"),
+ *  as opposed to any other early return that merely happens to read the
+ *  array elsewhere on the same line (e.g. a bounds-check guard returning a
+ *  sentinel: `if (arr[n] < 0 || arr[n] > 100) return -1;`). */
+function returnsOwnSubscript(lineText: string, name: string): boolean {
+  const re = new RegExp(`\\breturn\\s*${escapeRe(name)}\\s*\\[`);
+  return re.test(lineText);
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function classify(t: Tracked): DpCandidate["mode"] | null {

@@ -136,6 +136,69 @@ function fillTrace(): ExecPoint[] {
   return points;
 }
 
+// --- Synthetic trace: leaf-recursion fill with a bounds-validation guard, not
+// a memoization guard, immediately before the write. ---
+// The guard has "return" AND 2 subscript occurrences on one line — same shape
+// as a real memo guard (`if (memo[n] != -1) return memo[n];`) — but the
+// returned expression is a sentinel (-1), not the array's own subscript. A
+// check that only requires "return" to appear *somewhere* on the guard line
+// (round 2's fix) cannot tell this apart from a real memo short-circuit; only
+// checking that "return" is immediately followed by the array's own
+// subscript can. Must be rejected.
+const boundsGuardCode = `#include <cstdio>
+int fill(int n, int arr[]) {
+  if (n == 0) return 0;
+  fill(n - 1, arr);
+  if (arr[n] < 0 || arr[n] > 100) return -1;
+  arr[n] = n * n;
+  return 0;
+}
+int main() {
+  int arr[5];
+  fill(4, arr);
+  printf("%d\\n", arr[4]);
+  return 0;
+}`;
+
+function boundsGuardTrace(): ExecPoint[] {
+  const arr: FillArr = ["<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>"];
+
+  const mainFrame = (): RawFrame => ({
+    func_name: "main", frame_id: "main_0xB00_0", unique_hash: "main_0xB00_0",
+    encoded_locals: { arr: ["C_ARRAY", "0x2000", ...arr.map((v, k) => ["C_DATA", `0x${(0x2000 + 4 * k).toString(16)}`, "int", v])] },
+    ordered_varnames: ["arr"], is_highlighted: false, is_parent: true, is_zombie: false, line: 0, parent_frame_id_list: [],
+  });
+  const fillFrame = (depth: number, n: number): RawFrame => ({
+    func_name: "fill(int, int*)", frame_id: `fill_0xF00${depth}`, unique_hash: `fill_0xF00${depth}`,
+    encoded_locals: { n: ["C_DATA", `0x9${depth}0`, "int", n] }, ordered_varnames: ["n"],
+    is_highlighted: true, is_parent: false, is_zombie: false, line: 0, parent_frame_id_list: [],
+  });
+  const stackFrames = (nStack: number[]): RawFrame[] =>
+    [mainFrame(), ...nStack.map((n, i) => fillFrame(i + 1, n))];
+  const point = (line: number, frames: RawFrame[]): ExecPoint => ({
+    line, event: "step_line", func_name: frames.at(-1)!.func_name, stack_to_render: frames,
+    heap: {}, globals: {}, ordered_globals: [], stdout: "",
+  });
+
+  const points: ExecPoint[] = [point(10, [mainFrame()]), point(11, [mainFrame()])];
+
+  const recurse = (nStack: number[]) => {
+    const n = nStack.at(-1)!;
+    points.push(point(3, stackFrames(nStack))); // guard: if (n == 0) return 0;
+    if (n === 0) return; // base case returns immediately, no write
+    points.push(point(4, stackFrames(nStack))); // about to call fill(n - 1, arr)
+    recurse([...nStack, n - 1]);
+    points.push(point(5, stackFrames(nStack))); // back from recursion; about to bounds-check
+    points.push(point(6, stackFrames(nStack))); // bounds-check ran (passed); about to assign
+    arr[n] = n * n;
+    points.push(point(7, stackFrames(nStack))); // assignment ran (write now visible); about to return
+  };
+  recurse([4]);
+
+  points.push(point(12, [mainFrame()]), point(13, [mainFrame()]));
+  return points;
+}
+
 describe("detectDpTables", () => {
   it("climb-bottomup: confirms dp as 1D bottom-up with chronological writes", () => {
     const [c, ...rest] = detect(climbBottomup as Trace);
@@ -178,5 +241,14 @@ describe("detectDpTables", () => {
     // with >= 2 subscript occurrences. A debug printf reading arr[n-1] and
     // arr[n] right before a non-derived write (arr[n] = n * n) must not count.
     expect(detectDpTables(fillTrace(), fillCode)).toEqual([]);
+  });
+
+  it("rejects a bounds-validation guard that has \"return\" and 2 occurrences but returns a sentinel", () => {
+    // Regression: `if (arr[n] < 0 || arr[n] > 100) return -1;` has "return"
+    // AND 2 subscript occurrences on one line, same shape as a real memo
+    // guard — but it returns -1, not arr[n]. Only a guard that hands back the
+    // array's OWN subscripted value right after "return" is a memo
+    // short-circuit; this must not be credited as self-reference evidence.
+    expect(detectDpTables(boundsGuardTrace(), boundsGuardCode)).toEqual([]);
   });
 });
