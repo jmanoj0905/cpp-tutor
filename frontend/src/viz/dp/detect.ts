@@ -29,6 +29,8 @@ interface Tracked {
 
 interface StackFrameLike {
   func_name?: string;
+  frame_id?: string;
+  unique_hash?: string;
 }
 
 /** Whole-trace DP table detection. Sticky: run once per trace (memoize at the
@@ -81,16 +83,25 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       const writeLine = trace[step - 1]?.line ?? point.line;
       t.writeLines.add(writeLine);
       const lineText = codeLines[writeLine - 1] ?? "";
-      // Self-reference evidence may sit on the write line itself (bottom-up:
-      // "dp[i] = dp[i-1] + dp[i-2];") or on the guard line directly above it
-      // (top-down: "if (memo[n] != -1) return memo[n];" followed by the
-      // "memo[n] = ..." write line) — the classic memoization idiom. Count
-      // both so a single-occurrence write line paired with a two-occurrence
-      // guard line above it is recognized as self-referencing.
-      const prevLineText = codeLines[writeLine - 2] ?? "";
-      const subscriptCount =
-        countSubscripts(lineText, info.name) + countSubscripts(prevLineText, info.name);
-      if (subscriptCount >= 2) t.selfRefSteps.add(step);
+      // Self-reference evidence must come from a single line that actually
+      // EXECUTED — never from summing occurrences across source-adjacent
+      // lines (that would confirm a plain fill loop whose write line happens
+      // to sit under an unrelated read line). Two accepted witnesses:
+      //   (a) the write line itself has >= 2 occurrences (bottom-up:
+      //       "dp[i] = dp[i-1] + dp[i-2];"), or
+      //   (b) the guard line — the line the write's own frame executed
+      //       immediately before the write line first began, recovered from
+      //       the trace, not from source position — has >= 2 occurrences on
+      //       that one line (top-down: "if (memo[n] != -1) return memo[n];").
+      let selfRef = countSubscripts(lineText, info.name) >= 2;
+      if (!selfRef) {
+        const guardLine = guardLineBeforeWrite(trace, step - 1);
+        if (guardLine !== null &&
+            countSubscripts(codeLines[guardLine - 1] ?? "", info.name) >= 2) {
+          selfRef = true;
+        }
+      }
+      if (selfRef) t.selfRefSteps.add(step);
       const prev = trace[step - 1] ?? point;
       t.writeDepths.add(prev.stack_to_render.length);
       const top = prev.stack_to_render.at(-1) as StackFrameLike | undefined;
@@ -107,6 +118,44 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
     out.push({ cellId: t.cellId, name: t.name, dims: t.maxDims, mode, writes: t.writes });
   }
   return out;
+}
+
+/** Line executed by the write's own frame invocation immediately before the
+ *  write line FIRST began executing — the "guard" in the memoization idiom.
+ *  Execution adjacency, not source adjacency: replay the frame's step_line
+ *  history from the trace (identified by unique_hash/frame_id) and take the
+ *  line preceding the first occurrence of the write line. The point literally
+ *  before the write can be a callee's return artifact (observed in
+ *  climb-topdown: a step at the callee's closing brace attributed to the
+ *  caller frame mid-unwind), so trace[writeIdx - 1] alone is not usable.
+ *  Returns null when there is no unambiguous guard line — never guesses. */
+function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | null {
+  if (writeIdx < 1) return null;
+  const writePoint = trace[writeIdx];
+  const writeFrame = writePoint.stack_to_render.at(-1) as StackFrameLike | undefined;
+  if (!writeFrame) return null;
+  const key = frameKey(writeFrame);
+  const writeLine = writePoint.line;
+
+  // Lines executed with this exact frame invocation on top, oldest-first,
+  // stopping (backward) where the invocation no longer exists on the stack.
+  const history: number[] = [];
+  for (let j = writeIdx - 1; j >= 0; j--) {
+    const frames = trace[j].stack_to_render as StackFrameLike[];
+    if (!frames.some((f) => frameKey(f) === key)) break; // before frame entry
+    const top = frames.at(-1);
+    if (top && frameKey(top) === key) history.push(trace[j].line);
+  }
+  history.reverse();
+
+  const first = history.indexOf(writeLine);
+  if (first > 0) return history[first - 1];
+  if (first === -1) return history.at(-1) ?? null; // writeIdx is the first time at writeLine
+  return null; // write line is the first thing the frame executed — no guard
+}
+
+function frameKey(frame: StackFrameLike): string {
+  return frame.unique_hash ?? frame.frame_id ?? frame.func_name ?? "?";
 }
 
 function classify(t: Tracked): DpCandidate["mode"] | null {
