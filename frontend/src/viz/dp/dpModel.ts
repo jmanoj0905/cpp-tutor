@@ -72,6 +72,16 @@ export function buildDpView(
     const i = reads.findIndex((c) => c.join(",") === currentWrite!.join(","));
     if (i !== -1) reads.splice(i, 1);
   }
+  // The write performed by the line about to execute at this step isn't
+  // visible until `step + 1` (detect.ts records a write's coord one step
+  // after the line that produced it runs). Exclude that upcoming write's
+  // coord from the read set too, so the write target never leaks in as a
+  // spurious "read" on the line that is about to write it.
+  const nextWrite = candidate.writes.find((w) => w.step === step + 1);
+  if (nextWrite) {
+    const i = reads.findIndex((c) => c.join(",") === nextWrite.coord.join(","));
+    if (i !== -1) reads.splice(i, 1);
+  }
 
   return { candidate, cells, currentWrite, reads, maxWriteStep };
 }
