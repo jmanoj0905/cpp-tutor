@@ -51,6 +51,22 @@ describe("MemoryView DP integration", () => {
     expect(container.textContent).toContain("restore");
   });
 
+  it("task-8b regression: at a write-landing step, .dp-arrows path elements actually render", () => {
+    // Bug: DpTablePanel only draws `.dp-arrows` when `currentWrite && reads.length
+    // > 0`, but buildDpView always resolved reads off the CURRENT point's line —
+    // which, by the step a write lands, has already moved past the recurrence
+    // line. So `.dp-arrows` never rendered for any fixture at any step. This is
+    // the actual user-visible defect (verified live in the browser: `.dp-write`
+    // and `.dp-read` cells lit up on separate steps, but arrows never appeared).
+    const t = climbBottomup as Trace;
+    const [c] = detectDpTables(t.trace, t.code);
+    const w = c.writes.find((w) => w.coord[0] === 4)!;
+    const { container } = renderAt(t, w.step);
+    expect(container.querySelectorAll(".dp-write")).toHaveLength(1);
+    const arrows = container.querySelectorAll(".dp-arrows path");
+    expect(arrows.length).toBeGreaterThan(0);
+  });
+
   it("input-fill never shows a dp panel", () => {
     const t = inputFill as Trace;
     const { container } = renderAt(t, t.trace.length - 1);
@@ -95,5 +111,15 @@ describe("MemoryView DP — top-down and 2D", () => {
     const reads = [...container.querySelectorAll(".dp-read")].map((e) => e.getAttribute("data-coord"));
     const [i, j] = w.coord;
     expect(reads.sort()).toEqual([`${i - 1},${j}`, `${i},${j - 1}`].sort());
+  });
+
+  it("task-8b regression: grid-paths at a write-landing step, .dp-arrows path elements render", () => {
+    const t = gridPaths as Trace;
+    const [c] = detectDpTables(t.trace, t.code);
+    const w = c.writes.find((w) => w.coord.length === 2 && w.coord[0] >= 1 && w.coord[1] >= 1)!;
+    const { container } = renderAt(t, w.step);
+    expect(container.querySelectorAll(".dp-write")).toHaveLength(1);
+    const arrows = container.querySelectorAll(".dp-arrows path");
+    expect(arrows.length).toBeGreaterThan(0);
   });
 });

@@ -66,6 +66,23 @@ describe("buildDpView", () => {
     expect(v.reads).toContainEqual([i - 2]);
   });
 
+  it("at a write-landing step, with prevPoint supplied: reads reflect the operands that produced the write (arrows can render)", () => {
+    // Bug (task-8b): reads was always resolved from the CURRENT point's line,
+    // but by the step a write lands (currentWrite set), execution has already
+    // moved past the recurrence line to whatever runs next — so reads was
+    // always empty exactly when currentWrite was set, and DpTablePanel's
+    // arrows (which require currentWrite && reads.length > 0) never rendered.
+    // Fix: resolve reads from the PREVIOUS point's line/locals — the state at
+    // the moment the write was actually computed — when a write just landed.
+    const w = cand.writes.find((w) => w.coord[0] === 4)!;
+    const prev = t.trace[w.step - 1];
+    const v = buildDpView(cand, w.step, t.trace[w.step], normalizeMemory(t.trace[w.step]), codeLines, prev);
+    expect(v.currentWrite).toEqual([4]);
+    expect(v.reads).toContainEqual([3]);
+    expect(v.reads).toContainEqual([2]);
+    expect(v.reads).not.toContainEqual([4]);
+  });
+
   it("final step: all dp cells written, values present", () => {
     // The true last trace index is a "return" event: `dp` has already gone
     // out of scope (main's encoded_locals collapses to just `__return__`),
@@ -148,6 +165,18 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     expect(v.reads).not.toContainEqual([i, j]);
     expect(v.reads).toContainEqual([i - 1, j]);
     expect(v.reads).toContainEqual([i, j - 1]);
+  });
+
+  it("at a write-landing step, with prevPoint supplied: reads reflect up+left operands (arrows can render)", () => {
+    // Same task-8b fix, exercised on the 2D coord path.
+    const w = gCand.writes.find((w) => w.coord.length === 2 && w.coord[0] >= 1 && w.coord[1] >= 1)!;
+    const prev = g.trace[w.step - 1];
+    const v = buildDpView(gCand, w.step, g.trace[w.step], normalizeMemory(g.trace[w.step]), gCodeLines, prev);
+    const [i, j] = w.coord;
+    expect(v.currentWrite).toEqual([i, j]);
+    expect(v.reads).toContainEqual([i - 1, j]);
+    expect(v.reads).toContainEqual([i, j - 1]);
+    expect(v.reads).not.toContainEqual([i, j]);
   });
 
   it("final step: all dp cells written, corner value present", () => {
