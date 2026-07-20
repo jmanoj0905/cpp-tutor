@@ -42,6 +42,31 @@ export function countSubscripts(lineText: string, tableName: string): number {
   return subscriptOccurrences(lineText, tableName).length;
 }
 
+/** True when `lineText` is (once trimmed) a simple assignment whose LHS is a
+ *  subscript chain of `tableName` — i.e. `name[...] = expr;` (not `==`, `!=`,
+ *  `<=`, `>=`). This is the structural signature of a DP recurrence write:
+ *  the LHS subscript occurrence is always the write target, regardless of
+ *  when the trace records the underlying write as visible (bottom-up writes
+ *  land immediately; top-down/recursive writes can be delayed by many steps
+ *  while the RHS's recursive calls run). Only the FIRST `name[` occurrence at
+ *  the start of the trimmed line is considered — DP recurrence writes are
+ *  always simple `name[idx...] = expr;` statements, not compound/nested
+ *  assignment targets. */
+export function isAssignmentLhs(lineText: string, tableName: string): boolean {
+  const trimmed = lineText.trimStart();
+  const re = new RegExp(`^${escapeRe(tableName)}\\s*\\[`);
+  const m = re.exec(trimmed);
+  if (!m) return false;
+  let pos = m[0].length - 1; // at the "["
+  while (trimmed[pos] === "[") {
+    const close = matchBracket(trimmed, pos);
+    if (close === -1) return false;
+    pos = close + 1;
+    while (trimmed[pos] === " ") pos++;
+  }
+  return trimmed[pos] === "=" && trimmed[pos + 1] !== "=";
+}
+
 function matchBracket(s: string, open: number): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {

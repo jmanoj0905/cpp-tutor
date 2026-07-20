@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import climbBottomup from "./fixtures/dp/climb-bottomup.json";
+import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
 import type { Trace } from "../src/types/trace";
 import { normalizeMemory } from "../src/viz/memoryModel";
@@ -81,6 +82,32 @@ describe("buildDpView", () => {
     const v = viewAt(last);
     expect(v.cells.filter((c) => c.writeStep !== null).length).toBeGreaterThanOrEqual(5);
     expect(v.cells[6].value).toBe("13"); // fib-style climb(6)
+  });
+});
+
+describe("buildDpView: top-down/recursive table (climb-topdown fixture)", () => {
+  // Round 2 fix regression: detect.ts records a recursive/top-down write's
+  // coord many steps after the assignment line that produced it executes
+  // (the write isn't visible until the recursive calls on the RHS unwind),
+  // so neither the currentWrite- nor the "step + 1"-based exclusion in
+  // buildDpView can catch the write target here. The structural
+  // isAssignmentLhs check must exclude it independent of write-visibility
+  // timing.
+  const td = climbTopdown as Trace;
+  const tdCodeLines = td.code.split("\n");
+  const [tdCand] = detectDpTables(td.trace, td.code);
+
+  const tdViewAt = (step: number) =>
+    buildDpView(tdCand, step, td.trace[step], normalizeMemory(td.trace[step]), tdCodeLines);
+
+  it("at step 8 (n=6, memo[n] = solve(...) + solve(...) about to execute): write target [6] absent from reads", () => {
+    const step = 8;
+    const env = intEnv(td.trace[step]);
+    const n = env.get("n");
+    expect(n).toBe(6);
+    expect(tdCodeLines[td.trace[step].line - 1]).toContain("memo[n] = solve(n - 1, memo) + solve(n - 2, memo);");
+    const v = tdViewAt(step);
+    expect(v.reads).not.toContainEqual([6]);
   });
 });
 

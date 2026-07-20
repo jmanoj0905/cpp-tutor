@@ -1,7 +1,7 @@
 import type { ExecPoint } from "../../types/trace";
 import type { NormalizedCell, NormalizedMemory } from "../memoryModel";
 import type { DpCandidate } from "./detect";
-import { resolveOccurrences, type Coord } from "./readSet";
+import { isAssignmentLhs, resolveOccurrences, type Coord } from "./readSet";
 
 export interface DpCellView {
   coord: Coord;
@@ -68,6 +68,18 @@ export function buildDpView(
   const lineText = codeLines[point.line - 1] ?? "";
   const occ = resolveOccurrences(lineText, candidate.name, intEnv(point));
   const reads = [...occ];
+  // Structural primary defense: on an assignment line `name[...] = expr;`,
+  // the LHS subscript occurrence is always the write target, independent of
+  // when (or whether, within this step) the trace records the write as
+  // visible. This is required to generalize across bottom-up (write visible
+  // immediately) and top-down/recursive DP (write visibility can be delayed
+  // by many steps while the RHS's recursive calls execute) — timing-based
+  // exclusion (currentWrite / "next step" heuristics below) cannot catch the
+  // top-down case at all, since the write may not land for dozens of steps.
+  if (isAssignmentLhs(lineText, candidate.name) && occ.length > 0) {
+    const i = reads.findIndex((c) => c.join(",") === occ[0].join(","));
+    if (i !== -1) reads.splice(i, 1);
+  }
   if (currentWrite) {
     const i = reads.findIndex((c) => c.join(",") === currentWrite!.join(","));
     if (i !== -1) reads.splice(i, 1);
@@ -76,7 +88,10 @@ export function buildDpView(
   // visible until `step + 1` (detect.ts records a write's coord one step
   // after the line that produced it runs). Exclude that upcoming write's
   // coord from the read set too, so the write target never leaks in as a
-  // spurious "read" on the line that is about to write it.
+  // spurious "read" on the line that is about to write it. (Bottom-up
+  // safety net; the structural check above is the primary defense and
+  // already covers this case, but this is kept for the case where the
+  // write's step happens to land beyond a simple +1 offset.)
   const nextWrite = candidate.writes.find((w) => w.step === step + 1);
   if (nextWrite) {
     const i = reads.findIndex((c) => c.join(",") === nextWrite.coord.join(","));
