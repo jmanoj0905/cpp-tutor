@@ -44,12 +44,12 @@ export function MemoryView({ point, prevPoint, trace, code }: {
     const m = new Map<string, DpTableView>();
     for (const c of dpCandidates) {
       if (disabledDp.has(c.cellId)) continue;
-      m.set(c.cellId, buildDpView(c, step, point, memory, codeLines));
+      m.set(c.cellId, buildDpView(c, step, point, memory, codeLines, trace[step - 1] ?? null));
     }
     return m;
     // memory identity changes every render; safe: views derive from point
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dpCandidates, disabledDp, step, point, codeLines]);
+  }, [dpCandidates, disabledDp, step, point, codeLines, trace]);
   const toggleDp = (cellId: string) =>
     setDisabledDp((prev) => {
       const n = new Set(prev);

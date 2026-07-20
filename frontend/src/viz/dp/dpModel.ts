@@ -38,6 +38,7 @@ export function buildDpView(
   point: ExecPoint,
   mem: NormalizedMemory,
   codeLines: string[],
+  prevPoint: ExecPoint | null = null,
 ): DpTableView {
   const writeStepAt = new Map<string, number>();
   let currentWrite: Coord | null = null;
@@ -65,8 +66,17 @@ export function buildDpView(
     }
   }
 
-  const lineText = codeLines[point.line - 1] ?? "";
-  const occ = resolveOccurrences(lineText, candidate.name, intEnv(point));
+  // When a write just landed this step, the operand reads that produced it
+  // were resolved on the PREVIOUS trace point's line (the write's coord
+  // isn't visible until the step after the line that performed it runs — see
+  // detect.ts). Re-resolve against `prevPoint`'s line/locals in that case, so
+  // the read-set lines up with the write it's paired with in the UI. When no
+  // write landed this step (the already-correct "upcoming reads" case) or no
+  // previous point is available, keep resolving against the current point.
+  const usePrevPoint = currentWrite !== null && prevPoint !== null;
+  const readPoint = usePrevPoint ? prevPoint! : point;
+  const lineText = codeLines[readPoint.line - 1] ?? "";
+  const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint));
   const reads = [...occ];
   // Structural primary defense: on an assignment line `name[...] = expr;`,
   // the LHS subscript occurrence is always the write target, independent of
@@ -92,10 +102,12 @@ export function buildDpView(
   // safety net; the structural check above is the primary defense and
   // already covers this case, but this is kept for the case where the
   // write's step happens to land beyond a simple +1 offset.)
-  const nextWrite = candidate.writes.find((w) => w.step === step + 1);
-  if (nextWrite) {
-    const i = reads.findIndex((c) => c.join(",") === nextWrite.coord.join(","));
-    if (i !== -1) reads.splice(i, 1);
+  if (!usePrevPoint) {
+    const nextWrite = candidate.writes.find((w) => w.step === step + 1);
+    if (nextWrite) {
+      const i = reads.findIndex((c) => c.join(",") === nextWrite.coord.join(","));
+      if (i !== -1) reads.splice(i, 1);
+    }
   }
 
   return { candidate, cells, currentWrite, reads, maxWriteStep };
