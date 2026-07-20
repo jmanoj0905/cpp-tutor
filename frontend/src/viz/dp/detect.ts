@@ -92,12 +92,21 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       //   (b) the guard line — the line the write's own frame executed
       //       immediately before the write line first began, recovered from
       //       the trace, not from source position — has >= 2 occurrences on
-      //       that one line (top-down: "if (memo[n] != -1) return memo[n];").
+      //       that one line AND contains the literal substring "return"
+      //       (top-down: "if (memo[n] != -1) return memo[n];"). The "return"
+      //       requirement encodes the actual memoization idiom (an early
+      //       return gated on a self-lookup) rather than mere adjacency: a
+      //       leaf-recursion write (single visit per invocation, no loop) has
+      //       every previous-line-in-invocation land on whatever line ran
+      //       right before it — a debug printf, an assert, an unrelated
+      //       second read — and any such line with a coincidental 2nd
+      //       subscript occurrence would otherwise trip this fallback even
+      //       though it is never derived from the array's own prior value.
       let selfRef = countSubscripts(lineText, info.name) >= 2;
       if (!selfRef) {
         const guardLine = guardLineBeforeWrite(trace, step - 1);
-        if (guardLine !== null &&
-            countSubscripts(codeLines[guardLine - 1] ?? "", info.name) >= 2) {
+        const guardText = guardLine !== null ? (codeLines[guardLine - 1] ?? "") : "";
+        if (guardText.includes("return") && countSubscripts(guardText, info.name) >= 2) {
           selfRef = true;
         }
       }

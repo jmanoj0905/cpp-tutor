@@ -69,6 +69,73 @@ function printfFillTrace(): ExecPoint[] {
   return points;
 }
 
+// --- Synthetic trace: leaf-recursion fill with an unrelated 2-occurrence debug
+// line immediately before the write, no memoization guard. ---
+// Every leaf-recursion write (single visit per invocation, no loop) lands
+// "first time at the write line" in its own frame, so the guard-line fallback
+// picks whatever line ran right before it. Here that's a debug printf that
+// happens to read arr[n-1] AND arr[n] (2 occurrences) but is never gated by a
+// self-lookup ("return"-free) and never derives the write from a prior value
+// of the array (arr[n] = n * n does not depend on arr[n-1]). Must be rejected.
+const fillCode = `#include <cstdio>
+int fill(int n, int arr[]) {
+  if (n == 0) return 0;
+  fill(n - 1, arr);
+  printf("dbg %d %d\\n", arr[n - 1], arr[n]);
+  arr[n] = n * n;
+  return 0;
+}
+int main() {
+  int arr[5];
+  fill(4, arr);
+  printf("%d\\n", arr[4]);
+  return 0;
+}`;
+
+type FillArr = (number | "<UNINITIALIZED>")[];
+interface RawFrame { func_name: string; frame_id: string; unique_hash: string; encoded_locals: Record<string, unknown>;
+  ordered_varnames: string[]; is_highlighted: boolean; is_parent: boolean; is_zombie: boolean; line: number;
+  parent_frame_id_list: string[]; }
+
+function fillTrace(): ExecPoint[] {
+  const arr: FillArr = ["<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>", "<UNINITIALIZED>"];
+
+  const mainFrame = (): RawFrame => ({
+    func_name: "main", frame_id: "main_0xB00_0", unique_hash: "main_0xB00_0",
+    encoded_locals: { arr: ["C_ARRAY", "0x2000", ...arr.map((v, k) => ["C_DATA", `0x${(0x2000 + 4 * k).toString(16)}`, "int", v])] },
+    ordered_varnames: ["arr"], is_highlighted: false, is_parent: true, is_zombie: false, line: 0, parent_frame_id_list: [],
+  });
+  const fillFrame = (depth: number, n: number): RawFrame => ({
+    func_name: "fill(int, int*)", frame_id: `fill_0xF00${depth}`, unique_hash: `fill_0xF00${depth}`,
+    encoded_locals: { n: ["C_DATA", `0x9${depth}0`, "int", n] }, ordered_varnames: ["n"],
+    is_highlighted: true, is_parent: false, is_zombie: false, line: 0, parent_frame_id_list: [],
+  });
+  const stackFrames = (nStack: number[]): RawFrame[] =>
+    [mainFrame(), ...nStack.map((n, i) => fillFrame(i + 1, n))];
+  const point = (line: number, frames: RawFrame[]): ExecPoint => ({
+    line, event: "step_line", func_name: frames.at(-1)!.func_name, stack_to_render: frames,
+    heap: {}, globals: {}, ordered_globals: [], stdout: "",
+  });
+
+  const points: ExecPoint[] = [point(10, [mainFrame()]), point(11, [mainFrame()])];
+
+  const recurse = (nStack: number[]) => {
+    const n = nStack.at(-1)!;
+    points.push(point(3, stackFrames(nStack))); // guard: if (n == 0) return 0;
+    if (n === 0) return; // base case returns immediately, no write
+    points.push(point(4, stackFrames(nStack))); // about to call fill(n - 1, arr)
+    recurse([...nStack, n - 1]);
+    points.push(point(5, stackFrames(nStack))); // back from recursion; about to printf
+    points.push(point(6, stackFrames(nStack))); // printf ran; about to assign
+    arr[n] = n * n;
+    points.push(point(7, stackFrames(nStack))); // assignment ran (write now visible); about to return
+  };
+  recurse([4]);
+
+  points.push(point(12, [mainFrame()]), point(13, [mainFrame()]));
+  return points;
+}
+
 describe("detectDpTables", () => {
   it("climb-bottomup: confirms dp as 1D bottom-up with chronological writes", () => {
     const [c, ...rest] = detect(climbBottomup as Trace);
@@ -103,5 +170,13 @@ describe("detectDpTables", () => {
     // (write line, or the guard line run just before it), never from summing
     // occurrences across source-adjacent lines.
     expect(detectDpTables(printfFillTrace(), printfFillCode)).toEqual([]);
+  });
+
+  it("rejects leaf recursion whose pre-write line reads the array but isn't a memo guard", () => {
+    // Regression: guard-line evidence requires the literal memoization idiom
+    // (an early "return" gated on a self-lookup), not just any executed line
+    // with >= 2 subscript occurrences. A debug printf reading arr[n-1] and
+    // arr[n] right before a non-derived write (arr[n] = n * n) must not count.
+    expect(detectDpTables(fillTrace(), fillCode)).toEqual([]);
   });
 });
