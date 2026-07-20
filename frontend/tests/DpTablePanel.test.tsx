@@ -58,4 +58,37 @@ describe("DpTablePanel", () => {
     fireEvent.click(container.querySelector(".dp-generic-toggle")!);
     expect(onToggle).toHaveBeenCalled();
   });
+
+  it("detail box shows \"read at\" steps when readSteps is provided", () => {
+    const readSteps = new Map<string, number[]>([["2", [4, 6, 9]]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} readSteps={readSteps} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("read at");
+    expect(detail.textContent).toContain("4, 6, 9");
+  });
+
+  it("detail box omits \"read at\" when the cell has no read history", () => {
+    const readSteps = new Map<string, number[]>([["2", [4, 6, 9]]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} readSteps={readSteps} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="3"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).not.toContain("read at");
+  });
+
+  it("caps the read-step display at 8, then shows an ellipsis", () => {
+    const readSteps = new Map<string, number[]>([["2", [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} readSteps={readSteps} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("1, 2, 3, 4, 5, 6, 7, 8");
+    expect(detail.textContent).toContain("…");
+    expect(detail.textContent).not.toContain("9");
+  });
 });

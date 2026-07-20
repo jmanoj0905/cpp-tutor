@@ -8,7 +8,7 @@ import { Divider } from "../Divider.tsx";
 import { applyShapes, confirmShapeTypes } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
 import { detectDpTables } from "./dp/detect";
-import { buildDpView, type DpTableView } from "./dp/dpModel";
+import { buildDpView, collectReadSteps, type DpTableView } from "./dp/dpModel";
 
 export function MemoryView({ point, prevPoint, trace, code }: {
   point: ExecPoint;
@@ -56,6 +56,12 @@ export function MemoryView({ point, prevPoint, trace, code }: {
       if (n.has(cellId)) n.delete(cellId); else n.add(cellId);
       return n;
     });
+  // Whole-trace, so computed once per candidate set (not per step).
+  const dpReadSteps = useMemo(() => {
+    const m = new Map<string, Map<string, number[]>>();
+    for (const c of dpCandidates) m.set(c.cellId, collectReadSteps(trace, c, codeLines));
+    return m;
+  }, [dpCandidates, trace, codeLines]);
 
   useEffect(() => { setSelected(null); }, [point]);
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
@@ -76,7 +82,7 @@ export function MemoryView({ point, prevPoint, trace, code }: {
             <div className="frame">
               <div className="frame-name">Globals</div>
               <div className="frame-cells">
-                {memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} />)}
+                {memory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} dpReadSteps={dpReadSteps} />)}
               </div>
             </div>
           )}
@@ -91,6 +97,7 @@ export function MemoryView({ point, prevPoint, trace, code }: {
               changedIds={changedIds}
               dpViews={dpViews}
               onDpToggle={toggleDp}
+              dpReadSteps={dpReadSteps}
             />
           ))}
           {disabledDp.size > 0 && (
@@ -118,7 +125,7 @@ export function MemoryView({ point, prevPoint, trace, code }: {
             </button>
           )}
           <div className="frame-cells">
-            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} />)}
+            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} dpReadSteps={dpReadSteps} />)}
           </div>
         </section>
       </div>
@@ -134,7 +141,7 @@ export function MemoryView({ point, prevPoint, trace, code }: {
 }
 
 function FrameView({
-  frame, current, expanded, onToggle, highlightedIds, changedIds, dpViews, onDpToggle,
+  frame, current, expanded, onToggle, highlightedIds, changedIds, dpViews, onDpToggle, dpReadSteps,
 }: {
   frame: NormalizedFrame;
   current: boolean;
@@ -144,6 +151,7 @@ function FrameView({
   changedIds?: Set<string>;
   dpViews?: Map<string, DpTableView>;
   onDpToggle?: (cellId: string) => void;
+  dpReadSteps?: Map<string, Map<string, number[]>>;
 }) {
   const visible = frame.cells.filter((c) => !c.internal);
   const internal = frame.cells.filter((c) => c.internal);
@@ -151,14 +159,14 @@ function FrameView({
     <div className={`frame${current ? " frame-current" : ""}`}>
       <div className="frame-name">{frame.name}</div>
       <div className="frame-cells">
-        {visible.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} />)}
+        {visible.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} dpReadSteps={dpReadSteps} />)}
         {internal.length > 0 && (
           <>
             <button className="internals-toggle" onClick={onToggle}>
               {expanded ? "▾" : "▸"} {internal.length} internal{internal.length > 1 ? "s" : ""}
             </button>
             {expanded && internal.map((c) => (
-              <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} />
+              <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} dpReadSteps={dpReadSteps} />
             ))}
           </>
         )}

@@ -17,10 +17,16 @@ export function arrowPath(from: Coord, to: Coord): string {
   return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
 }
 
-export function DpTablePanel({ view, changedIds, onToggleGeneric }: {
+const READ_STEPS_DISPLAY_CAP = 8;
+
+export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
   view: DpTableView;
   changedIds?: Set<string>;
   onToggleGeneric: () => void;
+  /** Whole-trace read log (coord key "r,c" → steps), from
+   *  `collectReadSteps`. When provided, the detail box lists the steps at
+   *  which the selected cell was read, capped for display. */
+  readSteps?: Map<string, number[]>;
 }) {
   const [detail, setDetail] = useState<DpCellView | null>(null);
   const { candidate, cells, currentWrite, reads, maxWriteStep } = view;
@@ -81,6 +87,13 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric }: {
         <div className="dp-detail">
           <span>{candidate.name}[{detail.coord.join("][")}] = {detail.value}</span>
           <span>{detail.writeStep === null ? "not yet written" : `written at step ${detail.writeStep}`}</span>
+          {(() => {
+            const steps = readSteps?.get(key(detail.coord));
+            if (!steps || steps.length === 0) return null;
+            const shown = steps.slice(0, READ_STEPS_DISPLAY_CAP);
+            const more = steps.length > READ_STEPS_DISPLAY_CAP;
+            return <span>read at steps {shown.join(", ")}{more ? ", …" : ""}</span>;
+          })()}
           <button onClick={() => setDetail(null)}>×</button>
         </div>
       )}

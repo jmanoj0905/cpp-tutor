@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { fireEvent, render } from "@testing-library/react";
 import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import inputFill from "./fixtures/dp/input-fill.json";
+import climbTopdown from "./fixtures/dp/climb-topdown.json";
+import gridPaths from "./fixtures/dp/grid-paths.json";
 import type { Trace } from "../src/types/trace";
 import { MemoryView } from "../src/viz/MemoryView";
+import { detectDpTables } from "../src/viz/dp/detect";
 
 const renderAt = (t: Trace, step: number) =>
   render(
@@ -52,5 +55,45 @@ describe("MemoryView DP integration", () => {
     const t = inputFill as Trace;
     const { container } = renderAt(t, t.trace.length - 1);
     expect(container.querySelector(".dp-panel")).toBeNull();
+  });
+});
+
+describe("MemoryView DP — top-down and 2D", () => {
+  it("climb-topdown: memo renders as a dp panel labeled top-down", () => {
+    const t = climbTopdown as Trace;
+    // The true last trace index is a "return" event: `memo` (a reference
+    // parameter of `solve`) has already gone out of scope once `main`
+    // resumes after the call, same fixture quirk as climb-bottomup's `dp`
+    // (see lastStepInScope above / tests/dpModel.test.ts). Render at the
+    // last step where `memo` is still an in-scope local.
+    const step = lastStepInScope(t, "memo");
+    const { container } = renderAt(t, step);
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+    expect(container.querySelector(".dp-mode")!.textContent).toBe("top-down");
+  });
+
+  it("climb-topdown mid-recursion: memo cells fill in recursion order (out-of-index-order)", () => {
+    const t = climbTopdown as Trace;
+    const [c] = detectDpTables(t.trace, t.code);
+    const coords = c.writes.map((w) => w.coord[0]);
+    // top-down fills small n first while descending from n=6: not monotonically increasing from index 0 upward in loop order
+    expect(coords[0]).not.toBe(0);
+  });
+
+  it("grid-paths: 2D panel renders 12 cells; at an inner write, reads are up+left", () => {
+    const t = gridPaths as Trace;
+    const [c] = detectDpTables(t.trace, t.code);
+    const w = c.writes.find((w) => w.coord.length === 2 && w.coord[0] >= 1 && w.coord[1] >= 1)!;
+    // detect.ts records a write's coord as visible one step AFTER the
+    // assignment line that produced it executes (the trace advances past
+    // the recurrence line to the loop's re-entry by the time the write
+    // shows up) — same off-by-one documented in dpModel.test.ts. Render at
+    // `w.step - 1`, the step where the recurrence line itself is executing
+    // and its read operands are computed, to observe the up+left reads.
+    const { container } = renderAt(t, w.step - 1);
+    expect(container.querySelectorAll(".dp-cell")).toHaveLength(12);
+    const reads = [...container.querySelectorAll(".dp-read")].map((e) => e.getAttribute("data-coord"));
+    const [i, j] = w.coord;
+    expect(reads.sort()).toEqual([`${i - 1},${j}`, `${i},${j - 1}`].sort());
   });
 });

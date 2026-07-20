@@ -5,7 +5,7 @@ import gridPaths from "./fixtures/dp/grid-paths.json";
 import type { Trace } from "../src/types/trace";
 import { normalizeMemory } from "../src/viz/memoryModel";
 import { detectDpTables } from "../src/viz/dp/detect";
-import { buildDpView, intEnv } from "../src/viz/dp/dpModel";
+import { buildDpView, collectReadSteps, intEnv } from "../src/viz/dp/dpModel";
 
 const t = climbBottomup as Trace;
 const codeLines = t.code.split("\n");
@@ -160,5 +160,14 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     const v = gViewAt(last);
     expect(v.cells.filter((c) => c.writeStep !== null).length).toBeGreaterThanOrEqual(10);
     expect(v.cells[11].value).not.toBe("?");
+  });
+});
+
+describe("collectReadSteps", () => {
+  it("climb-bottomup: coord \"2\" is read (dp[2] is read when computing dp[3] and dp[4])", () => {
+    const log = collectReadSteps(t.trace, cand, codeLines);
+    const steps = log.get("2");
+    expect(steps).toBeDefined();
+    expect(steps!.length).toBeGreaterThan(0);
   });
 });

@@ -101,6 +101,32 @@ export function buildDpView(
   return { candidate, cells, currentWrite, reads, maxWriteStep };
 }
 
+/** Whole-trace read log: coord key "r,c" → steps whose executing line resolved
+ *  a read of that coord. Memoize at the call site alongside detectDpTables. */
+export function collectReadSteps(
+  trace: ExecPoint[],
+  candidate: DpCandidate,
+  codeLines: string[],
+): Map<string, number[]> {
+  const log = new Map<string, number[]>();
+  trace.forEach((point, step) => {
+    const lineText = codeLines[point.line - 1] ?? "";
+    const occ = resolveOccurrences(lineText, candidate.name, intEnv(point));
+    const reads = [...occ];
+    if (isAssignmentLhs(lineText, candidate.name) && occ.length > 0) {
+      const i = reads.findIndex((c) => c.join(",") === occ[0].join(","));
+      if (i !== -1) reads.splice(i, 1);
+    }
+    for (const coord of reads) {
+      const k = coord.join(",");
+      const list = log.get(k) ?? [];
+      list.push(step);
+      log.set(k, list);
+    }
+  });
+  return log;
+}
+
 function findCell(mem: NormalizedMemory, id: string): NormalizedCell | null {
   const stack: NormalizedCell[] = [
     ...mem.globals, ...mem.frames.flatMap((f) => f.cells), ...mem.heap,
