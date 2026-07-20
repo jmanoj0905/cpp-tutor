@@ -6,7 +6,7 @@ const CELL = 36; // px, uniform grid pitch for arrow geometry
 
 /** Pure helper (exported for tests): arrow path between two cell centers on
  *  the uniform grid. */
-export function arrowPath(from: Coord, to: Coord, cols: number): string {
+export function arrowPath(from: Coord, to: Coord): string {
   const center = (c: Coord) => {
     const [r, col] = c.length === 2 ? c : [0, c[0]];
     return [col * CELL + CELL / 2, r * CELL + CELL / 2];
@@ -68,7 +68,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric }: {
         {currentWrite && reads.length > 0 && (
           <svg className="dp-arrows" width={cols * CELL} height={rows * CELL}>
             {reads.map((r) => (
-              <path key={key(r)} d={arrowPath(r, currentWrite, cols)} />
+              <path key={key(r)} d={arrowPath(r, currentWrite)} />
             ))}
           </svg>
         )}

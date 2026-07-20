@@ -395,7 +395,8 @@ p {
 .connectors marker path { fill: var(--blue); }
 .cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }
 .cell.cell-changed,
-.cell-head.cell-changed { background: rgba(242, 177, 0, 0.22); box-shadow: inset 2px 0 0 var(--yellow); }
+.cell-head.cell-changed,
+.dp-cell.cell-changed { background: rgba(242, 177, 0, 0.22); box-shadow: inset 2px 0 0 var(--yellow); }
 
 .internals-toggle {
   background: none;
