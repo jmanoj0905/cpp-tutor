@@ -127,11 +127,24 @@ Rationale for the two-pronged rule:
 - The DFS bug: `F` at 112, nearest prior at 111 (adjacent), empty body, run
   length 2 < `SPIN_RUN` → correctly classified too long, **not** a loop.
 
-### Contract preservation (existing tests, all must stay green)
+### Contract preservation (existing tests)
+
+All existing tests stay green **except one**, which must be reshaped:
+
+- **`test_stdout_excluded_from_fingerprint` — MUST be revised.** It currently
+  uses a 2-point adjacent-identical trace `[pt5(stdout="a"), pt5(stdout="ab")]`
+  and expects `infinite_loop_detected`. That is the exact degenerate shape
+  Approach A now rejects (empty body, indistinguishable from the DFS pair), so
+  the assertion is no longer valid. Reshape it to preserve its *intent* — that
+  stdout is excluded from the fingerprint — with a genuine cycle:
+  `[pt5(stdout="a"), pt6, pt5(stdout="abc")]`. The final `pt5` matches index 0
+  by fingerprint despite differing stdout, and `pt6` is a real body between the
+  two sightings → still `infinite_loop_detected`, now legitimately.
+
+Unchanged (still green as-is):
 
 - `test_state_cycle_flagged_as_infinite_loop` — real body (`pt6`) → loop ✓
 - `test_infinite_loop_flagged_when_final_state_recurs` — real body (`A`) → loop ✓
-- `test_stdout_excluded_from_fingerprint` — real body → loop ✓
 - `test_early_call_then_step_line_repeat_is_not_a_loop` — final state novel → not loop ✓ (unchanged path)
 - `test_mid_trace_state_repeat_is_not_a_loop_when_final_state_novel` — final state novel → not loop ✓
 - `test_long_not_stuck_gets_budget_message`, `test_display_ceiling_truncates`,
