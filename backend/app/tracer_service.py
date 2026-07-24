@@ -16,7 +16,7 @@ class TracerTimeout(TracerError):
 
 _LIMIT_FLAGS = [
     "--net=none", "--cap-drop", "all", "--user=netuser",
-    "--memory=256m", "--cpus=1", "--pids-limit=128",
+    "--memory=2g", "--cpus=1", "--pids-limit=128",
 ]
 
 _TRACER_ARGV = ["python", "/opt/tracer/run_cpp_backend.py"]
@@ -104,7 +104,7 @@ def _run_tracer(code: str, lang: str, image: str, timeout: int):
 
 def run_trace(code: str, lang: str,
               image: str = "cpp-tutor-tracer:dev",
-              timeout: int = 60) -> Trace | CompileError:
+              timeout: int = 120) -> Trace | CompileError:
     if lang not in ("c", "cpp"):
         raise TracerError(f"unsupported lang: {lang}")
     try:

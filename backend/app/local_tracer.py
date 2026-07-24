@@ -14,7 +14,7 @@ import threading
 
 TRACER_SCRIPT = "/opt/tracer/run_cpp_backend.py"
 
-RLIMIT_CPU_SECONDS = 55        # below the 60s wrapper timeout
+RLIMIT_CPU_SECONDS = 115       # below the 120s wrapper timeout
 RLIMIT_AS_BYTES = 4 * 1024**3  # generous: valgrind reserves large VA ranges
 RLIMIT_NPROC = 128             # mirrors docker --pids-limit=128
 
