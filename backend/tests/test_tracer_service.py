@@ -110,7 +110,7 @@ def test_starts_warm_container_when_missing():
         result = run_trace("int main(){}", "cpp")
     assert isinstance(result, Trace)
     start = next(c for c in fake.calls if c[1] == "run")
-    assert "-d" in start and "--net=none" in start and "--memory=256m" in start
+    assert "-d" in start and "--net=none" in start and "--memory=2g" in start
 
 
 def test_timeout_kills_warm_container():
@@ -158,7 +158,7 @@ def test_local_mode_routes_to_local_tracer(monkeypatch):
          patch("app.tracer_service.subprocess.run") as docker_run:
         result = run_trace("int main(){}", "cpp")
     assert isinstance(result, Trace)
-    run_local.assert_called_once_with("int main(){}", "cpp", 60)
+    run_local.assert_called_once_with("int main(){}", "cpp", 120)
     docker_run.assert_not_called()
 
 

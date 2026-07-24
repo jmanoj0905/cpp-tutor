@@ -50,6 +50,6 @@ def test_timeout_kills_process_group_and_reraises():
 
 def test_cpu_rlimit_sits_below_backend_timeout():
     """The CPU rlimit is the in-container replacement for docker --cpus/timeout;
-    it must trip before the 60s wrapper timeout so callers get tracer output,
+    it must trip before the 120s wrapper timeout so callers get tracer output,
     not a wrapper kill."""
-    assert local_tracer.RLIMIT_CPU_SECONDS < 60
+    assert local_tracer.RLIMIT_CPU_SECONDS < 120
