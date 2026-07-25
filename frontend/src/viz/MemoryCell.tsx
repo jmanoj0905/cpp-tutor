@@ -19,6 +19,10 @@ interface MemoryCellProps {
    *  DpTablePanel instead of the plain array cell. */
   dpViews?: Map<string, DpTableView>;
   onDpToggle?: (cellId: string) => void;
+  /** Flip a string / vector-of-strings cell between string and char-array view
+   *  (see `charView.ts`). Rendered as a header button on cells whose
+   *  `charViewToggle` is set. */
+  onCharViewToggle?: (cellId: string) => void;
   /** Per-candidate whole-trace read logs, keyed the same as `dpViews` (by the
    *  DP table's own cell id), each a "r,c" coord key → steps map from
    *  `collectReadSteps`. Passed straight through to the matching
@@ -26,7 +30,7 @@ interface MemoryCellProps {
   dpReadSteps?: Map<string, Map<string, number[]>>;
 }
 
-export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false, dpViews, onDpToggle, dpReadSteps }: MemoryCellProps) {
+export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false, dpViews, onDpToggle, onCharViewToggle, dpReadSteps }: MemoryCellProps) {
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -49,8 +53,17 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
         <span className="cell-name">{cell.name}</span>
         {cell.type && cell.kind !== "array" && cell.kind !== "container" && <span className="cell-type">{cell.type}</span>}
         <CellValue cell={cell} noPorts={noPorts} />
+        {cell.charViewToggle && onCharViewToggle && (
+          <button
+            className={`char-view-toggle${cell.charViewToggle === "on" ? " char-view-on" : ""}`}
+            title={cell.charViewToggle === "on" ? "Show as string" : "Show as char array"}
+            onClick={(e) => { e.stopPropagation(); onCharViewToggle(cell.id); }}
+          >
+            {cell.charViewToggle === "on" ? "⇄ string" : "⇄ chars"}
+          </button>
+        )}
       </div>
-      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} dpReadSteps={dpReadSteps} />}
+      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} dpReadSteps={dpReadSteps} />}
     </div>
   );
 }
@@ -79,7 +92,7 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpViews, onDpToggle, dpReadSteps }: MemoryCellProps) {
+function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpViews, onDpToggle, onCharViewToggle, dpReadSteps }: MemoryCellProps) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
@@ -96,7 +109,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
         {all.map((rowCell) => (
           <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
             {(rowCell.children ?? []).map((el) => (
-              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} dpReadSteps={dpReadSteps} />
+              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} dpReadSteps={dpReadSteps} />
             ))}
           </div>
         ))}
@@ -123,7 +136,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
             key={slice.id}
             cell={slice}
             highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts}
-            dpViews={dpViews} onDpToggle={onDpToggle} dpReadSteps={dpReadSteps}
+            dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} dpReadSteps={dpReadSteps}
           />
         ))}
         {hidden > 0 && (
@@ -146,6 +159,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
           noPorts={noPorts}
           dpViews={dpViews}
           onDpToggle={onDpToggle}
+          onCharViewToggle={onCharViewToggle}
           dpReadSteps={dpReadSteps}
         />
       ))}

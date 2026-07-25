@@ -25,6 +25,12 @@ export interface NormalizedCell {
    *  recoverable from this tracer); suppresses key/value pair layout. */
   placeholders?: boolean;
   note?: string;
+  /** Set by the view-layer char-view transform (see stl-less `charView.ts`):
+   *  "off" means this cell can be toggled to a char-array view (a std::string,
+   *  or a vector whose elements are all strings) but currently is not; "on"
+   *  means the toggle is active. Undefined for cells with no such affordance.
+   *  Purely presentational — `normalizeMemory` never sets it. */
+  charViewToggle?: "on" | "off";
   /** True for compiler-generated top-level stack locals (name starts with `__`),
    *  e.g. range-for temporaries __for_range/__for_begin/__for_end. Hidden by
    *  default behind the per-frame internals toggle. */
