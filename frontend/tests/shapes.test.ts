@@ -398,3 +398,26 @@ describe("buildTrieEdges", () => {
     expect(buildTrieEdges(g)[0].label).toBe("2");
   });
 });
+
+describe("trie model via applyShapes", () => {
+  const mem = (cells: NormalizedCell[]): NormalizedMemory =>
+    ({ globals: [], frames: [], heap: cells, links: [] });
+
+  it("builds an N-ary trie with terminal flags and empty node labels", () => {
+    const memory = mem([
+      trieNode("0x1", { 0: "0x2" }),
+      trieNode("0x2", { 15: "0x3" }),
+      trieNode("0x3", {}, true),
+    ]);
+    const confirmed = new Map<string, "list" | "tree" | "trie">([["TrieNode", "trie"]]);
+    const { shapes } = applyShapes(memory, confirmed, new Set());
+    expect(shapes).toHaveLength(1);
+    const s = shapes[0];
+    expect(s.kind).toBe("trie");
+    expect(s.nodes).toHaveLength(3);
+    expect(s.edges.map((e) => e.label)).toEqual(["a", "p"]);
+    const terminal = s.nodes.find((n) => n.terminal);
+    expect(terminal?.id).toBe("heap-heap-0x3");
+    expect(s.nodes.every((n) => n.label === "")).toBe(true); // edge chars carry identity
+  });
+});

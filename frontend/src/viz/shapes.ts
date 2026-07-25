@@ -105,10 +105,11 @@ export interface ShapeNode {
   label: string;        // payload displayValues, e.g. "7"
   payloadIds: string[]; // leaf ids of non-self-ptr members (diff tinting)
   cell: NormalizedCell; // full struct for the detail box
+  terminal?: boolean;   // trie: a true boolean payload member (endOfWord)
 }
 
 export interface ShapeModel {
-  kind: "list" | "tree";
+  kind: ShapeKind;
   typeName: string;
   nodes: ShapeNode[];
   edges: ShapeEdge[];
@@ -228,17 +229,21 @@ function fingerTargets(links: MemoryLink[], nodeIds: Set<string>): Set<string> {
   return out;
 }
 
-function toShapeNode(cell: NormalizedCell, selfNames: Set<string>): ShapeNode {
+function toShapeNode(cell: NormalizedCell, selfNames: Set<string>, kind: ShapeKind): ShapeNode {
   const self = new Set(selfMembersOf(cell, selfNames).map((m) => m.id));
   const payload = (cell.children ?? []).filter((c) => !self.has(c.id));
   const leaves = (cs: NormalizedCell[]): NormalizedCell[] =>
     cs.flatMap((c) => (c.children?.length ? leaves(c.children) : [c]));
+  const terminal = payload.some((p) => p.type === "bool" && p.displayValue === "true");
+  const labelParts = kind === "trie" ? payload.filter((p) => p.type !== "bool") : payload;
+  const label = labelParts.map((p) => p.displayValue).join(", ") || (kind === "trie" ? "" : cell.displayValue);
   return {
     id: cell.id,
     address: cell.address as string,
-    label: payload.map((p) => p.displayValue).join(", ") || cell.displayValue,
+    label,
     payloadIds: leaves(payload).map((c) => c.id),
     cell,
+    terminal,
   };
 }
 
@@ -275,13 +280,13 @@ function buildListModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
   const detached = chains.filter((ch) => !ch.some((id) => fingers.has(id))).flat();
   return {
     kind: "list", typeName: g.typeName,
-    nodes: g.cells.map((c) => toShapeNode(c, g.selfNames)), edges, groups: chains, detached,
+    nodes: g.cells.map((c) => toShapeNode(c, g.selfNames, "list")), edges, groups: chains, detached,
   };
 }
 
 export function applyShapes(
   memory: NormalizedMemory,
-  confirmed: Map<string, "list" | "tree">,
+  confirmed: Map<string, ShapeKind>,
   disabledTypes: Set<string>,
   selfNamesOverride?: Map<string, Set<string>>,
 ): ShapeResult {
@@ -290,7 +295,10 @@ export function applyShapes(
   for (const g of collectGroups(memory, selfNamesOverride).values()) {
     const kind = confirmed.get(g.typeName);
     if (!kind || disabledTypes.has(g.typeName)) continue;
-    const shape = kind === "list" ? buildListModel(g, memory.links) : buildTreeModel(g, memory.links);
+    const shape =
+      g.kind === "list" ? buildListModel(g, memory.links)
+      : g.kind === "trie" ? buildTreeModel(g, memory.links, buildTrieEdges(g))
+      : buildTreeModel(g, memory.links);
     shapes.push(shape);
     for (const n of shape.nodes) consumedIds.add(n.id);
   }
@@ -323,8 +331,7 @@ function filterConsumedHeap(cells: NormalizedCell[], consumedIds: Set<string>): 
 /** Tolerant per-step tree walk: pre-order from in-degree-0 roots; a node is
  *  laid out under its first-seen parent; extra edges (transient double parent,
  *  cycles) stay in `edges` but do not re-enter the traversal. */
-function buildTreeModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
-  const edges = buildEdges(g);
+function buildTreeModel(g: TypeGroup, links: MemoryLink[], edges: ShapeEdge[] = buildEdges(g)): ShapeModel {
   const indeg = inDegrees(g.cells, edges);
   const nodeIds = new Set(g.cells.map((c) => c.id));
   const fingers = fingerTargets(links, nodeIds);
@@ -358,11 +365,11 @@ function buildTreeModel(g: TypeGroup, links: MemoryLink[]): ShapeModel {
   for (const c of g.cells) preorder(c.id); // leftover = cycle component; still shown
 
   const detached = groups.filter((grp) => !grp.some((id) => fingers.has(id))).flat();
-  return { kind: "tree", typeName: g.typeName, nodes: g.cells.map((c) => toShapeNode(c, g.selfNames)), edges, groups, detached };
+  return { kind: g.kind, typeName: g.typeName, nodes: g.cells.map((c) => toShapeNode(c, g.selfNames, g.kind)), edges, groups, detached };
 }
 
 export interface ShapeInfo {
-  confirmed: Map<string, "list" | "tree">; // typeName -> kind, sticky for the whole trace
+  confirmed: Map<string, ShapeKind>; // typeName -> kind, sticky for the whole trace
   firstSeen: Map<string, number>;          // heap address -> first step index (detail box "allocated at")
   selfNames: Map<string, Set<string>>;     // typeName -> proven self-pointer member names, whole-trace evidence
 }
