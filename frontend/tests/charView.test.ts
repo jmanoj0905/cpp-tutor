@@ -110,3 +110,108 @@ describe("applyCharView — non-string cells untouched", () => {
     expect(out.displayValue).toBe("vector<int> · 2");
   });
 });
+
+// ---- helpers for the "everywhere" coverage cases ----
+function str(id: string, text: string): NormalizedCell {
+  return {
+    id, name: id, source: "stack", kind: "container", address: null, type: "string",
+    displayValue: JSON.stringify(text), rawValue: null, containerKind: "string",
+    elementType: "char", length: text.length,
+    children: [...text].map((ch, i) => ({
+      id: `${id}.${i}`, name: `[${i}]`, source: "stack" as const, kind: "scalar" as const,
+      address: null, type: "char", displayValue: ch, rawValue: null,
+    })),
+  };
+}
+const container = (id: string, kind: string, children: NormalizedCell[]): NormalizedCell => ({
+  id, name: id, source: "stack", kind: "container", address: null, type: kind,
+  displayValue: `${kind} · ${children.length}`, rawValue: null, containerKind: kind,
+  length: children.length, children,
+});
+
+describe("applyCharView — every homogeneous string sequence gets a container flip", () => {
+  for (const kind of ["set", "deque", "list", "forward_list", "multiset", "unordered_set", "array"]) {
+    it(`gives ${kind}<string> one container-level toggle that flips all elements`, () => {
+      const c = container("c", kind, [str("c.a", "ab"), str("c.b", "cd")]);
+      const off = find(applyCharView(memWith(c), new Set()), "c")!;
+      expect(off.charViewToggle).toBe("off");
+      for (const child of off.children ?? []) expect(child.charViewToggle).toBeUndefined();
+
+      const on = find(applyCharView(memWith(c), new Set(["c"])), "c")!;
+      expect(on.charViewToggle).toBe("on");
+      for (const child of on.children ?? []) {
+        expect(child.containerKind).toBe("vector");
+        expect(child.elementType).toBe("char");
+        expect(child.displayValue).toMatch(/^vector<char> · \d+$/);
+      }
+    });
+  }
+});
+
+describe("applyCharView — strings nested in map/set values, pairs, structs", () => {
+  it("gives a map<int,string> value its own per-value toggle and flips it", () => {
+    // entry = pair with relabeled key/value members
+    const entry: NormalizedCell = {
+      id: "m.0", name: "[0]", source: "stack", kind: "container", address: null, type: "pair",
+      displayValue: "pair", rawValue: null, containerKind: "pair", children: [
+        { id: "m.0.k", name: "key", source: "stack", kind: "scalar", address: null, type: "int", displayValue: "7", rawValue: null },
+        str("m.0.v", "hi"),
+      ],
+    };
+    const map = container("m", "map", [entry]);
+    const value = (mem: NormalizedMemory) =>
+      find(mem, "m")!.children![0].children!.find((c) => c.id === "m.0.v")!;
+
+    const off = value(applyCharView(memWith(map), new Set()));
+    expect(off.charViewToggle).toBe("off");
+    expect(off.containerKind).toBe("string");
+
+    const on = value(applyCharView(memWith(map), new Set(["m.0.v"])));
+    expect(on.charViewToggle).toBe("on");
+    expect(on.containerKind).toBe("vector");
+    expect((on.children ?? []).map((c) => c.displayValue)).toEqual(["h", "i"]);
+  });
+
+  it("gives a pair<int,string> string member its own toggle (pair is not a homogeneous string sequence)", () => {
+    const pair: NormalizedCell = {
+      id: "p", name: "p", source: "stack", kind: "container", address: null, type: "pair",
+      displayValue: "pair", rawValue: null, containerKind: "pair", children: [
+        { id: "p.f", name: "first", source: "stack", kind: "scalar", address: null, type: "int", displayValue: "1", rawValue: null },
+        str("p.s", "yo"),
+      ],
+    };
+    const out = find(applyCharView(memWith(pair), new Set(["p.s"])), "p")!;
+    expect(out.charViewToggle).toBeUndefined(); // the pair itself is not togglable
+    const s = out.children!.find((c) => c.id === "p.s")!;
+    expect(s.charViewToggle).toBe("on");
+    expect(s.containerKind).toBe("vector");
+  });
+
+  it("gives a string struct member its own toggle", () => {
+    const strct: NormalizedCell = {
+      id: "obj", name: "obj", source: "stack", kind: "struct", address: null, type: "Person",
+      displayValue: "Person", rawValue: null, children: [
+        { id: "obj.age", name: "age", source: "stack", kind: "scalar", address: null, type: "int", displayValue: "30", rawValue: null },
+        str("obj.name", "sam"),
+      ],
+    };
+    const off = find(applyCharView(memWith(strct), new Set()), "obj")!
+      .children!.find((c) => c.id === "obj.name")!;
+    expect(off.charViewToggle).toBe("off");
+  });
+
+  it("nested vector<vector<string>>: each inner vector gets its own container flip", () => {
+    const inner1 = container("g.0", "vector", [str("g.0.a", "ab")]);
+    const inner2 = container("g.1", "vector", [str("g.1.a", "cd")]);
+    const outer = container("g", "vector", [inner1, inner2]);
+    const out = find(applyCharView(memWith(outer), new Set(["g.0"])), "g")!;
+    // outer is a vector of vectors, not of strings → no container toggle on it.
+    expect(out.charViewToggle).toBeUndefined();
+    const i0 = out.children!.find((c) => c.id === "g.0")!;
+    const i1 = out.children!.find((c) => c.id === "g.1")!;
+    expect(i0.charViewToggle).toBe("on");
+    expect(i1.charViewToggle).toBe("off");
+    expect(i0.children![0].containerKind).toBe("vector"); // flipped string
+    expect(i1.children![0].containerKind).toBe("string");  // untouched
+  });
+});
