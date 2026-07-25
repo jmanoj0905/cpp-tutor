@@ -1,0 +1,165 @@
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c b/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c
+index 190ada1..3958861 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/d3basics.c
+@@ -476,9 +476,19 @@ static Bool bias_address( Addr* a, const DebugInfo* di )
+ }
+ 
+ 
++/* pgbovine: see priv_d3basics.h. Single-threaded debuginfo analysis, so a
++   file-static toggle is safe; analyse_deps sets it True only around its
++   retry probes and resets it to False immediately after. */
++static Bool td_elide_final_deref = False;
++
++void ML_(set_elide_final_deref) ( Bool b )
++{
++   td_elide_final_deref = b;
++}
++
+ /* Evaluate a standard DWARF3 expression.  See detailed description in
+    priv_d3basics.h.  Doesn't handle DW_OP_piece/DW_OP_bit_piece yet.  */
+-GXResult ML_(evaluate_Dwarf3_Expr) ( const UChar* expr, UWord exprszB, 
++GXResult ML_(evaluate_Dwarf3_Expr) ( const UChar* expr, UWord exprszB,
+                                      const GExpr* fbGX, const RegSummary* regs,
+                                      const DebugInfo* di,
+                                      Bool push_initial_zero )
+@@ -676,6 +686,12 @@ GXResult ML_(evaluate_Dwarf3_Expr) ( const UChar* expr, UWord exprszB,
+                  "DW_OP_GNU_push_tls_address");
+             /*NOTREACHED*/
+          case DW_OP_deref:
++            if (td_elide_final_deref && expr == limit) {
++               /* Final deref elided: leave the pointer-slot address on the
++                  stack as the expression's result. The outer loop sees
++                  expr == limit next and returns top-of-stack. */
++               break;
++            }
+             POP(uw1);
+             if (VG_(am_is_valid_for_client)( (Addr)uw1, sizeof(Addr),
+                                              VKI_PROT_READ )) {
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/debuginfo.c b/valgrind-3.11.0/coregrind/m_debuginfo/debuginfo.c
+index 24c20a0..61d3f1b 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/debuginfo.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/debuginfo.c
+@@ -5443,6 +5443,29 @@ void analyse_deps ( /*MOD*/XArray* /* of FrameBlock */ blocks,
+    regs.sp   = 0;
+    res_fp_7k = ML_(evaluate_GX)( var->gexpr, var->fbGX, &regs, di );
+ 
++   /* pgbovine: by-invisible-reference by-value class params (std::string,
++      std::vector, user classes) have location `DW_OP_fbreg K; DW_OP_deref`.
++      The trailing deref reads the bogus probe address above and fails, so the
++      four probes returned GXR_Failure and the variable would be dropped.
++      Retry with the final deref elided: this classifies the POINTER SLOT
++      (fbreg K), which is linear in sp/fp, and we record the block as
++      indirect so the runtime reader derefs the slot to reach the object. */
++   Bool indirect = False;
++   if (res_sp_6k.kind != GXR_Addr) {
++      ML_(set_elide_final_deref)( True );
++      regs.fp = 0;        regs.ip = ip; regs.sp = 6 * 1024;
++      res_sp_6k = ML_(evaluate_GX)( var->gexpr, var->fbGX, &regs, di );
++      regs.fp = 0;        regs.ip = ip; regs.sp = 7 * 1024;
++      res_sp_7k = ML_(evaluate_GX)( var->gexpr, var->fbGX, &regs, di );
++      regs.fp = 6 * 1024; regs.ip = ip; regs.sp = 0;
++      res_fp_6k = ML_(evaluate_GX)( var->gexpr, var->fbGX, &regs, di );
++      regs.fp = 7 * 1024; regs.ip = ip; regs.sp = 0;
++      res_fp_7k = ML_(evaluate_GX)( var->gexpr, var->fbGX, &regs, di );
++      /* Leave the toggle ON: the base-extraction evaluate_GX calls below must
++         also elide. It is reset to False at the end of this function. */
++      indirect = True;
++   }
++
+    vg_assert(res_sp_6k.kind == res_sp_7k.kind);
+    vg_assert(res_sp_6k.kind == res_fp_6k.kind);
+    vg_assert(res_sp_6k.kind == res_fp_7k.kind);
+@@ -5471,6 +5494,7 @@ void analyse_deps ( /*MOD*/XArray* /* of FrameBlock */ blocks,
+          block.base  = res.word;
+          block.szB   = (SizeT)mul.ul;
+          block.spRel = True;
++         block.indirect = indirect;
+          block.isVec = isVec;
+          VG_(memset)( &block.name[0], 0, sizeof(block.name) );
+          if (var->name)
+@@ -5491,6 +5515,7 @@ void analyse_deps ( /*MOD*/XArray* /* of FrameBlock */ blocks,
+          block.base  = res.word;
+          block.szB   = (SizeT)mul.ul;
+          block.spRel = False;
++         block.indirect = indirect;
+          block.isVec = isVec;
+          VG_(memset)( &block.name[0], 0, sizeof(block.name) );
+          if (var->name)
+@@ -5503,6 +5528,8 @@ void analyse_deps ( /*MOD*/XArray* /* of FrameBlock */ blocks,
+          vg_assert(0);
+       }
+    }
++
++   ML_(set_elide_final_deref)( False );
+ }
+ 
+ 
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/priv_d3basics.h b/valgrind-3.11.0/coregrind/m_debuginfo/priv_d3basics.h
+index b7eec6f..2d9a310 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/priv_d3basics.h
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/priv_d3basics.h
+@@ -669,11 +669,19 @@ GXResult ML_(evaluate_GX)( const GExpr* gx, const GExpr* fbGX,
+    This is needed for computing structure field offsets.  Note that
+    ML_(evaluate_GX) and ML_(evaluate_Dwarf3_Expr) are mutually
+    recursive. */
+-GXResult ML_(evaluate_Dwarf3_Expr) ( const UChar* expr, UWord exprszB, 
++GXResult ML_(evaluate_Dwarf3_Expr) ( const UChar* expr, UWord exprszB,
+                                      const GExpr* fbGX, const RegSummary* regs,
+                                      const DebugInfo* di,
+                                      Bool push_initial_zero );
+ 
++/* pgbovine: when set True, ML_(evaluate_Dwarf3_Expr) treats a DW_OP_deref
++   that is the FINAL opcode of an expression as a no-op (leaving the address
++   on the stack) instead of reading client memory. Used only by analyse_deps
++   to classify by-invisible-reference by-value class params, whose location is
++   `DW_OP_fbreg K; DW_OP_deref`. Off by default; must be reset to False by the
++   caller immediately after use. */
++void ML_(set_elide_final_deref) ( Bool b );
++
+ /* Evaluate a very simple Guarded (DWARF3) expression.  The expression
+    is expected to denote a constant, with no reference to any
+    registers nor to any frame base expression.  GXR_Failure is
+diff --git a/valgrind-3.11.0/include/pub_tool_debuginfo.h b/valgrind-3.11.0/include/pub_tool_debuginfo.h
+index 30ad642..058c969 100644
+--- a/valgrind-3.11.0/include/pub_tool_debuginfo.h
++++ b/valgrind-3.11.0/include/pub_tool_debuginfo.h
+@@ -188,6 +188,8 @@ typedef
+       SizeT    szB;        /* size in bytes */
+       Bool     spRel;      /* True => sp-rel, False => fp-rel */
+       Bool     isVec;      /* does block have an array type, or not? */
++      Bool     indirect;   /* pgbovine: base points to a POINTER to the object
++                               (by-invisible-reference by-value class param) */
+       HChar    name[16];   /* first 15 chars of name (asciiz) */
+       const HChar* fullname; // pgbovine - full variable name
+    }
+diff --git a/valgrind-3.11.0/memcheck/mc_translate.c b/valgrind-3.11.0/memcheck/mc_translate.c
+index b69bdcf..2e87a7c 100644
+--- a/valgrind-3.11.0/memcheck/mc_translate.c
++++ b/valgrind-3.11.0/memcheck/mc_translate.c
+@@ -30,6 +30,8 @@
+ */
+ 
+ #include "pub_tool_basics.h"
++#include "pub_tool_vki.h"           // pgbovine: VKI_PROT_READ
++#include "pub_tool_aspacemgr.h"     // pgbovine: VG_(am_is_valid_for_client)
+ #include "pub_tool_poolalloc.h"     // For mc_include.h
+ #include "pub_tool_hashtable.h"     // For mc_include.h
+ #include "pub_tool_libcassert.h"
+@@ -6473,6 +6475,16 @@ void pg_trace_inst(Addr a, ULong ret_reg)
+         for (j = 0; j < VG_(sizeXA)(blocks); j++) {
+           StackBlock* sb = VG_(indexXA)(blocks, j);
+           Addr var_addr = sb->spRel ? cur_sp + sb->base : cur_fp + sb->base;
++          if (sb->indirect) {
++             /* pgbovine: base points to a pointer to the object (by-value
++                class param passed by invisible reference). Deref with the
++                real registers/memory to reach the object. */
++             if (!VG_(am_is_valid_for_client)(var_addr, sizeof(Addr),
++                                              VKI_PROT_READ)) {
++                continue; /* slot unreadable -- skip, as if the var were absent */
++             }
++             var_addr = *(Addr*)var_addr;
++          }
+           //VG_(printf)("  sb %d: %s | base: %d, szB: %d, spRel: %d, isVec: %d | %p\n", j, sb->name,
+           //            sb->base, sb->szB, sb->spRel, sb->isVec,
+           //            (void*)var_addr);

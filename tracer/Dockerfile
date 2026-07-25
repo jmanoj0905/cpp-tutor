@@ -43,6 +43,17 @@ RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-dwarf-inheritance.patch
 #        enclosing list<T> container.
 COPY cpp-stl-node-payload.patch /tmp/cpp-stl-node-payload.patch
 RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-node-payload.patch
+# Fix 6: capture by-value non-trivially-copyable parameters (std::string,
+#        std::vector, user classes). The Itanium ABI passes them by invisible
+#        reference, so gcc emits their DWARF location as `DW_OP_fbreg K;
+#        DW_OP_deref`. Valgrind's analyse_deps classifies stack locals by
+#        evaluating the location under fake probe registers; the trailing
+#        deref reads unmapped memory and fails, so the variable is dropped.
+#        This patch lets analyse_deps elide a final deref to classify the
+#        pointer slot (marking the block `indirect`), and derefs the slot at
+#        runtime to reach the object.
+COPY cpp-byval-param-capture.patch /tmp/cpp-byval-param-capture.patch
+RUN cd /opt/tracer && patch -p1 < /tmp/cpp-byval-param-capture.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
