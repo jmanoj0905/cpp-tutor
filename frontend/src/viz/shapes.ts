@@ -234,7 +234,7 @@ function toShapeNode(cell: NormalizedCell, selfNames: Set<string>, kind: ShapeKi
   const payload = (cell.children ?? []).filter((c) => !self.has(c.id));
   const leaves = (cs: NormalizedCell[]): NormalizedCell[] =>
     cs.flatMap((c) => (c.children?.length ? leaves(c.children) : [c]));
-  const terminal = payload.some((p) => p.type === "bool" && p.displayValue === "true");
+  const terminal = kind === "trie" && payload.some((p) => p.type === "bool" && p.displayValue === "true");
   const labelParts = kind === "trie" ? payload.filter((p) => p.type !== "bool") : payload;
   const label = labelParts.map((p) => p.displayValue).join(", ") || (kind === "trie" ? "" : cell.displayValue);
   return {

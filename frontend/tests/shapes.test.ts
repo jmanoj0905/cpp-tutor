@@ -251,6 +251,25 @@ describe("applyShapes — trees", () => {
     expect(s.groups.flat()).toHaveLength(3); // each node laid out once
     expect(s.edges).toHaveLength(2); // both edges still drawn
   });
+
+  it("does not mark a tree node terminal just because it carries a true bool payload member (e.g. red/black isRed)", () => {
+    // Regression: `terminal` was computed unconditionally in toShapeNode, so a
+    // list/tree node with an unrelated `bool` payload member equal to "true"
+    // (e.g. red/black-tree `isRed`, or a `visited` flag) would wrongly render
+    // with the trie terminal marker. `terminal` must be gated on kind === "trie".
+    const heap = [
+      structCell("0x5", "TreeNode", [
+        { name: "val", type: "int", displayValue: "5" },
+        { name: "isRed", type: "bool", displayValue: "true" },
+        { name: "left", type: "TreeNode *", displayValue: "0x0" },
+        { name: "right", type: "TreeNode *", displayValue: "0x0" },
+      ]),
+    ];
+    const { shapes } = applyShapes(memoryWith(heap, [fingerLink("root", "0x5")]), CONFIRMED_TREE, NONE);
+    const s = shapes[0];
+    expect(s.kind).toBe("tree");
+    expect(s.nodes[0].terminal).toBeFalsy();
+  });
 });
 
 /** Minimal ExecPoint with just a raw heap; enough for normalizeMemory. */
@@ -423,7 +442,7 @@ describe("trie model via applyShapes", () => {
 });
 
 describe("trie confirmation", () => {
-  const point = (cells: NormalizedCell[]): ExecPoint =>
+  const point = (_cells: NormalizedCell[]): ExecPoint =>
     ({ line: 1, event: "step_line", stack_to_render: [], heap: {}, globals: {}, ordered_globals: [], stdout: "" }) as unknown as ExecPoint;
 
   it("confirms a clean trie as kind 'trie'", () => {
