@@ -118,10 +118,11 @@ export interface ShapeModel {
 export interface ShapeResult { memory: NormalizedMemory; shapes: ShapeModel[] }
 
 interface TypeGroup {
-  kind: "list" | "tree";
+  kind: ShapeKind;
   typeName: string;
   cells: NormalizedCell[];
   selfNames: Set<string>;
+  arrayCount?: number; // trie only: element count of the self-array member
 }
 
 /** Buckets heap structs (and struct elements of heap arrays) by type name. */
@@ -166,6 +167,13 @@ export function collectGroups(
 
   const groups = new Map<string, TypeGroup>();
   for (const [typeName, cells] of byType) {
+    const arr = selfArrayMember(cells);
+    if (arr) {
+      groups.set(typeName, {
+        kind: "trie", typeName, cells, selfNames: new Set([arr.name]), arrayCount: arr.count,
+      });
+      continue;
+    }
     const selfNames = namesOverride?.get(typeName) ?? selfPointerMemberNames(cells);
     if (selfNames.size === 1 || selfNames.size === 2) {
       groups.set(typeName, { kind: selfNames.size === 1 ? "list" : "tree", typeName, cells, selfNames });

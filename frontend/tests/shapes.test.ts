@@ -359,3 +359,16 @@ describe("null-piggyback regression (fix round 2)", () => {
     expect(g?.selfNames.size).toBe(2);
   });
 });
+
+describe("trie grouping", () => {
+  const mem = (cells: NormalizedCell[]): NormalizedMemory =>
+    ({ globals: [], frames: [], heap: cells, links: [] });
+
+  it("buckets a trie type as a single trie group carrying its array count", () => {
+    const groups = collectGroups(mem([trieNode("0x1", { 0: "0x2" }), trieNode("0x2", {})]));
+    const g = groups.get("TrieNode");
+    expect(g?.kind).toBe("trie");
+    expect(g?.arrayCount).toBe(26);
+    expect([...(g?.selfNames ?? [])]).toEqual(["children"]);
+  });
+});
