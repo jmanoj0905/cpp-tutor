@@ -1,0 +1,1845 @@
+{
+    "code": "#include <vector>\n#include <string>\nint main() {\n    std::vector<std::string> words;\n    words.push_back(\"alpha\");\n    words.push_back(\"beta\");\n    words.push_back(\"gamma\");\n    return 0;\n}",
+    "trace": [
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {},
+            "line": 3,
+            "ordered_globals": [],
+            "ret_reg": 1,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B60_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B60_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {},
+            "line": 4,
+            "ordered_globals": [],
+            "ret_reg": 1,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 3,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {},
+            "line": 5,
+            "ordered_globals": [],
+            "ret_reg": 68702702408,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "words": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Vector_base<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Vector_impl",
+                                            [
+                                                "_M_start",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B48",
+                                                    "pointer",
+                                                    "0x0"
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_finish",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "pointer",
+                                                    "0x0"
+                                                ]
+                                            ],
+                                            [
+                                                "_M_end_of_storage",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "pointer",
+                                                    "0x0"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 5,
+                    "ordered_varnames": [
+                        "words"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92041",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92042",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92043",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92044",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92045",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92046",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92047",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92049",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204A",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204B",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204C",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204D",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204E",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204F",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92050",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92051",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92052",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92053",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92054",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92055",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92056",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92057",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92058",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92059",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205A",
+                        "char",
+                        112
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205B",
+                        "char",
+                        104
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205C",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205D",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B920A0": [
+                    "C_ARRAY",
+                    "0x4B920A0",
+                    [
+                        "C_STRUCT",
+                        "0x4B920A0",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B920A0",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B920A0",
+                                        "pointer",
+                                        "0x4B92058"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B920A0",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B920A0",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "line": 6,
+            "ordered_globals": [],
+            "ret_reg": 68702702400,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "words": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Vector_base<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Vector_impl",
+                                            [
+                                                "_M_start",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B48",
+                                                    "pointer",
+                                                    "0x4B920A0"
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_finish",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "pointer",
+                                                    "0x4B920A8"
+                                                ]
+                                            ],
+                                            [
+                                                "_M_end_of_storage",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "pointer",
+                                                    "0x4B920A8"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 6,
+                    "ordered_varnames": [
+                        "words"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92041",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92042",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92043",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92044",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92045",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92046",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92047",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92049",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204A",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204B",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204C",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204D",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204E",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204F",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92050",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92051",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92052",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92053",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92054",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92055",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92056",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92057",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92058",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92059",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205A",
+                        "char",
+                        112
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205B",
+                        "char",
+                        104
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205C",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205D",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B920F0": [
+                    "C_ARRAY",
+                    "0x4B920F0",
+                    [
+                        "C_DATA",
+                        "0x4B920F0",
+                        "char",
+                        4
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F1",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F2",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F3",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F4",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F5",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F6",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F7",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F8",
+                        "char",
+                        4
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F9",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FA",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FB",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FC",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FD",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FE",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FF",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92100",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92101",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92102",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92103",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92104",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92105",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92106",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92107",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92108",
+                        "char",
+                        98
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92109",
+                        "char",
+                        101
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210A",
+                        "char",
+                        116
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210B",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210C",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B92150": [
+                    "C_ARRAY",
+                    "0x4B92150",
+                    [
+                        "C_STRUCT",
+                        "0x4B92150",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92150",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92150",
+                                        "pointer",
+                                        "0x4B92058"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92150",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92150",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92158",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92158",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92158",
+                                        "pointer",
+                                        "0x4B92108"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92158",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92158",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "line": 7,
+            "ordered_globals": [],
+            "ret_reg": 68702702400,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "words": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Vector_base<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Vector_impl",
+                                            [
+                                                "_M_start",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B48",
+                                                    "pointer",
+                                                    "0x4B92150"
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_finish",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "pointer",
+                                                    "0x4B92160"
+                                                ]
+                                            ],
+                                            [
+                                                "_M_end_of_storage",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "pointer",
+                                                    "0x4B92160"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 7,
+                    "ordered_varnames": [
+                        "words"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {
+                "0x4B92040": [
+                    "C_ARRAY",
+                    "0x4B92040",
+                    [
+                        "C_DATA",
+                        "0x4B92040",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92041",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92042",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92043",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92044",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92045",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92046",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92047",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92048",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92049",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204A",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204B",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204C",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204D",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204E",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9204F",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92050",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92051",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92052",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92053",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92054",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92055",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92056",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92057",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92058",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92059",
+                        "char",
+                        108
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205A",
+                        "char",
+                        112
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205B",
+                        "char",
+                        104
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205C",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9205D",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B920F0": [
+                    "C_ARRAY",
+                    "0x4B920F0",
+                    [
+                        "C_DATA",
+                        "0x4B920F0",
+                        "char",
+                        4
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F1",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F2",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F3",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F4",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F5",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F6",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F7",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F8",
+                        "char",
+                        4
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920F9",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FA",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FB",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FC",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FD",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FE",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B920FF",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92100",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92101",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92102",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92103",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92104",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92105",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92106",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92107",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92108",
+                        "char",
+                        98
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B92109",
+                        "char",
+                        101
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210A",
+                        "char",
+                        116
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210B",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B9210C",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B921A0": [
+                    "C_ARRAY",
+                    "0x4B921A0",
+                    [
+                        "C_DATA",
+                        "0x4B921A0",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A1",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A2",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A3",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A4",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A5",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A6",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A7",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A8",
+                        "char",
+                        5
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921A9",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AA",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AB",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AC",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AD",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AE",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921AF",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B0",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B1",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B2",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B3",
+                        "char",
+                        0
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B4",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B5",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B6",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B7",
+                        "char",
+                        "<UNINITIALIZED>"
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B8",
+                        "char",
+                        103
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921B9",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921BA",
+                        "char",
+                        109
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921BB",
+                        "char",
+                        109
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921BC",
+                        "char",
+                        97
+                    ],
+                    [
+                        "C_DATA",
+                        "0x4B921BD",
+                        "char",
+                        0
+                    ]
+                ],
+                "0x4B92200": [
+                    "C_ARRAY",
+                    "0x4B92200",
+                    [
+                        "C_STRUCT",
+                        "0x4B92200",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92200",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92200",
+                                        "pointer",
+                                        "0x4B92058"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92200",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92200",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92208",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92208",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92208",
+                                        "pointer",
+                                        "0x4B92108"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92208",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92208",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92210",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92210",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92210",
+                                        "pointer",
+                                        "0x4B921B8"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92210",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92210",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        "C_STRUCT",
+                        "0x4B92218",
+                        "basic_string<char, std::char_traits<char>, std::allocator<char> >",
+                        [
+                            "_M_dataplus",
+                            [
+                                "C_STRUCT",
+                                "0x4B92218",
+                                "_Alloc_hider",
+                                [
+                                    "_M_p",
+                                    [
+                                        "C_DATA",
+                                        "0x4B92218",
+                                        "pointer",
+                                        "<UNINITIALIZED>"
+                                    ]
+                                ],
+                                [
+                                    "<anon_field>",
+                                    [
+                                        "C_STRUCT",
+                                        "0x4B92218",
+                                        "allocator<char>",
+                                        [
+                                            "<anon_field>",
+                                            [
+                                                "C_STRUCT",
+                                                "0x4B92218",
+                                                "new_allocator<char>"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            },
+            "line": 8,
+            "ordered_globals": [],
+            "ret_reg": 68702702392,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "words": [
+                            "C_STRUCT",
+                            "0xFFF000B48",
+                            "vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                            [
+                                "<anon_field>",
+                                [
+                                    "C_STRUCT",
+                                    "0xFFF000B48",
+                                    "_Vector_base<std::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > > >",
+                                    [
+                                        "_M_impl",
+                                        [
+                                            "C_STRUCT",
+                                            "0xFFF000B48",
+                                            "_Vector_impl",
+                                            [
+                                                "_M_start",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B48",
+                                                    "pointer",
+                                                    "0x4B92200"
+                                                ]
+                                            ],
+                                            [
+                                                "<anon_field>",
+                                                [
+                                                    "C_STRUCT",
+                                                    "0xFFF000B48",
+                                                    "allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >",
+                                                    [
+                                                        "<anon_field>",
+                                                        [
+                                                            "C_STRUCT",
+                                                            "0xFFF000B48",
+                                                            "new_allocator<std::basic_string<char, std::char_traits<char>, std::allocator<char> > >"
+                                                        ]
+                                                    ]
+                                                ]
+                                            ],
+                                            [
+                                                "_M_finish",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B50",
+                                                    "pointer",
+                                                    "0x4B92218"
+                                                ]
+                                            ],
+                                            [
+                                                "_M_end_of_storage",
+                                                [
+                                                    "C_DATA",
+                                                    "0xFFF000B58",
+                                                    "pointer",
+                                                    "0x4B92220"
+                                                ]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 8,
+                    "ordered_varnames": [
+                        "words"
+                    ],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "step_line",
+            "func_name": "main",
+            "globals": {},
+            "heap": {},
+            "line": 9,
+            "ordered_globals": [],
+            "ret_reg": 0,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {},
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 9,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        },
+        {
+            "event": "return",
+            "func_name": "main",
+            "globals": {},
+            "heap": {},
+            "line": 9,
+            "ordered_globals": [],
+            "ret_reg": 0,
+            "stack_to_render": [
+                {
+                    "encoded_locals": {
+                        "__return__": [
+                            "C_DATA",
+                            "<register>",
+                            "int",
+                            0
+                        ]
+                    },
+                    "frame_id": "0xFFF000B10_0",
+                    "func_name": "main",
+                    "is_highlighted": true,
+                    "is_parent": false,
+                    "is_zombie": false,
+                    "line": 9,
+                    "ordered_varnames": [],
+                    "parent_frame_id_list": [],
+                    "unique_hash": "main_0xFFF000B10_0"
+                }
+            ],
+            "stdout": ""
+        }
+    ]
+}
