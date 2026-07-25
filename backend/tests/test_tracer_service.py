@@ -364,3 +364,45 @@ def _all_f_local_names(result):
             if isinstance(frame, dict) and frame.get("func_name", "").startswith("f"):
                 names |= set(frame.get("encoded_locals", {}).keys())
     return names
+
+
+SET_OF_STRINGS_CODE = """\
+#include <set>
+#include <string>
+using namespace std;
+int main() {
+    set<string> s;
+    s.insert("foo");
+    s.insert("bar");
+    return 0;
+}
+"""
+
+
+@pytest.mark.docker
+def test_node_container_string_payload_is_recovered():
+    """A set<string> node's payload is a std::string whose DWARF node type is
+    `_Rb_tree_node<std::basic_string<...> > >` (GCC's spaced spelling). The
+    node-payload override must resolve that derived type by name despite the
+    `> >` vs `>>` spacing, so the element string 'foo'/'bar' is recovered on the
+    heap node instead of the node decoding as a bare `_Rb_tree_node_base`."""
+    result = run_trace(SET_OF_STRINGS_CODE, "cpp")
+    assert isinstance(result, Trace)
+
+    import json
+    saw_value_field = False
+    saw_string_bytes = False
+    for pt in result.trace:
+        blob = json.dumps(pt.heap)
+        if "_M_value_field" in blob:
+            saw_value_field = True
+        # 'f','o','o'/'b','a','r' → char codes 102/111 and 98/97/114 somewhere
+        if ("102" in blob and "111" in blob) or ("98" in blob and "114" in blob):
+            saw_string_bytes = True
+
+    assert saw_value_field, \
+        "set<string> heap nodes carry no _M_value_field — derived node type " \
+        "(_Rb_tree_node<basic_string<...>>) was not resolved; payload dropped"
+    assert saw_string_bytes, \
+        "set<string> node payload present but the 'foo'/'bar' string bytes " \
+        "were not recoverable"
