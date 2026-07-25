@@ -15,6 +15,7 @@ export interface ShapeEdge {
   memberCellId: string; // leaf cell id of the pointer member (diff tinting)
   slot: number;         // index among self-ptr members: 0 = next/left, 1 = right
   cycleBack?: boolean;  // list back-edge into its own chain
+  label?: string; // trie: array-index char ('a'+i at size 26) or numeric index
 }
 
 const baseType = (t: string | null): string =>
@@ -189,6 +190,24 @@ export function buildEdges(g: TypeGroup): ShapeEdge[] {
     selfMembersOf(cell, g.selfNames).forEach((m, slot) => {
       const target = m.targetAddress ? byAddr.get(m.targetAddress) : undefined;
       if (target) edges.push({ fromId: cell.id, toId: target.id, member: m.name, memberCellId: m.id, slot });
+    });
+  }
+  return edges;
+}
+
+/** Trie edges: walk the self-array member's non-null element cells; slot =
+ *  array index; label = alphabet char at size 26, else the numeric index. */
+export function buildTrieEdges(g: TypeGroup): ShapeEdge[] {
+  const byAddr = new Map(g.cells.map((c) => [c.address as string, c]));
+  const arrName = [...g.selfNames][0];
+  const edges: ShapeEdge[] = [];
+  for (const cell of g.cells) {
+    const arr = (cell.children ?? []).find((c) => c.name === arrName && c.kind === "array");
+    (arr?.children ?? []).forEach((el, i) => {
+      const target = el.targetAddress ? byAddr.get(el.targetAddress) : undefined;
+      if (!target) return;
+      const label = g.arrayCount === 26 ? String.fromCharCode(97 + i) : String(i);
+      edges.push({ fromId: cell.id, toId: target.id, member: `${arrName}[${i}]`, memberCellId: el.id, slot: i, label });
     });
   }
   return edges;

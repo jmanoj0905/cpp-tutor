@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyShapes, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes } from "../src/viz/shapes";
+import { applyShapes, buildTrieEdges, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes } from "../src/viz/shapes";
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import { listNode, structCell, treeNode, trieNode } from "./shapeHelpers";
@@ -370,5 +370,31 @@ describe("trie grouping", () => {
     expect(g?.kind).toBe("trie");
     expect(g?.arrayCount).toBe(26);
     expect([...(g?.selfNames ?? [])]).toEqual(["children"]);
+  });
+});
+
+describe("buildTrieEdges", () => {
+  const mem = (cells: NormalizedCell[]): NormalizedMemory =>
+    ({ globals: [], frames: [], heap: cells, links: [] });
+
+  it("emits one edge per non-null slot, labelled with the alphabet char at size 26", () => {
+    // root --a--> n1 --p--> n2 ; slot 0 = 'a', slot 15 = 'p'
+    const g = collectGroups(mem([
+      trieNode("0x1", { 0: "0x2" }),
+      trieNode("0x2", { 15: "0x3" }),
+      trieNode("0x3", {}, true),
+    ])).get("TrieNode")!;
+    const edges = buildTrieEdges(g);
+    expect(edges.map((e) => [e.fromId, e.toId, e.label, e.slot])).toEqual([
+      ["heap-heap-0x1", "heap-heap-0x2", "a", 0],
+      ["heap-heap-0x2", "heap-heap-0x3", "p", 15],
+    ]);
+  });
+
+  it("falls back to a numeric index label when the array size is not 26", () => {
+    const g = collectGroups(mem([
+      trieNode("0x1", { 2: "0x2" }, false, 4), trieNode("0x2", {}, false, 4),
+    ])).get("TrieNode")!;
+    expect(buildTrieEdges(g)[0].label).toBe("2");
   });
 });
