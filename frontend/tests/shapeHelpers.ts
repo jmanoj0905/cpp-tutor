@@ -36,3 +36,35 @@ export const treeNode = (addr: string, val: number, left: string | null, right: 
       ? { name: "right", type: "TreeNode *", kind: "reference", displayValue: `-> ${right}`, targetAddress: right }
       : { name: "right", type: "TreeNode *", displayValue: "0x0" },
   ]);
+
+/** Trie node: a `children[count]` array of self-pointers + an endOfWord bool.
+ *  `edges` maps array index -> target address for the non-null slots. */
+export const trieNode = (
+  addr: string,
+  edges: Record<number, string>,
+  endOfWord = false,
+  count = 26,
+  ownType = "TrieNode",
+): NormalizedCell => {
+  const id = `heap-heap-${addr}`;
+  const elements: NormalizedCell[] = Array.from({ length: count }, (_, i) => {
+    const target = edges[i];
+    return {
+      id: `${id}-children-${i}`, name: `[${i}]`, source: "heap",
+      kind: target ? "reference" : "scalar", address: null, type: "TrieNode *",
+      displayValue: target ? `-> ${target}` : "0x0", rawValue: null,
+      ...(target ? { targetAddress: target } : {}),
+    };
+  });
+  return {
+    id, name: addr, source: "heap", kind: "struct", address: addr, type: ownType,
+    displayValue: ownType, rawValue: null,
+    children: [
+      { id: `${id}-children`, name: "children", source: "heap", kind: "array",
+        address: null, type: `${ownType} *[${count}]`, displayValue: "array",
+        rawValue: null, children: elements },
+      { id: `${id}-endOfWord`, name: "endOfWord", source: "heap", kind: "scalar",
+        address: null, type: "bool", displayValue: endOfWord ? "true" : "false", rawValue: null },
+    ],
+  };
+};

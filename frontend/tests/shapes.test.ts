@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { applyShapes, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes } from "../src/viz/shapes";
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
-import { listNode, structCell, treeNode } from "./shapeHelpers";
+import { listNode, structCell, treeNode, trieNode } from "./shapeHelpers";
 
 describe("candidacy", () => {
   it("one self-pointer (even when null) makes a list candidate", () => {
@@ -67,6 +67,28 @@ describe("candidacy", () => {
     ]);
     const groupsTruePositive = collectGroups(memoryWith([n1, n2]));
     expect(groupsTruePositive.get("PNode")?.kind).toBe("list");
+  });
+});
+
+describe("trie candidacy", () => {
+  it("an array of self-pointers makes a trie candidate (even when all null)", () => {
+    expect(candidateKind(trieNode("0x1", {}))).toBe("trie");
+    expect(candidateKind(trieNode("0x1", { 0: "0x2" }))).toBe("trie");
+  });
+
+  it("an array of non-self pointers is NOT a trie", () => {
+    const c = structCell("0x1", "Bag", [{ name: "n", type: "int" }]);
+    c.children!.push({
+      id: "heap-heap-0x1-ps", name: "ps", source: "heap", kind: "array",
+      address: null, type: "int *[4]", displayValue: "array", rawValue: null,
+      children: [{ id: "e0", name: "[0]", source: "heap", kind: "scalar",
+        address: null, type: "int *", displayValue: "0x0", rawValue: null }],
+    });
+    expect(candidateKind(c)).toBeNull();
+  });
+
+  it("trie wins over named self-pointer counting", () => {
+    expect(candidateKind(trieNode("0x1", {}))).not.toBe("tree");
   });
 });
 

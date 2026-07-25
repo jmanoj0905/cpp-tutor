@@ -6,6 +6,8 @@ import type { MemoryLink, NormalizedCell, NormalizedMemory } from "./memoryModel
 import { normalizeMemory } from "./memoryModel";
 import type { ExecPoint } from "../types/trace";
 
+export type ShapeKind = "list" | "tree" | "trie";
+
 export interface ShapeEdge {
   fromId: string;
   toId: string;
@@ -61,8 +63,31 @@ function selfMembersOf(cell: NormalizedCell, selfNames: Set<string>): Normalized
   return (cell.children ?? []).filter((c) => selfNames.has(c.name));
 }
 
-export function candidateKind(cell: NormalizedCell): "list" | "tree" | null {
+/** The array member (with its element count) that holds pointers to `cells`'
+ *  own struct type, or null. Two-signal, mirroring selfPointerMemberNames:
+ *  an element's type names the own type, OR — pointer-collapsed traces — an
+ *  element resolves by address to another cell of this exact type. */
+export function selfArrayMember(cells: NormalizedCell[]): { name: string; count: number } | null {
+  const byAddr = new Map(cells.map((c) => [c.address as string, c]));
+  const own = baseType(cells[0]?.type ?? null);
+  const typedRe = own ? new RegExp(`^(struct\\s+|class\\s+)?${escapeRe(own)}\\s*\\*$`) : null;
+  for (const cell of cells) {
+    for (const m of cell.children ?? []) {
+      if (m.kind !== "array" || !m.children) continue;
+      const isSelf = m.children.some(
+        (e) =>
+          (typedRe !== null && e.type !== null && typedRe.test(e.type)) ||
+          (e.type === "pointer" && e.targetAddress !== undefined && byAddr.has(e.targetAddress)),
+      );
+      if (isSelf) return { name: m.name, count: m.children.length };
+    }
+  }
+  return null;
+}
+
+export function candidateKind(cell: NormalizedCell): ShapeKind | null {
   if (cell.kind !== "struct") return null;
+  if (selfArrayMember([cell])) return "trie";
   const n = selfPtrMembers(cell).length;
   if (n === 1) return "list";
   if (n === 2) return "tree";
