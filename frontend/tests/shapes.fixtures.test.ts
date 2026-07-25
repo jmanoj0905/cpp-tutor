@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import listReverse from "./fixtures/shapes/list-reverse.json";
 import listCycle from "./fixtures/shapes/list-cycle.json";
 import treeInsert from "./fixtures/shapes/tree-insert.json";
+import trie from "./fixtures/trie.json";
 import type { Trace } from "../src/types/trace";
 import { applyShapes, confirmShapeTypes } from "../src/viz/shapes";
 import { normalizeMemory } from "../src/viz/memoryModel";
@@ -56,5 +57,21 @@ describe("shape recognition on real traces", () => {
   it("recursion fixtures confirm nothing (no self-referential structs)", () => {
     // guards against false positives on ordinary programs
     expect(confirmShapeTypes((treeInsert as Trace).trace).confirmed.has("int")).toBe(false);
+  });
+
+  it("recognizes the PrefixTree program as a trie end-to-end", () => {
+    const t = (trie as Trace).trace;
+    const info = confirmShapeTypes(t);
+    expect(info.confirmed.get("TrieNode")).toBe("trie");
+
+    // After inserting "apple", the last step with a full 6-node trie in the heap
+    // should render a trie whose root has an 'a' edge and at least one terminal
+    // (endOfWord) node.
+    const last = [...t].reverse().find((p) => Object.keys(p.heap ?? {}).length >= 6)!;
+    const { shapes } = applyShapes(normalizeMemory(last), info.confirmed, new Set(), info.selfNames);
+    const trieShape = shapes.find((s) => s.typeName === "TrieNode");
+    expect(trieShape?.kind).toBe("trie");
+    expect(trieShape?.edges.some((e) => e.label === "a")).toBe(true);
+    expect(trieShape?.nodes.some((n) => n.terminal)).toBe(true);
   });
 });
