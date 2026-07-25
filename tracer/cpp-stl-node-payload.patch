@@ -1,7 +1,7 @@
 diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
 --- a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
 +++ b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
-@@ -388,9 +388,319 @@
+@@ -388,9 +388,340 @@
        vg_assert(0); // unhandled
    }
    vg_assert(0); // unhandled
@@ -22,10 +22,31 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
 +   }
 +}
 +
-+static Bool pg_name_matches(const HChar* actual, const HChar* candidate)
++/* Copy `in` to `out` (bounded) dropping ASCII spaces. GCC's DWARF type-name
++ * pretty-printer inserts a cosmetic space between adjacent template closers
++ * ("> >") that our constructed candidate names ("_Rb_tree_node<...>>") lack, so
++ * every name comparison below runs on space-stripped copies. Without this, a
++ * node whose element type ends in '>' (std::string, nested containers, pair)
++ * fails to resolve its derived node type and loses its payload. */
++static void pg_strip_spaces(const HChar* in, HChar* out, SizeT outsz)
 +{
++   SizeT j = 0;
++   if (outsz == 0) return;
++   while (*in && j + 1 < outsz) {
++      if (*in != ' ') out[j++] = *in;
++      in++;
++   }
++   out[j] = '\0';
++}
++
++static Bool pg_name_matches(const HChar* actual_raw, const HChar* candidate_raw)
++{
++   HChar actual[512], candidate[512];
++   const HChar* candidate_p;
 +   SizeT alen, clen;
-+   if (!actual || !candidate) return False;
++   if (!actual_raw || !candidate_raw) return False;
++   pg_strip_spaces(actual_raw, actual, sizeof(actual));
++   pg_strip_spaces(candidate_raw, candidate, sizeof(candidate));
 +   if (VG_(strcmp)(actual, candidate) == 0) return True;
 +   if (VG_(strncmp)(candidate, "std::", 5) == 0
 +       && VG_(strcmp)(actual, candidate + 5) == 0)
@@ -39,10 +60,10 @@ diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/c
 +       && actual[alen - clen - 2] == ':')
 +      return True;
 +   if (VG_(strncmp)(candidate, "std::", 5) == 0) {
-+      candidate += 5;
++      candidate_p = candidate + 5;
 +      clen -= 5;
 +      if (alen > clen
-+          && VG_(strcmp)(actual + alen - clen, candidate) == 0
++          && VG_(strcmp)(actual + alen - clen, candidate_p) == 0
 +          && actual[alen - clen - 1] == ':'
 +          && alen >= clen + 2
 +          && actual[alen - clen - 2] == ':')
