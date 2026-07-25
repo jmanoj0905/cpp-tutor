@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ShapeEdge, ShapeModel, ShapeNode } from "./shapes";
+import type { ShapeEdge, ShapeKind, ShapeModel, ShapeNode } from "./shapes";
 import { CYCLE_ARC_H, layoutShape, shapeNodeWidth, SNODE_H, type SNodePos } from "./shapeLayout";
 import { MemoryCell } from "./MemoryCell";
 
@@ -65,6 +65,7 @@ export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, step
               changed ? "shape-node-changed" : "",
               selected?.id === n.id ? "shape-node-selected" : "",
               shape.detached.includes(n.id) ? "shape-node-detached" : "",
+              n.terminal ? "shape-node-terminal" : "",
             ].filter(Boolean).join(" ");
             return (
               <div key={n.id} className={cls} data-cell-id={n.id}
@@ -97,7 +98,7 @@ export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, step
 function renderEdge(
   e: ShapeEdge,
   pos: Map<string, SNodePos>,
-  kind: "list" | "tree",
+  kind: ShapeKind,
   markerId: string,
   changedIds?: Set<string>,
 ) {
@@ -121,7 +122,18 @@ function renderEdge(
     return <line key={key} className={`shape-edge${changed ? " shape-edge-changed" : ""}`}
       x1={from.x + from.w} y1={from.y + SNODE_H / 2} x2={to.x} y2={to.y + SNODE_H / 2} {...marker} />;
   }
-  // tree edge / cross-row list edge: center-bottom -> center-top
-  return <line key={key} className={`shape-edge${changed ? " shape-edge-changed" : ""}`}
-    x1={from.x + from.w / 2} y1={from.y + SNODE_H} x2={to.x + to.w / 2} y2={to.y} {...marker} />;
+  // tree/trie edge (or cross-row list edge): center-bottom -> center-top
+  const x1 = from.x + from.w / 2, y1 = from.y + SNODE_H;
+  const x2 = to.x + to.w / 2, y2 = to.y;
+  const line = (
+    <line className={`shape-edge${changed ? " shape-edge-changed" : ""}`}
+      x1={x1} y1={y1} x2={x2} y2={y2} {...marker} />
+  );
+  if (!e.label) return <g key={key}>{line}</g>;
+  return (
+    <g key={key}>
+      {line}
+      <text className="shape-edge-label" x={(x1 + x2) / 2} y={(y1 + y2) / 2} dx={4} dy={-2}>{e.label}</text>
+    </g>
+  );
 }

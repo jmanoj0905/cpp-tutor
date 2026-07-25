@@ -650,6 +650,13 @@ p {
 .shape-edge { stroke: var(--ink); fill: none; }
 .shape-edge-changed { stroke: var(--blue); stroke-width: 2; }
 .shape-edges marker path { fill: var(--ink); }
+.shape-edge-label {
+  font: 12px var(--mono);
+  fill: var(--ink-soft);
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 3px;
+}
 .shape-node {
   position: absolute; box-sizing: border-box; height: 30px;
   border: 1px dotted var(--border); background: var(--panel);
@@ -659,6 +666,11 @@ p {
 .shape-node-changed { background: var(--yellow); }
 .shape-node-selected { outline: 2px solid var(--blue); outline-offset: -1px; }
 .shape-node-detached { opacity: 0.55; }
+.shape-node-terminal {
+  border-style: double;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue);
+}
 .shape-detail { border-top: 1px dotted var(--border); padding: 6px; font: 12px var(--mono); }
 .shape-detail-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
 .shape-detail-head button { background: none; border: none; cursor: pointer; font: 14px var(--mono); }

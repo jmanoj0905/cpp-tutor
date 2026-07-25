@@ -77,4 +77,21 @@ describe("ShapePanel", () => {
     const { container } = render(<ShapePanel shape={cyc} onToggleGeneric={() => {}} stepKey={0} />);
     expect(container.querySelector("path.shape-edge-cycle")).toBeTruthy();
   });
+
+  it("renders trie edge char labels and marks terminal nodes", () => {
+    const shape: ShapeModel = {
+      kind: "trie", typeName: "TrieNode",
+      nodes: [
+        { id: "r", address: "0x1", label: "", payloadIds: [], cell: {} as never },
+        { id: "a", address: "0x2", label: "", payloadIds: [], cell: {} as never, terminal: true },
+      ],
+      edges: [{ fromId: "r", toId: "a", member: "children[0]", memberCellId: "m", slot: 0, label: "a" }],
+      groups: [["r", "a"]], detached: [],
+    };
+    const { container } = render(
+      <ShapePanel shape={shape} onToggleGeneric={() => {}} stepKey={0} />,
+    );
+    expect(container.querySelector(".shape-edge-label")?.textContent).toBe("a");
+    expect(container.querySelector(".shape-node-terminal")).not.toBeNull();
+  });
 });
