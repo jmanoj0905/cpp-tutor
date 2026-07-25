@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { containerChild, containerChildren, parseAddr, findMember, findPointer, templateArg } from "./helpers";
+import { containerChild, containerChildren, parseAddr, findMember, findPointer, templateArg, prettyType } from "./helpers";
 
 /**
  * std::deque<T> — chunk-map layout.
@@ -48,7 +48,7 @@ export const dequeDecoder: ContainerDecoder = {
     if (startCur === null || startLast === null || startNodeAddr === null) return null;
     if (finishCur === null || finishFirstAddr === null || finishNodeAddr === null) return null;
 
-    const elem = templateArg(cell.type ?? "");
+    const elem = prettyType(templateArg(cell.type ?? ""));
     const children: NormalizedCell[] = [];
 
     // Map array for middle-chunk traversal (keyed by _M_map pointer value).
@@ -284,7 +284,7 @@ export const vectorDecoder: ContainerDecoder = {
     // scalar, so findPointer returns undefined — bailing on that would leak the
     // raw _Vector_base struct. Distinguish "no member" from "null pointer".
     if (!findMember(cell, "_M_start")) return null;
-    const elem = templateArg(cell.type ?? "");
+    const elem = prettyType(templateArg(cell.type ?? ""));
     const start = findPointer(cell, "_M_start");
     const buffer = start ? ctx.heapByAddress.get(start) : undefined;
     if (!buffer) {
@@ -315,7 +315,7 @@ export const arrayDecoder: ContainerDecoder = {
     const elems = findMember(cell, "_M_elems");
     const children = containerChildren(cell, elems?.children ?? []);
     if (children.length === 0) return null;
-    const elem = templateArg(cell.type ?? "");
+    const elem = prettyType(templateArg(cell.type ?? ""));
     return {
       ...cell,
       kind: "container",
@@ -371,7 +371,11 @@ export const stringDecoder: ContainerDecoder = {
       charSlice = local?.children ?? [];
     }
 
-    if (charSlice.length === 0) return stringContainer(cell, null);
+    // A valid _M_p (we bailed above on unresolved/uninitialized pointers) that
+    // resolves to no heap buffer and no _M_local_buf is the empty string: the
+    // COW ABI points every empty string at the static _S_empty_rep, which never
+    // appears in the heap snapshot. That is empty content, not unknown content.
+    if (charSlice.length === 0) return stringContainer(cell, "");
 
     // Extract chars until null terminator or uninitialized. Codes are read from
     // rawValue, not displayValue: char scalars display as glyphs ('h'), and

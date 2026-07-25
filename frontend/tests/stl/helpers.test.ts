@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseAddr, findMember, findPointer } from "../../src/viz/stl/helpers";
+import { parseAddr, findMember, findPointer, prettyType } from "../../src/viz/stl/helpers";
 import type { NormalizedCell } from "../../src/viz/memoryModel";
 
 const cell: NormalizedCell = {
@@ -25,5 +25,17 @@ describe("stl helpers", () => {
   });
   it("findPointer returns a nested pointer's target address", () => {
     expect(findPointer(cell, "_M_start")).toBe("0x9000");
+  });
+  it("prettyType collapses the verbose basic_string<char> spelling to string", () => {
+    expect(prettyType(
+      "std::basic_string<char, std::char_traits<char>, std::allocator<char> >",
+    )).toBe("string");
+    // and when nested inside a template argument
+    expect(prettyType(
+      "vector<std::basic_string<char, std::char_traits<char>, std::allocator<char> >>",
+    )).toBe("vector<string>");
+    // leaves unrelated types untouched
+    expect(prettyType("int")).toBe("int");
+    expect(prettyType("vector<int>")).toBe("vector<int>");
   });
 });

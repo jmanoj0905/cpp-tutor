@@ -38,6 +38,17 @@ export function templateArg(type: string, n = 0): string {
   return idx === n ? inner.slice(start).trim() : "";
 }
 
+/** libstdc++ spells std::string as the full basic_string<char,...> template.
+ *  Collapse that (anywhere it appears, including nested template args) back to
+ *  the friendly "string" so container headers read `vector<string>` not the
+ *  three-arg char specialization. */
+const BASIC_STRING_RE =
+  /(?:std::)?(?:__cxx11::)?basic_string\s*<\s*char\s*,\s*std::char_traits\s*<\s*char\s*>\s*,\s*std::allocator\s*<\s*char\s*>\s*>/g;
+
+export function prettyType(type: string): string {
+  return type.replace(BASIC_STRING_RE, "string");
+}
+
 function idSegment(name: string, index?: number): string {
   const indexed = name.match(/^\[(\d+)\]$/);
   const raw = indexed ? indexed[1] : name;
