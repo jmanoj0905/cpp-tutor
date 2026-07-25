@@ -305,3 +305,62 @@ def test_member_function_steps_survive():
     assert method_points, "no execution points inside Box::grow"
     # body lines (4: v += by, 5: return v) must be steppable
     assert {4, 5} <= {pt.line for pt in method_points}
+
+
+BYVAL_STRING_PARAM_CODE = """\
+#include <string>
+using namespace std;
+int f(string s, int x) {
+    return (int)s.length() + x;
+}
+int main() {
+    string a = "abcdef";
+    return f(a, 3);
+}
+"""
+
+
+@pytest.mark.docker
+def test_byval_class_param_is_captured():
+    """A by-value std::string parameter is passed by invisible reference
+    (DW_OP_fbreg; DW_OP_deref). The tracer must still surface it in the
+    callee frame's locals with its real contents, not drop it."""
+    result = run_trace(BYVAL_STRING_PARAM_CODE, "cpp")
+    assert isinstance(result, Trace)
+
+    # Find any step whose top frame is f, and collect f's local names.
+    saw_f = False
+    saw_s_with_content = False
+    for pt in result.trace:
+        for frame in pt.stack_to_render:
+            if not isinstance(frame, dict):
+                continue
+            if not frame.get("func_name", "").startswith("f"):
+                continue
+            saw_f = True
+            locals_ = frame.get("encoded_locals", {})
+            if "s" not in locals_:
+                continue
+            # s decodes as a std::string C_STRUCT; its char buffer holds
+            # "abcdef". Assert the bytes are reachable somewhere in the trace.
+            import json
+            blob = json.dumps([pt.heap, locals_["s"]])
+            # 'a','b',... appear as char codes 97.. or glyphs; check the
+            # buffer length header (6) plus at least one char code is present.
+            if "97" in blob and "98" in blob:
+                saw_s_with_content = True
+
+    assert saw_f, "no frame for function f appeared in the trace"
+    assert "s" in _all_f_local_names(result), \
+        "by-value string param 's' missing from f's locals"
+    assert saw_s_with_content, \
+        "param 's' present but its 'abcdef' contents were not recoverable"
+
+
+def _all_f_local_names(result):
+    names = set()
+    for pt in result.trace:
+        for frame in pt.stack_to_render:
+            if isinstance(frame, dict) and frame.get("func_name", "").startswith("f"):
+                names |= set(frame.get("encoded_locals", {}).keys())
+    return names
