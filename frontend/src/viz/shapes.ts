@@ -376,10 +376,10 @@ export interface ShapeInfo {
 
 /** Strict clean-shape check used only for confirmation (never for rendering). */
 function confirmGroup(g: TypeGroup): boolean {
-  const edges = buildEdges(g);
+  const edges = g.kind === "trie" ? buildTrieEdges(g) : buildEdges(g);
   const indeg = inDegrees(g.cells, edges);
 
-  if (g.kind === "tree") {
+  if (g.kind === "tree" || g.kind === "trie") {
     if ([...indeg.values()].some((d) => d > 1)) return false;
     const children = new Map<string, string[]>();
     for (const e of edges) children.set(e.fromId, [...(children.get(e.fromId) ?? []), e.toId]);
@@ -446,7 +446,7 @@ export function confirmShapeTypes(trace: ExecPoint[]): ShapeInfo {
     if (names.size === 1 || names.size === 2) selfNames.set(typeName, names);
   }
 
-  const confirmed = new Map<string, "list" | "tree">();
+  const confirmed = new Map<string, ShapeKind>();
   for (const memory of perStepMemory) {
     if (memory.heap.length === 0) continue;
     for (const g of collectGroups(memory, selfNames).values()) {
