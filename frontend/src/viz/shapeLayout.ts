@@ -19,7 +19,9 @@ export function shapeNodeWidth(label: string): number {
 }
 
 export function layoutShape(shape: ShapeModel, widthOf: (id: string) => number): ShapeLayoutResult {
-  return shape.kind === "list" ? layoutList(shape, widthOf) : layoutTree(shape, widthOf);
+  if (shape.kind === "list") return layoutList(shape, widthOf);
+  if (shape.kind === "trie") return layoutTrie(shape, widthOf);
+  return layoutTree(shape, widthOf);
 }
 
 function layoutList(shape: ShapeModel, widthOf: (id: string) => number): ShapeLayoutResult {
@@ -99,6 +101,47 @@ function layoutTree(shape: ShapeModel, widthOf: (id: string) => number): ShapeLa
     band = Math.max(band, w);
     cx = Math.min(Math.max(cx, x0 + w / 2), x0 + band - w / 2); // clamp inside band
     center.set(id, cx);
+    pos.set(id, { x: cx - w / 2, y: depth * (SNODE_H + S_V_GAP), w });
+    return band;
+  };
+
+  let cursor = 0;
+  for (const grp of shape.groups) {
+    if (grp.length === 0) continue;
+    cursor += place(grp[0], 0, cursor) + S_H_GAP;
+  }
+  const width = Math.max(0, cursor - S_H_GAP);
+  return { pos, width, height: (maxDepth + 1) * SNODE_H + maxDepth * S_V_GAP };
+}
+
+/** Generic N-ary band packing: each subtree owns a horizontal band, a parent
+ *  is centered over the span of its visible children and clamped inside its
+ *  band. First-seen parent wins for a doubly-referenced node. */
+function layoutTrie(shape: ShapeModel, widthOf: (id: string) => number): ShapeLayoutResult {
+  const laidOut = new Set(shape.groups.flat());
+  const kids = new Map<string, string[]>();
+  for (const id of laidOut) kids.set(id, []);
+  const parented = new Set<string>();
+  for (const e of [...shape.edges].sort((a, b) => a.slot - b.slot)) {
+    if (!laidOut.has(e.fromId) || !laidOut.has(e.toId) || parented.has(e.toId)) continue;
+    kids.get(e.fromId)!.push(e.toId);
+    parented.add(e.toId);
+  }
+
+  const pos = new Map<string, SNodePos>();
+  const center = (id: string) => { const p = pos.get(id)!; return p.x + p.w / 2; };
+  let maxDepth = 0;
+
+  const place = (id: string, depth: number, x0: number): number => {
+    maxDepth = Math.max(maxDepth, depth);
+    const w = widthOf(id);
+    const cs = kids.get(id) ?? [];
+    let kidsWidth = 0;
+    for (const c of cs) kidsWidth += place(c, depth + 1, x0 + kidsWidth) + S_H_GAP;
+    if (cs.length) kidsWidth -= S_H_GAP;
+    const band = Math.max(w, kidsWidth);
+    const mid = cs.length ? (center(cs[0]) + center(cs[cs.length - 1])) / 2 : x0 + w / 2;
+    const cx = Math.min(Math.max(mid, x0 + w / 2), x0 + band - w / 2);
     pos.set(id, { x: cx - w / 2, y: depth * (SNODE_H + S_V_GAP), w });
     return band;
   };

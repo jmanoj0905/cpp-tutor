@@ -90,3 +90,28 @@ describe("layoutShape — tree", () => {
     expect(r.pos.get("q")!.y).toBe(0);
   });
 });
+
+function trieShape(groups: string[][], edges: ShapeModel["edges"]): ShapeModel {
+  return { kind: "trie", typeName: "TrieNode", nodes: [], edges, groups, detached: [] };
+}
+
+describe("layoutShape — trie (N-ary)", () => {
+  it("packs a 3-child root without overlap, parent centered over its children", () => {
+    const edges: ShapeModel["edges"] = [
+      { fromId: "r", toId: "a", member: "children[0]", memberCellId: "ma", slot: 0, label: "a" },
+      { fromId: "r", toId: "b", member: "children[1]", memberCellId: "mb", slot: 1, label: "b" },
+      { fromId: "r", toId: "c", member: "children[2]", memberCellId: "mc", slot: 2, label: "c" },
+    ];
+    const r = layoutShape(trieShape([["r", "a", "b", "c"]], edges), fixedW);
+    const [ra, rb, rc, rr] = ["a", "b", "c", "r"].map((id) => r.pos.get(id)!);
+    // children on the same lower row, left-to-right, no overlap
+    expect(ra.y).toBe(rb.y);
+    expect(rb.y).toBe(rc.y);
+    expect(ra.y).toBeGreaterThan(rr.y);
+    expect(rb.x).toBeGreaterThanOrEqual(ra.x + ra.w);
+    expect(rc.x).toBeGreaterThanOrEqual(rb.x + rb.w);
+    // parent centered over the child span
+    const childMid = (ra.x + rc.x + rc.w) / 2;
+    expect(rr.x + rr.w / 2).toBeCloseTo(childMid, 0);
+  });
+});
