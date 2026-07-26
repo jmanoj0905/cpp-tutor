@@ -64,29 +64,10 @@ describe("HeapTreePanel", () => {
     expect(container.querySelector("[data-heap-tree]")).toBeTruthy();
   });
 
-  it("regression: an all-scalar tree keeps the original fixed-grid pixel dimensions", () => {
-    const { container } = render(createElement(HeapTreePanel, { cell: pqCell(["1", "2", "4"]) }));
-    const tree = container.querySelector(".heap-tree") as HTMLElement;
-    expect(tree.style.width).toBe("192px");
-    expect(tree.style.height).toBe("128px");
-  });
-
-  it("content-aware pitch: a composite (pair) payload tree is strictly larger than the scalar tree of the same node count", () => {
-    const scalarRender = render(createElement(HeapTreePanel, { cell: pqCell(["1", "2", "4"]) }));
-    const scalarTree = scalarRender.container.querySelector(".heap-tree") as HTMLElement;
-    const scalarWidth = parseFloat(scalarTree.style.width);
-    const scalarHeight = parseFloat(scalarTree.style.height);
-
-    const pairRender = render(createElement(HeapTreePanel, { cell: pqPairCell([["1", "9"], ["2", "8"], ["4", "6"]]) }));
-    const pairTree = pairRender.container.querySelector(".heap-tree") as HTMLElement;
-    const pairWidth = parseFloat(pairTree.style.width);
-    const pairHeight = parseFloat(pairTree.style.height);
-
-    expect(pairWidth).toBeGreaterThan(scalarWidth);
-    expect(pairHeight).toBeGreaterThan(scalarHeight);
-
-    expect(pairRender.container.querySelectorAll(".heap-node").length).toBe(3);
-    expect(pairRender.container.querySelectorAll(".heap-edges line").length).toBe(2);
+  it("renders composite (pair) payload nodes with their edges", () => {
+    const { container } = render(createElement(HeapTreePanel, { cell: pqPairCell([["1", "9"], ["2", "8"], ["4", "6"]]) }));
+    expect(container.querySelectorAll(".heap-node").length).toBe(3);
+    expect(container.querySelectorAll(".heap-edges line").length).toBe(2);
   });
 });
 

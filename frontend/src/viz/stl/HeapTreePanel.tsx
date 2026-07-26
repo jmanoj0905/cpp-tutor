@@ -1,15 +1,8 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import type { NormalizedCell } from "../memoryModel";
 import { MemoryCell } from "../MemoryCell";
 import { buildHeapLayout } from "./heapTree";
-import { heapNodeExtent } from "./heapNodeExtent";
-
-// Base (and floor) pitch: the byte-identical scalar-payload layout that
-// shipped first. Composite payloads (pair/tuple/struct) scale these up so
-// their taller/wider MemoryCell renders don't overlap neighboring nodes.
-const BASE_ROW_H = 64;   // px vertical pitch between tree levels
-const BASE_SLOT_W = 96;  // px horizontal pitch for the widest row
-const PX_PER_CONTENT_ROW = 64; // px per estimated MemoryCell text row
-const PX_PER_CONTENT_COL = 5;  // px per estimated MemoryCell text column
+import { layoutHeapTree, type NodeSize } from "./heapTreeGeometry";
 
 export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewToggle }: {
   cell: NormalizedCell;
@@ -17,41 +10,79 @@ export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewTogg
   changedIds?: Set<string>;
   onCharViewToggle?: (cellId: string) => void;
 }) {
-  const { nodes, edges, rows } = buildHeapLayout(cell.children ?? []);
-  const extents = nodes.map((n) => heapNodeExtent(n.cell));
-  const maxContentRows = extents.reduce((m, e) => Math.max(m, e.rows), 1);
-  const maxContentCols = extents.reduce((m, e) => Math.max(m, e.cols), 0);
-  const ROW_H = Math.max(BASE_ROW_H, maxContentRows * PX_PER_CONTENT_ROW);
-  const SLOT_W = Math.max(BASE_SLOT_W, maxContentCols * PX_PER_CONTENT_COL);
-  const width = 2 ** Math.max(rows - 1, 0) * SLOT_W;
-  const height = Math.max(rows, 1) * ROW_H;
-  const xy = (index: number) => {
-    const n = nodes.find((m) => m.index === index)!;
-    return { x: n.col * width, y: n.row * ROW_H + ROW_H / 2 };
-  };
+  const { nodes, edges } = buildHeapLayout(cell.children ?? []);
+  const nodeRefs = useRef(new Map<number, HTMLDivElement>());
+  const [sizes, setSizes] = useState<Map<number, NodeSize>>(new Map());
+
+  // Measure the rendered node boxes and lay the tree out from their real
+  // dimensions. useLayoutEffect runs before paint, so nodes never flash at the
+  // origin. Re-measures whenever the heap contents change (new step) or the
+  // container resizes (a nested payload growing/shrinking).
+  useLayoutEffect(() => {
+    const measure = () => {
+      const next = new Map<number, NodeSize>();
+      for (const [index, el] of nodeRefs.current) {
+        next.set(index, { w: el.offsetWidth, h: el.offsetHeight });
+      }
+      setSizes((prev) => {
+        if (prev.size === next.size &&
+          [...next].every(([i, s]) => prev.get(i)?.w === s.w && prev.get(i)?.h === s.h)) {
+          return prev;
+        }
+        return next;
+      });
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(measure);
+    for (const el of nodeRefs.current.values()) ro.observe(el);
+    return () => ro.disconnect();
+  }, [cell]);
+
+  const size = (index: number): NodeSize => sizes.get(index) ?? { w: 0, h: 0 };
+  const measured = sizes.size >= nodes.length && nodes.length > 0;
+  const geom = measured ? layoutHeapTree(nodes, edges, size) : null;
+  const pos = (index: number) => geom?.positions.find((p) => p.index === index);
+
   return (
     <div className="heap-tree-scroll" data-heap-tree={cell.id}>
-      <div className="heap-tree" style={{ width, height, position: "relative" }}>
-        <svg className="heap-edges" width={width} height={height}>
-          {edges.map((e) => {
-            const p = xy(e.parent), c = xy(e.child);
-            return <line key={`${e.parent}-${e.child}`} x1={p.x} y1={p.y} x2={c.x} y2={c.y} />;
-          })}
-        </svg>
-        {nodes.map((n) => (
-          <div
-            key={n.cell.id}
-            className={`heap-node${n.index === 0 ? " heap-node-top" : ""}`}
-            style={{ position: "absolute", left: n.col * width, top: n.row * ROW_H, transform: "translateX(-50%)" }}
-          >
-            <MemoryCell
-              cell={n.cell}
-              highlightedIds={highlightedIds}
-              changedIds={changedIds}
-              onCharViewToggle={onCharViewToggle}
-            />
-          </div>
-        ))}
+      <div
+        className="heap-tree"
+        style={{ position: "relative", width: geom?.width, height: geom?.height, visibility: measured ? "visible" : "hidden" }}
+      >
+        {geom && (
+          <svg className="heap-edges" width={geom.width} height={geom.height}>
+            {geom.edges.map((e) => (
+              <line key={`${e.parent}-${e.child}`} x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2} />
+            ))}
+          </svg>
+        )}
+        {nodes.map((n) => {
+          const p = pos(n.index);
+          return (
+            <div
+              key={n.cell.id}
+              ref={(el) => {
+                if (el) nodeRefs.current.set(n.index, el);
+                else nodeRefs.current.delete(n.index);
+              }}
+              className={`heap-node${n.index === 0 ? " heap-node-top" : ""}`}
+              style={{
+                position: "absolute",
+                left: p ? p.cx : 0,
+                top: p ? p.top : 0,
+                transform: "translateX(-50%)",
+              }}
+            >
+              <MemoryCell
+                cell={n.cell}
+                highlightedIds={highlightedIds}
+                changedIds={changedIds}
+                onCharViewToggle={onCharViewToggle}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
   );
