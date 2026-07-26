@@ -21,6 +21,30 @@ function pqCell(vals: string[]): NormalizedCell {
   };
 }
 
+/** A pair-shaped container child: header + two scalar members, exercising the
+ *  composite path (as priority_queue<pair<int,int>> nodes look). */
+function pairChild(i: number, a: string, b: string): NormalizedCell {
+  return {
+    id: `pq-${i}`, name: `[${i}]`, source: "stack", kind: "container", address: null,
+    type: "pair<int, int>", displayValue: "pair", rawValue: null,
+    containerKind: "pair",
+    children: [
+      { id: `pq-${i}-first`, name: "first", source: "stack", kind: "scalar", address: null, type: "int", displayValue: a, rawValue: null },
+      { id: `pq-${i}-second`, name: "second", source: "stack", kind: "scalar", address: null, type: "int", displayValue: b, rawValue: null },
+    ],
+  };
+}
+
+function pqPairCell(vals: [string, string][]): NormalizedCell {
+  return {
+    id: "pq", name: "pq", source: "stack", kind: "container", address: null,
+    type: "priority_queue<pair<int, int>, vector<pair<int, int> >, greater<pair<int, int> > >",
+    displayValue: `priority_queue<pair<int, int>> · ${vals.length}`, rawValue: null,
+    containerKind: "priority_queue", elementType: "pair<int, int>", heapKind: "min",
+    length: vals.length, children: vals.map(([a, b], i) => pairChild(i, a, b)),
+  };
+}
+
 describe("HeapTreePanel", () => {
   it("renders one node per child and one edge per non-root", () => {
     const { container } = render(createElement(HeapTreePanel, { cell: pqCell(["1", "2", "4", "3", "5"]) }));
@@ -38,6 +62,31 @@ describe("HeapTreePanel", () => {
     const { container } = render(createElement(HeapTreePanel, { cell: pqCell([]) }));
     expect(container.querySelectorAll(".heap-node").length).toBe(0);
     expect(container.querySelector("[data-heap-tree]")).toBeTruthy();
+  });
+
+  it("regression: an all-scalar tree keeps the original fixed-grid pixel dimensions", () => {
+    const { container } = render(createElement(HeapTreePanel, { cell: pqCell(["1", "2", "4"]) }));
+    const tree = container.querySelector(".heap-tree") as HTMLElement;
+    expect(tree.style.width).toBe("192px");
+    expect(tree.style.height).toBe("128px");
+  });
+
+  it("content-aware pitch: a composite (pair) payload tree is strictly larger than the scalar tree of the same node count", () => {
+    const scalarRender = render(createElement(HeapTreePanel, { cell: pqCell(["1", "2", "4"]) }));
+    const scalarTree = scalarRender.container.querySelector(".heap-tree") as HTMLElement;
+    const scalarWidth = parseFloat(scalarTree.style.width);
+    const scalarHeight = parseFloat(scalarTree.style.height);
+
+    const pairRender = render(createElement(HeapTreePanel, { cell: pqPairCell([["1", "9"], ["2", "8"], ["4", "6"]]) }));
+    const pairTree = pairRender.container.querySelector(".heap-tree") as HTMLElement;
+    const pairWidth = parseFloat(pairTree.style.width);
+    const pairHeight = parseFloat(pairTree.style.height);
+
+    expect(pairWidth).toBeGreaterThan(scalarWidth);
+    expect(pairHeight).toBeGreaterThan(scalarHeight);
+
+    expect(pairRender.container.querySelectorAll(".heap-node").length).toBe(3);
+    expect(pairRender.container.querySelectorAll(".heap-edges line").length).toBe(2);
   });
 });
 

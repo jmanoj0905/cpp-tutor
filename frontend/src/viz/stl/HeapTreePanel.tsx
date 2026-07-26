@@ -1,9 +1,15 @@
 import type { NormalizedCell } from "../memoryModel";
 import { MemoryCell } from "../MemoryCell";
 import { buildHeapLayout } from "./heapTree";
+import { heapNodeExtent } from "./heapNodeExtent";
 
-const ROW_H = 64;   // px vertical pitch between tree levels
-const SLOT_W = 96;  // px horizontal pitch for the widest row
+// Base (and floor) pitch: the byte-identical scalar-payload layout that
+// shipped first. Composite payloads (pair/tuple/struct) scale these up so
+// their taller/wider MemoryCell renders don't overlap neighboring nodes.
+const BASE_ROW_H = 64;   // px vertical pitch between tree levels
+const BASE_SLOT_W = 96;  // px horizontal pitch for the widest row
+const PX_PER_CONTENT_ROW = 64; // px per estimated MemoryCell text row
+const PX_PER_CONTENT_COL = 5;  // px per estimated MemoryCell text column
 
 export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewToggle }: {
   cell: NormalizedCell;
@@ -12,6 +18,11 @@ export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewTogg
   onCharViewToggle?: (cellId: string) => void;
 }) {
   const { nodes, edges, rows } = buildHeapLayout(cell.children ?? []);
+  const extents = nodes.map((n) => heapNodeExtent(n.cell));
+  const maxContentRows = extents.reduce((m, e) => Math.max(m, e.rows), 1);
+  const maxContentCols = extents.reduce((m, e) => Math.max(m, e.cols), 0);
+  const ROW_H = Math.max(BASE_ROW_H, maxContentRows * PX_PER_CONTENT_ROW);
+  const SLOT_W = Math.max(BASE_SLOT_W, maxContentCols * PX_PER_CONTENT_COL);
   const width = 2 ** Math.max(rows - 1, 0) * SLOT_W;
   const height = Math.max(rows, 1) * ROW_H;
   const xy = (index: number) => {
