@@ -16,7 +16,13 @@ TRACER_SCRIPT = "/opt/tracer/run_cpp_backend.py"
 
 RLIMIT_CPU_SECONDS = 115       # below the 120s wrapper timeout
 RLIMIT_AS_BYTES = 4 * 1024**3  # generous: valgrind reserves large VA ranges
-RLIMIT_NPROC = 128             # mirrors docker --pids-limit=128
+
+# NB: RLIMIT_NPROC is deliberately NOT set. It caps processes per real UID
+# *system-wide*, not per container. On a shared host (e.g. Render) where the
+# container's uid maps onto a host uid that already owns many processes, even
+# a generous cap is instantly exceeded and the very first compiler fork dies
+# with EAGAIN. Process-count containment is the host's cgroup pids-limit job,
+# not ours; here we rely on RLIMIT_CPU + RLIMIT_AS + the caller's timeout.
 
 _local_lock = threading.Lock()
 
@@ -24,7 +30,6 @@ _local_lock = threading.Lock()
 def _apply_rlimits() -> None:
     resource.setrlimit(resource.RLIMIT_CPU, (RLIMIT_CPU_SECONDS, RLIMIT_CPU_SECONDS))
     resource.setrlimit(resource.RLIMIT_AS, (RLIMIT_AS_BYTES, RLIMIT_AS_BYTES))
-    resource.setrlimit(resource.RLIMIT_NPROC, (RLIMIT_NPROC, RLIMIT_NPROC))
 
 
 def run_local(code: str, lang: str, timeout: int) -> subprocess.CompletedProcess:
