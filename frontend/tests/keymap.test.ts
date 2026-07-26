@@ -9,7 +9,7 @@ const key = (over: Partial<KeyDescriptor>): KeyDescriptor => ({
   repeat: false, defaultPrevented: false, ...over,
 });
 const ctx = (over: Partial<ShortcutContext> = {}): ShortcutContext => ({
-  mode: "trace", inEditable: false, helpOpen: false, loading: false, ...over,
+  mode: "trace", inEditable: false, helpOpen: false, heapOpen: false, loading: false, ...over,
 });
 
 describe("stepping keys", () => {
@@ -146,5 +146,17 @@ describe("SHORTCUT_TABLE", () => {
     expect(keys).toContain("Home / End");
     expect(keys).toContain("Esc");
     expect(keys).toContain("?");
+  });
+});
+
+describe("heap popup Escape", () => {
+  it("closes the heap popup when heapOpen and help is closed", () => {
+    expect(resolveShortcut(key({ key: "Escape" }), ctx({ heapOpen: true }))).toBe("closeHeap");
+  });
+  it("help close takes precedence over heap close", () => {
+    expect(resolveShortcut(key({ key: "Escape" }), ctx({ helpOpen: true, heapOpen: true }))).toBe("closeHelp");
+  });
+  it("still stops the trace on Escape when no popup is open", () => {
+    expect(resolveShortcut(key({ key: "Escape" }), ctx())).toBe("stop");
   });
 });

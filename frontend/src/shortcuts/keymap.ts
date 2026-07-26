@@ -16,12 +16,13 @@ export type ShortcutContext = {
   mode: "edit" | "trace";
   inEditable: boolean;
   helpOpen: boolean;
+  heapOpen: boolean;
   loading: boolean;
 };
 
 export type Action =
   | "prev" | "next" | "first" | "last"
-  | "visualize" | "stop" | "toggleHelp" | "closeHelp" | "toggleTree";
+  | "visualize" | "stop" | "toggleHelp" | "closeHelp" | "closeHeap" | "toggleTree";
 
 export const SHORTCUT_TABLE: {
   keys: string;
@@ -31,7 +32,7 @@ export const SHORTCUT_TABLE: {
   { keys: "Ctrl/Cmd+Enter", description: "Visualize execution", mode: "edit" },
   { keys: "← / →", description: "Previous / next step", mode: "trace" },
   { keys: "Home / End", description: "First / last step", mode: "trace" },
-  { keys: "Esc", description: "Stop trace (or close this help)", mode: "trace" },
+  { keys: "Esc", description: "Stop trace (or close an open popup)", mode: "trace" },
   { keys: "T", description: "Toggle Memory / Call Tree panel", mode: "trace" },
   { keys: "?", description: "Toggle this help", mode: "any" },
 ];
@@ -43,6 +44,7 @@ export function resolveShortcut(e: KeyDescriptor, ctx: ShortcutContext): Action 
 
   if (e.key === "Escape" && noMods && !e.repeat) {
     if (ctx.helpOpen) return "closeHelp";
+    if (ctx.heapOpen) return "closeHeap";
     return ctx.mode === "trace" ? "stop" : null;
   }
 
