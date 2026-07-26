@@ -17,13 +17,14 @@ function relRect(el: Element, origin: DOMRect): Rect {
 }
 
 export function Connectors({
-  containerRef, links, stepKey, selected, onSelect,
+  containerRef, links, stepKey, selected, onSelect, dimmedFromIds,
 }: {
   containerRef: RefObject<HTMLDivElement | null>;
   links: MemoryLink[];
   stepKey: number | string;
   selected: ConnectorSelection | null;
   onSelect: (link: ConnectorSelection | null) => void;
+  dimmedFromIds?: Set<string>;
 }) {
   const [paths, setPaths] = useState<Drawn[]>([]);
 
@@ -65,6 +66,7 @@ export function Connectors({
       </defs>
       {paths.map((p) => {
         const isSel = !!selected && selected.fromId === p.fromId && selected.toId === p.toId;
+        const isDim = !isSel && !!dimmedFromIds && dimmedFromIds.has(p.fromId);
         return (
           <g key={p.id}>
             <path
@@ -72,7 +74,7 @@ export function Connectors({
               d={p.d}
               onClick={(e) => { e.stopPropagation(); onSelect({ fromId: p.fromId, toId: p.toId }); }}
             />
-            <path className={`connector resolved${isSel ? " selected" : ""}`} d={p.d} markerEnd="url(#arrow)" />
+            <path className={`connector resolved${isSel ? " selected" : ""}${isDim ? " inactive" : ""}`} d={p.d} markerEnd="url(#arrow)" />
           </g>
         );
       })}

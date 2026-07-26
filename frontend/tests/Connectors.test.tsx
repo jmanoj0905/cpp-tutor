@@ -9,7 +9,7 @@ function rect(left: number, top: number, right: number, bottom: number) {
   return { left, top, right, bottom, x: left, y: top, width: right - left, height: bottom - top, toJSON() {} } as DOMRect;
 }
 
-function Harness({ links }: { links: MemoryLink[] }) {
+function Harness({ links, dimmedFromIds, selected = null }: { links: MemoryLink[]; dimmedFromIds?: Set<string>; selected?: { fromId: string; toId: string } | null }) {
   const ref = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   useEffect(() => {
@@ -25,7 +25,7 @@ function Harness({ links }: { links: MemoryLink[] }) {
     <div ref={ref} style={{ position: "relative" }}>
       <span data-port-id="from" />
       <span data-cell-id="to" />
-      {ready && <Connectors containerRef={ref} links={links} stepKey={0} selected={null} onSelect={() => {}} />}
+      {ready && <Connectors containerRef={ref} links={links} stepKey={0} selected={selected} onSelect={() => {}} dimmedFromIds={dimmedFromIds} />}
     </div>
   );
 }
@@ -65,5 +65,19 @@ describe("Connectors", () => {
     expect(hit).not.toBeNull();
     fireEvent.click(hit);
     expect(onSelect).toHaveBeenCalledWith({ fromId: "from-1", toId: "to-1" });
+  });
+
+  it("marks a dimmed-source link inactive, but not when it is selected", () => {
+    const links: MemoryLink[] = [{ fromId: "from", fromName: "p", toId: "to", targetAddress: "0x1" }];
+    const dim = new Set(["from"]);
+
+    const { container, rerender } = render(<Harness links={links} dimmedFromIds={dim} />);
+    const path = container.querySelector("path.connector")!;
+    expect(path.classList.contains("inactive")).toBe(true);
+
+    rerender(<Harness links={links} dimmedFromIds={dim} selected={{ fromId: "from", toId: "to" }} />);
+    const sel = container.querySelector("path.connector")!;
+    expect(sel.classList.contains("inactive")).toBe(false);
+    expect(sel.classList.contains("selected")).toBe(true);
   });
 });

@@ -391,6 +391,7 @@ p {
 .connector { fill: none; stroke-width: 1.5; }
 .connector.resolved { stroke: var(--blue); }
 .connector.selected { stroke-width: 3; }
+.connector.inactive { opacity: .38; }
 .connector-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .connectors marker path { fill: var(--blue); }
 .cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }

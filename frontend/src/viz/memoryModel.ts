@@ -272,6 +272,14 @@ function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
   return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
 }
 
+/** Ids of every cell in a non-active stack frame. A pointer link whose `fromId`
+ *  is in this set originates in a suspended frame and should render dimmed. The
+ *  active frame is the last one; globals/heap are excluded by construction. */
+export function dimmedLinkSources(memory: NormalizedMemory): Set<string> {
+  const older = memory.frames.slice(0, -1);
+  return new Set(flattenCells(older.flatMap((f) => f.cells)).map((c) => c.id));
+}
+
 function buildAddressMap(cells: NormalizedCell[]): Map<string, NormalizedCell> {
   const addressMap = new Map<string, NormalizedCell>();
   for (const cell of flattenCells(cells)) {

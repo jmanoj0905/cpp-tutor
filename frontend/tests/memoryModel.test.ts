@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectionDepth, decodeMemoryValue, normalizeMemory, gridShape, findCellById } from "../src/viz/memoryModel";
+import { collectionDepth, decodeMemoryValue, normalizeMemory, gridShape, findCellById, dimmedLinkSources } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
@@ -46,6 +46,51 @@ describe("pointer/iterator into a container", () => {
     const link = m.links.find((l) => l.fromName === "it")!;
     expect(link).toBeDefined();
     expect(link.toId).toBe(elem2.id);
+  });
+});
+
+// Two-frame recursion: main calls f; both hold a pointer into the heap node.
+function recursionPoint(frames: number): ExecPoint {
+  const stack = Array.from({ length: frames }, (_, i) => ({
+    unique_hash: `f_${i}`,
+    frame_id: `0x${i}`,
+    func_name: i === 0 ? "main" : "f",
+    ordered_varnames: ["node"],
+    encoded_locals: { node: ["C_DATA", `0x1${i}`, "int *", ["REF", "0x100"]] },
+  }));
+  return {
+    line: 1, event: "step_line", func_name: "f", stdout: "",
+    ordered_globals: ["gp"],
+    globals: { gp: ["C_DATA", "0x30", "int *", ["REF", "0x100"]] },
+    heap: { "0x100": ["C_DATA", "0x100", "int", 7] },
+    stack_to_render: stack,
+  } as unknown as ExecPoint;
+}
+
+describe("dimmedLinkSources", () => {
+  it("returns an empty set for a single frame", () => {
+    const m = normalizeMemory(recursionPoint(1));
+    expect(dimmedLinkSources(m).size).toBe(0);
+  });
+
+  it("dims the older frame's link source but not the active frame's", () => {
+    const m = normalizeMemory(recursionPoint(3));
+    const dim = dimmedLinkSources(m);
+    const active = m.frames[m.frames.length - 1];
+    const older = m.frames.slice(0, -1);
+    for (const f of older) {
+      const src = f.cells.find((c) => c.name === "node")!;
+      expect(dim.has(src.id)).toBe(true);
+    }
+    const activeSrc = active.cells.find((c) => c.name === "node")!;
+    expect(dim.has(activeSrc.id)).toBe(false);
+  });
+
+  it("never dims a globals-origin link", () => {
+    const m = normalizeMemory(recursionPoint(3));
+    const dim = dimmedLinkSources(m);
+    const gp = m.globals.find((c) => c.name === "gp")!;
+    expect(dim.has(gp.id)).toBe(false);
   });
 });
 

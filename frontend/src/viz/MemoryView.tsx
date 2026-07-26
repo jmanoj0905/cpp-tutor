@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { ExecPoint } from "../types/trace";
-import { normalizeMemory, findCellById, type NormalizedFrame } from "./memoryModel";
+import { normalizeMemory, findCellById, dimmedLinkSources, type NormalizedFrame } from "./memoryModel";
 import { applyCharView } from "./charView";
 import { changedCellIds } from "./memoryDiff";
 import { MemoryCell } from "./MemoryCell";
@@ -160,6 +160,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
         stepKey={`${point.line}:${split}`}
         selected={selected}
         onSelect={(link) => setSelected(link)}
+        dimmedFromIds={dimmedLinkSources(memory)}
       />
       {heapCell && (
         <HeapTreeOverlay
