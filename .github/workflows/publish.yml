@@ -125,3 +125,47 @@ jobs:
 
       - name: Inspect published image
         run: docker buildx imagetools inspect ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}
+
+  # ── CD: only after the multi-arch :latest manifest is live ──────────
+  # Both jobs run only on main pushes: tag builds don't refresh :latest
+  # (see is_default_branch gate above), so deploying them would ship stale.
+  deploy-backend:
+    needs: merge
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      # Render image services don't auto-pull a new :latest; the deploy hook
+      # tells this specific service (srv-d9j3efv1dkcs73bl4pg0) to redeploy,
+      # which re-pulls the freshly published image.
+      - name: Trigger Render deploy
+        run: curl -fsS "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  deploy-frontend:
+    needs: merge
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        # Bake the Render backend URL into the bundle (same-origin isn't used
+        # in the split deploy). Change here if the backend host ever moves.
+        env:
+          VITE_API: https://cpp-tutor-api.onrender.com
+        run: |
+          npm ci --no-fund --no-audit
+          npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=cpp-tutor --branch=main
