@@ -3,6 +3,9 @@ import { normalizeMemory } from "../../src/viz/memoryModel";
 import type { ExecPoint } from "../../src/types/trace";
 import fixture from "../fixtures/stl/adaptor.json";
 
+// Use dynamic import to resolve circular dependency with registry.ts
+const { classifyHeap } = await import("../../src/viz/stl/adaptor");
+
 /**
  * Find the last trace step where `name` is in locals AND the heap snapshot has
  * at least 3 non-empty chunks (n_items > 1).  The OPT tracer emits partial
@@ -43,6 +46,27 @@ const lastFull = (name: string): ExecPoint => {
   })!;
 };
 
+describe("classifyHeap", () => {
+  it("greater<> is a min-heap", () => {
+    expect(classifyHeap("priority_queue<int, vector<int>, greater<int> >")).toBe("min");
+  });
+  it("less<> is a max-heap", () => {
+    expect(classifyHeap("priority_queue<int, vector<int>, less<int> >")).toBe("max");
+  });
+  it("no comparator defaults to max-heap", () => {
+    expect(classifyHeap("priority_queue<int, vector<int> >")).toBe("max");
+  });
+  it("bare priority_queue<int> defaults to max-heap", () => {
+    expect(classifyHeap("priority_queue<int>")).toBe("max");
+  });
+  it("a custom functor is custom", () => {
+    expect(classifyHeap("priority_queue<int, vector<int>, MyCmp>")).toBe("custom");
+  });
+  it("a lambda comparator is custom", () => {
+    expect(classifyHeap("priority_queue<int, vector<int>, decltype([](int a,int b){return a<b;})>")).toBe("custom");
+  });
+});
+
 describe("adaptor decoders", () => {
   it("decodes std::stack with elements and a top marker", () => {
     const st = normalizeMemory(last("st")).frames[0].cells.find((c) => c.name === "st")!;
@@ -64,5 +88,6 @@ describe("adaptor decoders", () => {
     expect(pq.containerKind).toBe("priority_queue");
     // Heap array order (not sorted): max element first then rest in heap layout.
     expect(pq.children?.map((c) => c.displayValue)).toEqual(["9", "5", "1"]);
+    expect(pq.heapKind).toBe("max");
   });
 });

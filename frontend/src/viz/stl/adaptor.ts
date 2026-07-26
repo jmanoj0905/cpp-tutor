@@ -1,6 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder, DecodeCtx } from "./types";
-import { containerChildren, findMember, templateArg } from "./helpers";
+import { containerChildren, findMember, templateArg, topLevelTemplateArgs } from "./helpers";
 import { decodeContainer } from "./registry";
 
 /**
@@ -25,6 +25,16 @@ function unwrap(cell: NormalizedCell, ctx: DecodeCtx): NormalizedCell | null {
   if (inner.kind === "container") return inner;
   // Not yet decoded — try the registry (defensive path).
   return decodeContainer({ ...inner, kind: "struct" }, ctx);
+}
+
+/** min-heap for greater<>, max-heap for less<> or the default, else custom. */
+export function classifyHeap(type: string): "min" | "max" | "custom" {
+  const args = topLevelTemplateArgs(type);
+  const cmp = args[2];
+  if (!cmp) return "max"; // default comparator is std::less
+  if (/(^|::|\b)greater\b/.test(cmp)) return "min";
+  if (/(^|::|\b)less\b/.test(cmp)) return "max";
+  return "custom";
 }
 
 export const stackDecoder: ContainerDecoder = {
@@ -78,6 +88,7 @@ export const priorityQueueDecoder: ContainerDecoder = {
       children: containerChildren(cell, inner.children ?? []),
       length: inner.length,
       elementType: elem,
+      heapKind: classifyHeap(cell.type ?? ""),
       note: "heap; top = [0]",
       displayValue: `priority_queue<${elem}> · ${inner.length ?? 0}`,
     };

@@ -21,6 +21,9 @@ export interface NormalizedCell {
   length?: number;
   elementType?: string;
   containerKind?: string;
+  /** Comparator classification for priority_queue cells: min-heap (greater<>),
+   *  max-heap (less<> / default), or custom (unclassifiable comparator). */
+  heapKind?: "min" | "max" | "custom";
   /** True when a container's children are opaque "?" placeholders (values not
    *  recoverable from this tracer); suppresses key/value pair layout. */
   placeholders?: boolean;
