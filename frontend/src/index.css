@@ -705,3 +705,11 @@ p {
 .dp-indices span { display: inline-block; text-align: center; }
 .dp-detail { margin-top: 4px; border: 1px dotted var(--border); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
 .dp-detail button { margin-left: auto; font: inherit; background: none; border: none; cursor: pointer; }
+
+/* Heap tree panel (priority_queue) */
+.heap-tree-scroll { overflow-x: auto; padding: 4px 0; }
+.heap-tree { margin: 0 auto; }
+.heap-edges { position: absolute; inset: 0; pointer-events: none; }
+.heap-edges line { stroke: var(--blue); stroke-width: 1; }
+.heap-node { z-index: 1; }
+.heap-node-top > .cell > .cell-head { background: var(--yellow); }
