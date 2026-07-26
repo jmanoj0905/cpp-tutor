@@ -4,9 +4,8 @@ import type { Coord } from "./readSet";
 
 const CELL = 36; // px, uniform grid pitch for arrow geometry
 
-/** Pure helper (exported for tests): arrow path between two cell centers on
- *  the uniform grid. */
-export function arrowPath(from: Coord, to: Coord): string {
+/** Pure helper: arrow path between two cell centers on the uniform grid. */
+function arrowPath(from: Coord, to: Coord): string {
   const center = (c: Coord) => {
     const [r, col] = c.length === 2 ? c : [0, c[0]];
     return [col * CELL + CELL / 2, r * CELL + CELL / 2];

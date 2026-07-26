@@ -314,3 +314,29 @@ Note: `tracer/opt-cpp-backend` is a git submodule; if the working tree tracks it
 ## Notes / future work (out of scope)
 
 The only true *scaling* fix is reducing per-step trace size — the reference board emits 90.8 MB because every raw step re-dumps the whole nested container. Delta / changed-heap encoding would cut this dramatically but touches the frontend decode pipeline (`memoryModel.ts`) and the trace format. Tracked separately, not in this plan.
+
+---
+
+## Revision (2026-07-24, post Task 3): pre-dedup spin flag — Task 4
+
+End-to-end run of Task 3 exposed a load-bearing regression in Fix 2: a
+single-line `while(true);` spin is mislabeled `instruction_limit_reached`.
+Root cause: `vg_to_opt_trace.py`'s `ONLY_ONE_REC_PER_LINE` dedup collapses a
+spin to ~2 points BEFORE `step_limits.apply_step_limits` runs, so Task 1's
+deduped-stream spin prong (`_tail_run_length >= SPIN_RUN`) can never fire.
+Post-dedup, a spin and the DFS cut-off both present as one adjacent-identical
+tail pair — indistinguishable without raw-stream info.
+
+Chosen fix (user: best long-run) = **pre-dedup spin flag**: `vg_to_opt_trace.py`
+computes `spin_at_cap` from the RAW pre-dedup tail (a long identical
+`(line, frame)` run at the cap) and passes it to `apply_step_limits`, which
+labels it an infinite loop directly. Task 1's now-redundant deduped spin logic
+(`_tail_run_length`, the `is_spin` prong) is removed; the `has_body` degenerate-
+repeat guard (which correctly rejects the DFS false positive) stays.
+
+Also folded into Task 4: commit Task 3's already-applied `MAX_STEPS = 30000`
+edit; relax the board acceptance to `return` + `After` + no false label +
+`len < DISPLAY_CAP` (the real full count is 752, not ~294 — the old figure was
+a bad estimate; natural completion is the true success criterion).
+
+Full task spec: `.superpowers/sdd/2026-07-24-trace-budget-and-loop-detection/task-4-brief.md`.

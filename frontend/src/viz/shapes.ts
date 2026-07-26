@@ -68,7 +68,7 @@ function selfMembersOf(cell: NormalizedCell, selfNames: Set<string>): Normalized
  *  own struct type, or null. Two-signal, mirroring selfPointerMemberNames:
  *  an element's type names the own type, OR — pointer-collapsed traces — an
  *  element resolves by address to another cell of this exact type. */
-export function selfArrayMember(cells: NormalizedCell[]): { name: string; count: number } | null {
+function selfArrayMember(cells: NormalizedCell[]): { name: string; count: number } | null {
   const byAddr = new Map(cells.map((c) => [c.address as string, c]));
   const own = baseType(cells[0]?.type ?? null);
   const typedRe = own ? new RegExp(`^(struct\\s+|class\\s+)?${escapeRe(own)}\\s*\\*$`) : null;
@@ -95,7 +95,7 @@ export function candidateKind(cell: NormalizedCell): ShapeKind | null {
   return null;
 }
 
-export function shapeTypeName(cell: NormalizedCell): string {
+function shapeTypeName(cell: NormalizedCell): string {
   return baseType(cell.type);
 }
 
@@ -184,7 +184,7 @@ export function collectGroups(
   return groups;
 }
 
-export function buildEdges(g: TypeGroup): ShapeEdge[] {
+function buildEdges(g: TypeGroup): ShapeEdge[] {
   const byAddr = new Map(g.cells.map((c) => [c.address as string, c]));
   const edges: ShapeEdge[] = [];
   for (const cell of g.cells) {

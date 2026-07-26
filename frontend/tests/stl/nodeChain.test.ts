@@ -50,9 +50,9 @@ function sorted(values: string[]): string[] {
 
 function pairRows(cell: NormalizedCell): string[] {
   return (cell.children ?? []).map((row) => {
-    const first = row.children?.find((c) => c.name === "first")?.displayValue;
-    const second = row.children?.find((c) => c.name === "second")?.displayValue;
-    return `${first}->${second}`;
+    const key = row.children?.find((c) => c.name === "key")?.displayValue;
+    const value = row.children?.find((c) => c.name === "value")?.displayValue;
+    return `${key}->${value}`;
   });
 }
 
@@ -128,6 +128,8 @@ describe("node-chain decoders — payload recovery", () => {
     expect(cell.placeholders).toBeFalsy();
     expect(cell.displayValue).toBe("unordered_map<int,int> · 2");
     expect(sorted(pairRows(cell))).toEqual(["1->100", "2->200"]);
+    const entryMemberNames = cell.children?.[0].children?.map((c) => c.name);
+    expect(entryMemberNames).toEqual(["key", "value"]);
   });
 
   it("std::unordered_set recovers values", () => {

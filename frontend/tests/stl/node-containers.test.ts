@@ -28,8 +28,8 @@ function sorted(values: string[]): string[] {
 
 function pairRows(c: NormalizedCell): string[] {
   return (c.children ?? []).map((row) => {
-    const first = row.children?.find((ch) => ch.name === "first")?.displayValue;
-    const second = row.children?.find((ch) => ch.name === "second")?.displayValue;
+    const first = row.children?.find((ch) => ch.name === "key")?.displayValue;
+    const second = row.children?.find((ch) => ch.name === "value")?.displayValue;
     return `${first}->${second}`;
   });
 }

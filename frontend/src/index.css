@@ -18,7 +18,7 @@
   --border-thin: 1px solid var(--ink);
   --radius: 0;
 
-  --sans: 'Space Grotesk', system-ui, sans-serif;
+  --sans: 'JetBrains Mono', ui-monospace, Consolas, monospace;
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
   font: 15px/1.5 var(--sans);

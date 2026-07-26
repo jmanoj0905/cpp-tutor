@@ -32,7 +32,7 @@ describe("buildDpView", () => {
 
   it("on the recurrence line with i in scope: reads are [i-1] and [i-2]", () => {
     // find a step whose executing line is the recurrence and i is an int local
-    const step = t.trace.findIndex((p, s) => {
+    const step = t.trace.findIndex((p) => {
       const env = intEnv(p);
       const i = env.get("i");
       return i !== undefined && i >= 2 &&

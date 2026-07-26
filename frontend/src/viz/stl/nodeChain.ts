@@ -113,18 +113,6 @@ function walkChainNodes(
 }
 
 /**
- * Count nodes in a singly-linked heap chain from `head` — thin wrapper over
- * `walkChainNodes` kept for the current count-only decoders (tree/hash/list/
- * forward_list). Returns null (size unreliable) when the walk isn't complete.
- */
-function walkChain(
-  head: string | undefined, ptr: string, ctx: DecodeCtx, stopAddr?: string,
-): number | null {
-  const { nodes, complete } = walkChainNodes(head, ptr, ctx, stopAddr);
-  return complete ? nodes.length : null;
-}
-
-/**
  * Find a node's payload member by an accepted-names list (tracer/ABI varies:
  * `_M_data` for list on this GCC 4.8-era toolchain, `_M_value` expected for
  * forward_list, `_M_value_field` expected for tree nodes, etc). Returns the
@@ -162,6 +150,21 @@ function collectNodePayloads(
     payloads.push(payload);
   }
   return containerChildren(parent, payloads);
+}
+
+/**
+ * Relabel a map-family entry's raw pair members ("first"/"second", straight
+ * from the trace's field names — these entries never pass through
+ * `pairDecoder`) as "key"/"value" so the memory view reads like a map entry
+ * instead of a bare pair.
+ */
+function relabelEntry(entry: NormalizedCell): NormalizedCell {
+  const children = entry.children?.map((c) => {
+    if (c.name === "first") return { ...c, name: "key" };
+    if (c.name === "second") return { ...c, name: "value" };
+    return c;
+  });
+  return children ? { ...entry, children } : entry;
 }
 
 /** Accepted payload-member names for a `std::list<T>` node (`_List_node<T>`). */
@@ -225,7 +228,10 @@ export const treeDecoder: ContainerDecoder = {
     const walk = trustedTreeWalk(root, ctx, count);
     if (walk.complete) {
       const payloads = collectNodePayloads(cell, walk.nodes, TREE_PAYLOAD_NAMES);
-      if (payloads) return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), payloads);
+      if (payloads) {
+        const entries = PAIR_KINDS.has(kind) ? payloads.map(relabelEntry) : payloads;
+        return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), entries);
+      }
     }
     return nodeContainer(cell, kind, PAIR_KINDS.has(kind), count);
   },
@@ -248,7 +254,10 @@ export const hashDecoder: ContainerDecoder = {
     const walk = walkChainNodes(head, "_M_nxt", ctx);
     if (walk.complete && (expectedCount === null || walk.nodes.length === expectedCount)) {
       const payloads = collectNodePayloads(cell, walk.nodes, HASH_PAYLOAD_NAMES);
-      if (payloads) return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), payloads);
+      if (payloads) {
+        const entries = PAIR_KINDS.has(kind) ? payloads.map(relabelEntry) : payloads;
+        return realNodeContainer(cell, kind, PAIR_KINDS.has(kind), entries);
+      }
       return nodeContainer(cell, kind, PAIR_KINDS.has(kind), walk.nodes.length);
     }
     return nodeContainer(cell, kind, PAIR_KINDS.has(kind), expectedCount);
@@ -296,8 +305,5 @@ export const forwardListDecoder: ContainerDecoder = {
   },
 };
 
-// Helpers reused by later tasks (unordered / list / forward_list):
-export {
-  scalarInt, placeholder, elemLabel, nodeKind, nodeContainer, walkChain,
-  walkChainNodes, findPayloadMember, collectNodePayloads,
-};
+// Node-payload helpers exercised directly by the test suite:
+export { walkChainNodes, findPayloadMember, collectNodePayloads };
