@@ -430,7 +430,14 @@ p {
   margin-left: 6px;
   color: var(--ink-soft);
 }
-.heap-view-toggle { margin-left: 6px; }
+.heap-view-toggle {
+  margin-left: 6px;
+  font-family: var(--mono); font-size: 10px; line-height: 1.4;
+  color: var(--ink-soft); background: var(--panel);
+  border: var(--border-dotted); padding: 0 4px; cursor: pointer;
+}
+.heap-view-toggle:hover { color: var(--ink); }
+.heap-view-toggle.heap-view-on { color: var(--blue); border-color: var(--blue); }
 
 .trace-hint {
   margin-left: 0.75rem;
