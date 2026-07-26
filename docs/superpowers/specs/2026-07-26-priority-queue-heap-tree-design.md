@@ -32,16 +32,30 @@ priority_queue<pair<int,pair<int,int>>, vector<...>, less<...>> pq;  // nested p
 `priority_queue<int, vector<int>, greater<int> >`. Parse the **third** template
 argument:
 
-- matches `greater` → `heapKind: "min"` (top is the smallest element)
-- `less`, or no third arg (default is `less`) → `heapKind: "max"`
+- matches `std::greater<…>` → `heapKind: "min"` (top is the smallest element)
+- matches `std::less<…>`, or no third arg (default is `less`) → `heapKind: "max"`
+- anything else (custom comparator) → `heapKind: "custom"`
 
-Store `heapKind: "min" | "max"` on the returned container cell. The existing
-`note`/`displayValue` stay. This is a pure string parse; guard against the
-comparator itself containing angle brackets by scanning the top-level template
-args (reuse/extend `templateArg` helper logic in `helpers.ts` to return all
-top-level args rather than just the first).
+**Custom comparators** we cannot classify statically. These arrive as:
+- a named functor type — `priority_queue<T, vector<T>, MyCmp>`
+- a lambda captured via `decltype` — `priority_queue<T, vector<T>, decltype(cmp)>`
+- `std::function<bool(T,T)>`
 
-Add `heapKind?: "min" | "max"` to `NormalizedCell`.
+For `"custom"`: do NOT claim a direction. Badge reads `heap` (optionally
+`heap · <CmpName>` when a short comparator type name is available), and the
+invariant note omits the `parent ≤/≥ children` claim. Everything else still
+works — the top node is `top()` regardless of comparator, so it stays tinted,
+and the tree shape is unchanged (it is derived from array index, not from the
+comparator).
+
+Store `heapKind: "min" | "max" | "custom"` on the returned container cell. The
+existing `note`/`displayValue` stay for min/max. This is a pure string parse;
+guard against the comparator itself containing angle brackets (`greater<pair<…>>`,
+`decltype([](…){})`) by scanning the **top-level** template args — extend the
+`templateArg` helper in `helpers.ts` to split all top-level args rather than
+just the first, respecting `<>` and `()` nesting depth.
+
+Add `heapKind?: "min" | "max" | "custom"` to `NormalizedCell`.
 
 ### 2. Tree layout — new pure module `viz/stl/heapTree.ts`
 
@@ -78,7 +92,8 @@ back to the default view.
   layout math — **no DOM measurement / ResizeObserver needed** (unlike the global
   Connectors overlay). Lines use `var(--blue)`, 1px, matching the connector look.
 - The top node (`index 0`) is tinted `var(--yellow)` — it is the value the
-  algorithm reads (`top()`). Header badge shows `min-heap` / `max-heap`.
+  algorithm reads (`top()`), true for every comparator. Header badge shows
+  `min-heap` / `max-heap` / `heap` per `heapKind`.
 - Header carries the toggle button `⇄ array` to return to the flat view.
 
 ### 4. Toggle wiring
@@ -91,8 +106,8 @@ Follows the char-view toggle exactly (a `Set<cellId>`, not a per-cell view map):
   `cell.containerKind === "priority_queue"`. When the cell id is in `heapViews`,
   render `<HeapTreePanel>` instead of the default `<Children>`; otherwise render
   as today (flat array, unchanged default).
-- Badge (`min-heap`/`max-heap`) shows in the header in BOTH views, driven by
-  `cell.heapKind`.
+- Badge (`min-heap`/`max-heap`/`heap`) shows in the header in BOTH views, driven
+  by `cell.heapKind`.
 
 ### 5. Diff / highlight
 
@@ -116,7 +131,9 @@ only the header, never the whole tree body.
 ## Tests (TDD, one logical change per commit)
 
 - `tests/stl/adaptor.test.ts` (or new) — comparator → `heapKind`: `greater` ⇒ min,
-  `less` ⇒ max, default (2-arg) ⇒ max, comparator with nested `<>` parsed correctly.
+  `less` ⇒ max, default (2-arg) ⇒ max, custom functor / `decltype(lambda)` /
+  `std::function` ⇒ custom; comparator with nested `<>` or `()` parsed correctly
+  (top-level split respects nesting depth).
 - `tests/stl/heapTree.test.ts` — NEW: index→row/edge math; parent centered over
   children; empty input; single node; full and partial last row.
 - Render/toggle behavior covered by an existing component test pattern if present,
