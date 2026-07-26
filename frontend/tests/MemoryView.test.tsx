@@ -369,7 +369,7 @@ describe("MemoryView heap popup wiring", () => {
 
   it("renders no overlay when activeHeapCell is null", () => {
     const { container } = view(null);
-    expect(container.querySelector(".heap-overlay-backdrop")).toBeNull();
+    expect(container.querySelector(".heap-overlay-panel")).toBeNull();
     // the pq cell body is a flat array, never an inline tree
     expect(container.querySelector("[data-heap-tree]")).toBeNull();
   });
@@ -389,7 +389,7 @@ describe("MemoryView heap popup wiring", () => {
     const pqId = onHeapOpen.mock.calls[0][0] as string;
     unmount();
     const { container } = view(pqId);
-    expect(container.querySelector(".heap-overlay-backdrop")).toBeTruthy();
+    expect(container.querySelector(".heap-overlay-panel")).toBeTruthy();
     expect(container.querySelector("[data-heap-tree]")).toBeTruthy();
   });
 

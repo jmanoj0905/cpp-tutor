@@ -473,23 +473,24 @@ p {
 .help-table tr:last-child td { border-bottom: none; }
 .help-keys { font-family: var(--mono); white-space: nowrap; }
 
-/* ── priority_queue heap-tree popup ─────────────────────────── */
-.heap-overlay-backdrop {
-  position: fixed; inset: 0; z-index: 50;
-  background: rgba(26, 26, 26, 0.35);
-  display: flex; align-items: center; justify-content: center;
-}
+/* ── priority_queue heap-tree popup ─────────────────────────────
+   Docked bottom-right inspector, consistent with the call-tree
+   .ct-detail panel: dotted box, no dimming backdrop, stays open
+   while you step. */
 .heap-overlay-panel {
+  position: fixed; right: 8px; bottom: 8px; z-index: 40;
   background: var(--panel);
-  border: var(--border-thin);
-  max-width: 90vw; max-height: 85vh; overflow: auto;
-  padding: 12px;
+  border: var(--border-dotted);
+  max-width: min(90vw, 480px); max-height: 70vh; overflow: auto;
+  padding: 8px 10px;
+  font: 12px var(--mono); color: var(--ink);
 }
 .heap-overlay-head {
   display: flex; align-items: center; gap: 8px;
-  margin-bottom: 8px;
+  border-bottom: var(--border-dotted);
+  padding-bottom: 4px; margin-bottom: 6px;
 }
-.heap-overlay-step { font: 12px var(--mono); color: var(--ink-soft); }
+.heap-overlay-step { color: var(--ink-soft); }
 .heap-overlay-close { margin-left: auto; }
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; }

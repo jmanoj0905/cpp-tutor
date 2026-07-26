@@ -35,15 +35,17 @@ describe("HeapTreeOverlay", () => {
     expect(screen.getByText("step 7")).toBeTruthy();
   });
 
-  it("fires onClose on backdrop click but not on panel click", () => {
+  it("is a docked panel with no dimming backdrop, and a click on it does not close", () => {
     const onClose = vi.fn();
     const { container } = render(createElement(HeapTreeOverlay, {
       cell: pqCell(["1", "2"]), step: 1, onClose,
     }));
+    // consistent with the call-tree .ct-detail inspector: a bottom-right panel,
+    // no full-screen backdrop that dims the page or eats clicks
+    expect(container.querySelector(".heap-overlay-backdrop")).toBeNull();
+    expect(container.querySelector(".heap-overlay-panel")).toBeTruthy();
     fireEvent.click(container.querySelector(".heap-overlay-panel")!);
     expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(container.querySelector(".heap-overlay-backdrop")!);
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it("fires onClose on the × button", () => {
