@@ -473,6 +473,25 @@ p {
 .help-table tr:last-child td { border-bottom: none; }
 .help-keys { font-family: var(--mono); white-space: nowrap; }
 
+/* ── priority_queue heap-tree popup ─────────────────────────── */
+.heap-overlay-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex; align-items: center; justify-content: center;
+}
+.heap-overlay-panel {
+  background: var(--panel);
+  border: var(--border-thin);
+  max-width: 90vw; max-height: 85vh; overflow: auto;
+  padding: 12px;
+}
+.heap-overlay-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+}
+.heap-overlay-step { font: 12px var(--mono); color: var(--ink-soft); }
+.heap-overlay-close { margin-left: auto; }
+
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
 
 /* --- memory / call-tree tabs --- */
