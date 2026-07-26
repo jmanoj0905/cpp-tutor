@@ -494,3 +494,16 @@ function childPrefix(idPrefix: string, name: string): string {
 function childElementType(children: NormalizedCell[]): string {
   return children[0]?.type ?? "";
 }
+
+/** Depth-first search for a cell by id, walking each cell's children.
+ *  Pure — used to resolve a stable cell id against a fresh step's memory. */
+export function findCellById(cells: NormalizedCell[], id: string): NormalizedCell | null {
+  for (const c of cells) {
+    if (c.id === id) return c;
+    if (c.children) {
+      const hit = findCellById(c.children, id);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}

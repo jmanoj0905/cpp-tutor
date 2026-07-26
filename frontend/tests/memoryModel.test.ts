@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { collectionDepth, decodeMemoryValue, normalizeMemory, gridShape } from "../src/viz/memoryModel";
+import { collectionDepth, decodeMemoryValue, normalizeMemory, gridShape, findCellById } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import vectorTrace from "./fixtures/vector-trace.json";
@@ -412,5 +412,31 @@ describe("typed scalar formatting", () => {
   it("keeps big integers received as quoted strings intact", () => {
     expect(decode("long long unsigned int", "18446744073709551615").displayValue)
       .toBe("18446744073709551615");
+  });
+});
+
+const leaf = (id: string): NormalizedCell => ({
+  id, name: id, source: "stack", kind: "scalar",
+  address: null, type: "int", displayValue: "0", rawValue: 0,
+});
+function parent(id: string, kids: NormalizedCell[]): NormalizedCell {
+  return { ...leaf(id), kind: "container", children: kids };
+}
+
+describe("findCellById", () => {
+  it("finds a top-level cell", () => {
+    const cells = [leaf("a"), leaf("b")];
+    expect(findCellById(cells, "b")?.id).toBe("b");
+  });
+  it("finds a nested child", () => {
+    const cells = [parent("pq", [leaf("pq-0"), leaf("pq-1")])];
+    expect(findCellById(cells, "pq-1")?.id).toBe("pq-1");
+  });
+  it("finds a deeply nested child", () => {
+    const cells = [parent("outer", [parent("mid", [leaf("deep")])])];
+    expect(findCellById(cells, "deep")?.id).toBe("deep");
+  });
+  it("returns null when absent", () => {
+    expect(findCellById([leaf("a")], "missing")).toBeNull();
   });
 });
