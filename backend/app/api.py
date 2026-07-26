@@ -18,8 +18,17 @@ async def _lifespan(app: FastAPI):
     tracer_service.shutdown_pool()
 
 app = FastAPI(title="cpp-tutor", lifespan=_lifespan)
+# Cross-origin only matters when the frontend is served from a different host
+# (e.g. a Cloudflare Pages deploy hitting this backend on Render). Comma-list
+# via CPP_TUTOR_CORS_ORIGINS; defaults to the local Vite dev server. In the
+# all-in-one image the frontend is same-origin, so this is irrelevant there.
+_cors_origins = [
+    o.strip()
+    for o in os.environ.get("CPP_TUTOR_CORS_ORIGINS", "http://localhost:5173").split(",")
+    if o.strip()
+]
 app.add_middleware(
-    CORSMiddleware, allow_origins=["http://localhost:5173"],
+    CORSMiddleware, allow_origins=_cors_origins,
     allow_methods=["*"], allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1024)
