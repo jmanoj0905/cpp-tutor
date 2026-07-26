@@ -422,6 +422,16 @@ p {
 .char-view-toggle:hover { color: var(--ink); }
 .char-view-toggle.char-view-on { color: var(--blue); border-color: var(--blue); }
 
+/* priority_queue header badge (min/max/heap) + array <-> tree view toggle. */
+.heap-badge {
+  font: 12px var(--mono);
+  border: 1px dotted var(--ink);
+  padding: 0 4px;
+  margin-left: 6px;
+  color: var(--ink-soft);
+}
+.heap-view-toggle { margin-left: 6px; }
+
 .trace-hint {
   margin-left: 0.75rem;
   font: 400 0.8rem var(--sans);
