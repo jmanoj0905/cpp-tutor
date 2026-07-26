@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseAddr, findMember, findPointer, prettyType } from "../../src/viz/stl/helpers";
+import { parseAddr, findMember, findPointer, prettyType, topLevelTemplateArgs } from "../../src/viz/stl/helpers";
 import type { NormalizedCell } from "../../src/viz/memoryModel";
 
 const cell: NormalizedCell = {
@@ -37,5 +37,23 @@ describe("stl helpers", () => {
     // leaves unrelated types untouched
     expect(prettyType("int")).toBe("int");
     expect(prettyType("vector<int>")).toBe("vector<int>");
+  });
+});
+
+describe("topLevelTemplateArgs", () => {
+  it("splits simple args", () => {
+    expect(topLevelTemplateArgs("priority_queue<int, vector<int>, greater<int> >"))
+      .toEqual(["int", "vector<int>", "greater<int>"]);
+  });
+  it("keeps nested angle-bracket commas together", () => {
+    expect(topLevelTemplateArgs("priority_queue<pair<int,int>, vector<pair<int,int>>, less<pair<int,int>> >"))
+      .toEqual(["pair<int,int>", "vector<pair<int,int>>", "less<pair<int,int>>"]);
+  });
+  it("keeps lambda parens and braces together", () => {
+    expect(topLevelTemplateArgs("priority_queue<int, vector<int>, decltype([](int a,int b){return a<b;})>"))
+      .toEqual(["int", "vector<int>", "decltype([](int a,int b){return a<b;})"]);
+  });
+  it("returns [] when there is no template", () => {
+    expect(topLevelTemplateArgs("int")).toEqual([]);
   });
 });

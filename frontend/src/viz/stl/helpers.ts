@@ -85,3 +85,26 @@ export function containerChild(
 export function containerChildren(parent: NormalizedCell, children: NormalizedCell[]): NormalizedCell[] {
   return children.map((child, index) => containerChild(parent, child, `[${index}]`, index));
 }
+
+/** Top-level template args of the outermost `<...>`, respecting `<> () {}`
+ *  nesting so a comparator's nested commas/parens are not split. */
+export function topLevelTemplateArgs(type: string): string[] {
+  const open = type.indexOf("<");
+  const close = type.lastIndexOf(">");
+  if (open < 0 || close <= open) return [];
+  const inner = type.slice(open + 1, close);
+  const args: string[] = [];
+  let depth = 0, start = 0;
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i];
+    if (c === "<" || c === "(" || c === "{") depth++;
+    else if (c === ">" || c === ")" || c === "}") depth--;
+    else if (c === "," && depth === 0) {
+      args.push(inner.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  const tail = inner.slice(start).trim();
+  if (tail) args.push(tail);
+  return args;
+}
