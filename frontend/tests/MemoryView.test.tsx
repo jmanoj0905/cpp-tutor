@@ -1,10 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryCell } from "../src/viz/MemoryCell";
 import type { NormalizedCell } from "../src/viz/memoryModel";
 import { MemoryView } from "../src/viz/MemoryView";
 import type { ExecPoint, Trace } from "../src/types/trace";
 import listReverseFx from "./fixtures/shapes/list-reverse.json";
+import adaptorFx from "./fixtures/stl/adaptor.json";
 
 Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
 // jsdom has no CSS.escape either; minimal polyfill so ShapePanel's
@@ -328,6 +329,74 @@ describe("MemoryCell", () => {
     } as any;
     const { container } = render(<MemoryView point={point} trace={[point]} code="" />);
     expect(container.querySelector(".internals-toggle")).toBeNull();
+  });
+});
+
+describe("MemoryView heap popup wiring", () => {
+  // Reuse the real priority_queue fixture (tests/stl/adaptor.test.ts's
+  // `lastFull` logic): find the last step where `pq` is live and all 5 heap
+  // chunks (stack buf, queue buf, pq buf, + two pointer arrays) are present —
+  // that's the step where pq = [9, 5, 1], a reliable 3-child pq cell.
+  const adaptorTrace = (adaptorFx as Trace).trace;
+  const adaptorCode = (adaptorFx as Trace).code;
+  const pqStepIndex = (() => {
+    for (let i = adaptorTrace.length - 1; i >= 0; i--) {
+      const locs = (adaptorTrace[i].stack_to_render as any)?.[0]?.encoded_locals;
+      if (!locs?.pq) continue;
+      const heap = adaptorTrace[i].heap as Record<string, unknown>;
+      const nonEmpty = Object.values(heap ?? {}).filter(
+        (v) => Array.isArray(v) && (v as unknown[]).length > 3,
+      ).length;
+      if (nonEmpty >= 5) return i;
+    }
+    throw new Error("no suitable pq step found in adaptor fixture");
+  })();
+  const pqPoint = adaptorTrace[pqStepIndex];
+
+  function view(activeHeapCell: string | null, onHeapClose = vi.fn(), onHeapOpen = vi.fn()) {
+    return render(
+      <MemoryView
+        point={pqPoint}
+        prevPoint={null}
+        trace={adaptorTrace}
+        code={adaptorCode}
+        activeHeapCell={activeHeapCell}
+        onHeapOpen={onHeapOpen}
+        onHeapClose={onHeapClose}
+      />,
+    );
+  }
+
+  it("renders no overlay when activeHeapCell is null", () => {
+    const { container } = view(null);
+    expect(container.querySelector(".heap-overlay-backdrop")).toBeNull();
+    // the pq cell body is a flat array, never an inline tree
+    expect(container.querySelector("[data-heap-tree]")).toBeNull();
+  });
+
+  it("clicking ⇄ tree calls onHeapOpen with the pq cell id", () => {
+    const onHeapOpen = vi.fn();
+    view(null, vi.fn(), onHeapOpen);
+    fireEvent.click(screen.getAllByRole("button", { name: /⇄ tree/ })[0]);
+    expect(onHeapOpen).toHaveBeenCalledTimes(1);
+    expect(onHeapOpen.mock.calls[0][0]).toEqual(expect.any(String));
+  });
+
+  it("renders the overlay when activeHeapCell resolves to the pq", () => {
+    const onHeapOpen = vi.fn();
+    const { unmount } = view(null, vi.fn(), onHeapOpen);
+    fireEvent.click(screen.getAllByRole("button", { name: /⇄ tree/ })[0]);
+    const pqId = onHeapOpen.mock.calls[0][0] as string;
+    unmount();
+    const { container } = view(pqId);
+    expect(container.querySelector(".heap-overlay-backdrop")).toBeTruthy();
+    expect(container.querySelector("[data-heap-tree]")).toBeTruthy();
+  });
+
+  it("auto-closes when activeHeapCell is absent from the current memory", () => {
+    const onHeapClose = vi.fn();
+    view("no-such-id", onHeapClose);
+    expect(onHeapClose).toHaveBeenCalledTimes(1);
   });
 });
 

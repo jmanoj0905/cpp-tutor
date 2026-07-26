@@ -3,7 +3,6 @@ import type { NormalizedCell } from "./memoryModel";
 import { collectionDepth, gridShape } from "./memoryModel";
 import type { DpTableView } from "./dp/dpModel";
 import { DpTablePanel } from "./dp/DpTablePanel";
-import { HeapTreePanel } from "./stl/HeapTreePanel";
 
 const COLLAPSE_AT = 8;
 
@@ -29,13 +28,12 @@ interface MemoryCellProps {
    *  `collectReadSteps`. Passed straight through to the matching
    *  DpTablePanel's detail box. */
   dpReadSteps?: Map<string, Map<string, number[]>>;
-  /** Cell ids currently showing the binary-tree view (priority_queue only), and
-   *  the toggle that flips a pq cell between flat array and tree. */
-  heapViews?: Set<string>;
-  onHeapToggle?: (cellId: string) => void;
+  /** Open the binary-tree popup for a priority_queue cell (see HeapTreeOverlay).
+   *  Threaded through every recursive cell like onCharViewToggle. */
+  onHeapOpen?: (cellId: string) => void;
 }
 
-export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, heapViews, onHeapToggle }: MemoryCellProps) {
+export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen }: MemoryCellProps) {
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -72,21 +70,17 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
             {cell.heapKind === "min" ? "min-heap" : cell.heapKind === "max" ? "max-heap" : "heap"}
           </span>
         )}
-        {cell.containerKind === "priority_queue" && onHeapToggle && (
+        {cell.containerKind === "priority_queue" && onHeapOpen && (
           <button
-            className={`heap-view-toggle${heapViews?.has(cell.id) ? " heap-view-on" : ""}`}
-            title={heapViews?.has(cell.id) ? "Show as array" : "Show as heap tree"}
-            onClick={(e) => { e.stopPropagation(); onHeapToggle(cell.id); }}
+            className="heap-view-toggle"
+            title="Show as heap tree"
+            onClick={(e) => { e.stopPropagation(); onHeapOpen(cell.id); }}
           >
-            {heapViews?.has(cell.id) ? "⇄ array" : "⇄ tree"}
+            ⇄ tree
           </button>
         )}
       </div>
-      {cell.containerKind === "priority_queue" && heapViews?.has(cell.id) ? (
-        <HeapTreePanel cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} onCharViewToggle={onCharViewToggle} />
-      ) : (
-        hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapToggle={onHeapToggle} heapViews={heapViews} dpReadSteps={dpReadSteps} />
-      )}
+      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />}
     </div>
   );
 }
@@ -115,7 +109,7 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, heapViews, onHeapToggle }: MemoryCellProps) {
+function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen }: MemoryCellProps) {
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
@@ -132,7 +126,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
         {all.map((rowCell) => (
           <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
             {(rowCell.children ?? []).map((el) => (
-              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapToggle={onHeapToggle} heapViews={heapViews} dpReadSteps={dpReadSteps} />
+              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />
             ))}
           </div>
         ))}
@@ -160,7 +154,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
             cell={slice}
             highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts}
             dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle}
-            onHeapToggle={onHeapToggle} heapViews={heapViews} dpReadSteps={dpReadSteps}
+            onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps}
           />
         ))}
         {hidden > 0 && (
@@ -184,8 +178,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
           dpViews={dpViews}
           onDpToggle={onDpToggle}
           onCharViewToggle={onCharViewToggle}
-          onHeapToggle={onHeapToggle}
-          heapViews={heapViews}
+          onHeapOpen={onHeapOpen}
           dpReadSteps={dpReadSteps}
         />
       ))}

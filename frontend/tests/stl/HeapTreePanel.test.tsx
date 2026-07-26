@@ -47,27 +47,23 @@ describe("priority_queue header badge + tree toggle", () => {
     expect(screen.getByText("min-heap")).toBeTruthy();
   });
 
-  it("shows a '⇄ tree' button that fires onHeapToggle with the cell id", () => {
-    const onHeapToggle = vi.fn();
-    render(createElement(MemoryCell, { cell: pqCell(["1", "2"]), onHeapToggle }));
+  it("shows a '⇄ tree' button that fires onHeapOpen with the cell id", () => {
+    const onHeapOpen = vi.fn();
+    render(createElement(MemoryCell, { cell: pqCell(["1", "2"]), onHeapOpen }));
     fireEvent.click(screen.getByRole("button", { name: /⇄ tree/ }));
-    expect(onHeapToggle).toHaveBeenCalledWith("pq");
+    expect(onHeapOpen).toHaveBeenCalledWith("pq");
   });
 
-  it("renders the tree body (and a '⇄ array' button) when the toggle is on", () => {
+  it("has no ⇄ array button and never inlines a tree body", () => {
     const { container } = render(createElement(MemoryCell, {
-      cell: pqCell(["1", "2", "4"]),
-      onHeapToggle: vi.fn(),
-      heapViews: new Set(["pq"]),
+      cell: pqCell(["1", "2", "4"]), onHeapOpen: vi.fn(),
     }));
-    expect(container.querySelector("[data-heap-tree]")).toBeTruthy();
-    expect(screen.getByRole("button", { name: /⇄ array/ })).toBeTruthy();
-  });
-
-  it("renders the flat array body when the toggle is off", () => {
-    const { container } = render(createElement(MemoryCell, {
-      cell: pqCell(["1", "2", "4"]), onHeapToggle: vi.fn(), heapViews: new Set(),
-    }));
+    expect(screen.queryByRole("button", { name: /⇄ array/ })).toBeNull();
     expect(container.querySelector("[data-heap-tree]")).toBeNull();
+  });
+
+  it("omits the tree button when no onHeapOpen is provided", () => {
+    render(createElement(MemoryCell, { cell: pqCell(["1", "2"]) }));
+    expect(screen.queryByRole("button", { name: /⇄ tree/ })).toBeNull();
   });
 });

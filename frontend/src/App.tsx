@@ -32,7 +32,7 @@ int main() {
 
 function Workspace({
   trace, code, breakpoints, onToggleBreakpoint, onClearBreakpoints, onResize,
-  registerStepHandlers,
+  registerStepHandlers, activeHeapCell, onHeapOpen, onHeapClose,
 }: {
   trace: Trace;
   code: string;
@@ -41,6 +41,9 @@ function Workspace({
   onClearBreakpoints: () => void;
   onResize: (pct: number) => void;
   registerStepHandlers: (h: ShortcutHandlers | null) => void;
+  activeHeapCell: string | null;
+  onHeapOpen: (id: string) => void;
+  onHeapClose: () => void;
 }) {
   const player = usePlayer(trace);
   const callTree = useMemo(() => buildCallTree(trace.trace), [trace]);
@@ -127,7 +130,7 @@ function Workspace({
             </button>
           </div>
           {tab === "memory" ? (
-            <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} />
+            <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} activeHeapCell={activeHeapCell} onHeapOpen={onHeapOpen} onHeapClose={onHeapClose} />
           ) : (
             <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />
           )}
@@ -148,6 +151,7 @@ export default function App() {
   const elapsed = useElapsed(loading);
 
   const [helpOpen, setHelpOpen] = useState(false);
+  const [activeHeapCell, setActiveHeapCell] = useState<string | null>(null);
   const stepHandlers = useRef<ShortcutHandlers | null>(null);
   const registerStepHandlers = useCallback((h: ShortcutHandlers | null) => {
     stepHandlers.current = h;
@@ -160,6 +164,7 @@ export default function App() {
   async function visualize() {
     setErr(null);
     setErrLine(null);
+    setActiveHeapCell(null);
     setLoading(true);
     try {
       const res = await fetchTrace(code, "cpp");
@@ -177,12 +182,13 @@ export default function App() {
     setTrace(null);
     setErr(null);
     setErrLine(null);
+    setActiveHeapCell(null);
   }
 
   const viewing = trace !== null;
 
   useShortcuts(
-    { mode: viewing ? "trace" : "edit", helpOpen, loading },
+    { mode: viewing ? "trace" : "edit", helpOpen, heapOpen: activeHeapCell !== null, loading },
     {
       prev: () => stepHandlers.current?.prev?.(),
       next: () => stepHandlers.current?.next?.(),
@@ -193,6 +199,7 @@ export default function App() {
       stop,
       toggleHelp: () => setHelpOpen((v) => !v),
       closeHelp: () => setHelpOpen(false),
+      closeHeap: () => setActiveHeapCell(null),
     },
   );
 
@@ -223,6 +230,9 @@ export default function App() {
               onClearBreakpoints={() => setBreakpoints(new Set())}
               onResize={setSplit}
               registerStepHandlers={registerStepHandlers}
+              activeHeapCell={activeHeapCell}
+              onHeapOpen={setActiveHeapCell}
+              onHeapClose={() => setActiveHeapCell(null)}
             />
           : (<>
               <section className="left-col">
