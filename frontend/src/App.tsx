@@ -156,6 +156,7 @@ export default function App() {
   const registerStepHandlers = useCallback((h: ShortcutHandlers | null) => {
     stepHandlers.current = h;
   }, []);
+  const closeHeap = useCallback(() => setActiveHeapCell(null), []);
 
   function toggleBreakpoint(line: number) {
     setBreakpoints((prev) => toggleInSet(prev, line));
@@ -199,7 +200,7 @@ export default function App() {
       stop,
       toggleHelp: () => setHelpOpen((v) => !v),
       closeHelp: () => setHelpOpen(false),
-      closeHeap: () => setActiveHeapCell(null),
+      closeHeap,
     },
   );
 
@@ -232,7 +233,7 @@ export default function App() {
               registerStepHandlers={registerStepHandlers}
               activeHeapCell={activeHeapCell}
               onHeapOpen={setActiveHeapCell}
-              onHeapClose={() => setActiveHeapCell(null)}
+              onHeapClose={closeHeap}
             />
           : (<>
               <section className="left-col">

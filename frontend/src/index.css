@@ -476,7 +476,7 @@ p {
 /* ── priority_queue heap-tree popup ─────────────────────────── */
 .heap-overlay-backdrop {
   position: fixed; inset: 0; z-index: 50;
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(26, 26, 26, 0.35);
   display: flex; align-items: center; justify-content: center;
 }
 .heap-overlay-panel {
