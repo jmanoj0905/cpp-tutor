@@ -70,11 +70,12 @@ export function buildHeapLayout(children: NormalizedCell[]): HeapLayout;
 ```
 
 - `row = floor(log2(index + 1))`.
-- Node horizontal position: assign each node a fractional slot so that a parent
-  sits centered over its children. Compute leaf order left-to-right, then place
-  internal nodes at the midpoint of their subtree span. Output normalized `col`
-  in `[0,1]` per node so the renderer can position with percentages (resolution-
-  independent, no measurement needed).
+- Node horizontal position: **fixed per-row slot grid.** A node's slot within its
+  row is `slot = index - (2^row - 1)`; its center is `col = (slot + 0.5) / 2^row`
+  in `[0,1]`. For a complete binary tree this positions each parent exactly over
+  the midpoint of its two children (provable: parent `(s+0.5)/2^r` equals the mean
+  of children slots `2s,2s+1` at row `r+1`). No leaf-span computation, no DOM
+  measurement — purely index math.
 - Edges: for each index `i > 0`, edge `{ parent: floor((i-1)/2), child: i }`.
 
 Empty input → `{ nodes: [], edges: [], rows: 0 }`.
@@ -84,13 +85,27 @@ Empty input → `{ nodes: [], edges: [], rows: 0 }`.
 Mirrors `dp/DpTablePanel.tsx`: an alternate render for one cell, with a toggle
 back to the default view.
 
-- Container is `position: relative`. Nodes are absolutely positioned by
-  `left: col%`, `top: row * rowHeight`. Each node renders via `<MemoryCell>` so
-  nested payloads (pairs, structs) look identical to the array view.
-- Edges: one inline `<svg>` layer behind the nodes, sized to the panel. Because
-  `col`/`row` are known up front, edge endpoints are computed from the same
-  layout math — **no DOM measurement / ResizeObserver needed** (unlike the global
-  Connectors overlay). Lines use `var(--blue)`, 1px, matching the connector look.
+- Container is `position: relative`. Nodes are absolutely positioned:
+  `left: col * gridWidth` (centered via `translateX(-50%)`), `top: row * rowHeight`.
+  Each node renders via `<MemoryCell>` so any payload looks identical to the array
+  view. `gridWidth = 2^(rows-1) * slotWidth` (slots in the widest row) so leaves
+  never collide; `slotWidth` is a fixed mono-friendly width. Panel wraps in an
+  `overflow-x: auto` box (repo rule) so a wide bottom row scrolls rather than
+  pushing the page.
+- **Payload variety.** Nodes carry whatever the element type decodes to: scalar,
+  `pair`/`tuple`, `string`, `vector`, or a user struct/container. Because each
+  node is a real `<MemoryCell>`, nested containers, the char-view toggle on a
+  `string`/`vector<string>` node, and pointer ports all keep working inside the
+  tree. A tall payload (multi-line struct) sets that row's height via
+  `rowHeight = max node height`, measured once per render like the array grid —
+  edges attach to the node box top/bottom centers, which stay on the slot `col`
+  regardless of node width.
+- Edges: one inline `<svg>` layer behind the nodes, sized to the panel. Horizontal
+  endpoints come straight from the pure `col` math (no measurement); vertical
+  endpoints use `row * rowHeight`, where `rowHeight` is the tallest node in the
+  render (the only measured quantity — the horizontal layout never depends on node
+  width). No global Connectors overlay / cross-cell ResizeObserver involved. Lines
+  use `var(--blue)`, 1px, matching the connector look.
 - The top node (`index 0`) is tinted `var(--yellow)` — it is the value the
   algorithm reads (`top()`), true for every comparator. Header badge shows
   `min-heap` / `max-heap` / `heap` per `heapKind`.
@@ -108,6 +123,11 @@ Follows the char-view toggle exactly (a `Set<cellId>`, not a per-cell view map):
   as today (flat array, unchanged default).
 - Badge (`min-heap`/`max-heap`/`heap`) shows in the header in BOTH views, driven
   by `cell.heapKind`.
+- **Nested placement.** `MemoryCell` is recursive and `heapViews`/`onHeapToggle`
+  thread through every section and every child (exactly like `onCharViewToggle`),
+  so the `⇄ tree` button and tree view work whether the pq is a global, a local,
+  a heap object, or nested inside another container (`vector<priority_queue<…>>`,
+  a `map` value, etc.). No special-casing per location.
 
 ### 5. Diff / highlight
 
@@ -138,6 +158,10 @@ only the header, never the whole tree body.
   children; empty input; single node; full and partial last row.
 - Render/toggle behavior covered by an existing component test pattern if present,
   else a focused test that `HeapTreePanel` emits N node cells + correct edge count.
+- Payload variety: layout/render over pq elements of `int`, `pair<int,int>`,
+  `pair<int,pair<int,int>>` (kClosest), `string`, and `vector<int>` — each node
+  emits the element's normal decoded cell; slot `col` unaffected by node width.
+- Empty pq (size 0) → empty layout, no edges, badge still shown.
 
 ## Aesthetic
 
