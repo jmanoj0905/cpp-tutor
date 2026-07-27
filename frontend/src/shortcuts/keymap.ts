@@ -17,12 +17,14 @@ export type ShortcutContext = {
   inEditable: boolean;
   helpOpen: boolean;
   heapOpen: boolean;
+  paletteOpen: boolean;
   loading: boolean;
 };
 
 export type Action =
   | "prev" | "next" | "first" | "last"
-  | "visualize" | "stop" | "toggleHelp" | "closeHelp" | "closeHeap" | "toggleTree";
+  | "visualize" | "stop" | "toggleHelp" | "closeHelp" | "closeHeap" | "toggleTree"
+  | "togglePalette" | "closePalette";
 
 export const SHORTCUT_TABLE: {
   keys: string;
@@ -35,6 +37,7 @@ export const SHORTCUT_TABLE: {
   { keys: "Esc", description: "Stop trace (or close an open popup)", mode: "trace" },
   { keys: "T", description: "Toggle Memory / Call Tree panel", mode: "trace" },
   { keys: "?", description: "Toggle this help", mode: "any" },
+  { keys: "Cmd/Ctrl+Shift+K", description: "Open command palette", mode: "any" },
 ];
 
 export function resolveShortcut(e: KeyDescriptor, ctx: ShortcutContext): Action | null {
@@ -43,6 +46,7 @@ export function resolveShortcut(e: KeyDescriptor, ctx: ShortcutContext): Action 
   const noMods = !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 
   if (e.key === "Escape" && noMods && !e.repeat) {
+    if (ctx.paletteOpen) return "closePalette";
     if (ctx.helpOpen) return "closeHelp";
     if (ctx.heapOpen) return "closeHeap";
     return ctx.mode === "trace" ? "stop" : null;
@@ -52,6 +56,15 @@ export function resolveShortcut(e: KeyDescriptor, ctx: ShortcutContext): Action 
   // sniffing the platform.
   if (e.key === "Enter" && e.ctrlKey !== e.metaKey && !e.altKey && !e.shiftKey && !e.repeat) {
     return ctx.mode === "edit" && !ctx.loading ? "visualize" : null;
+  }
+
+  // Command palette: Cmd+K or Ctrl+Shift+K. Works while typing (like Ctrl+Enter),
+  // so it must resolve before the inEditable bail below. Plain Ctrl+K is left for
+  // the editor.
+  if (e.key.toLowerCase() === "k" && !e.altKey && !e.repeat) {
+    const cmdK = e.metaKey && !e.ctrlKey && !e.shiftKey;
+    const ctrlShiftK = e.ctrlKey && e.shiftKey && !e.metaKey;
+    if (cmdK || ctrlShiftK) return "togglePalette";
   }
 
   // Everything below must stay out of the way while the user is typing or

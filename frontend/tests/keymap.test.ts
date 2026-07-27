@@ -9,7 +9,7 @@ const key = (over: Partial<KeyDescriptor>): KeyDescriptor => ({
   repeat: false, defaultPrevented: false, ...over,
 });
 const ctx = (over: Partial<ShortcutContext> = {}): ShortcutContext => ({
-  mode: "trace", inEditable: false, helpOpen: false, heapOpen: false, loading: false, ...over,
+  mode: "trace", inEditable: false, helpOpen: false, heapOpen: false, paletteOpen: false, loading: false, ...over,
 });
 
 describe("stepping keys", () => {
@@ -158,5 +158,27 @@ describe("heap popup Escape", () => {
   });
   it("still stops the trace on Escape when no popup is open", () => {
     expect(resolveShortcut(key({ key: "Escape" }), ctx())).toBe("stop");
+  });
+});
+
+describe("command palette shortcut", () => {
+  it("opens on Cmd+K", () => {
+    expect(resolveShortcut(key({ key: "k", metaKey: true }), ctx({ mode: "edit" }))).toBe("togglePalette");
+  });
+
+  it("opens on Ctrl+Shift+K", () => {
+    expect(resolveShortcut(key({ key: "k", ctrlKey: true, shiftKey: true }), ctx({ mode: "edit" }))).toBe("togglePalette");
+  });
+
+  it("opens even while focus is editable", () => {
+    expect(resolveShortcut(key({ key: "k", metaKey: true }), ctx({ inEditable: true }))).toBe("togglePalette");
+  });
+
+  it("Esc closes the palette ahead of help/heap/stop", () => {
+    expect(resolveShortcut(key({ key: "Escape" }), ctx({ paletteOpen: true, helpOpen: true, heapOpen: true }))).toBe("closePalette");
+  });
+
+  it("plain Ctrl+K (no shift) does not open — leaves it for the editor", () => {
+    expect(resolveShortcut(key({ key: "k", ctrlKey: true }), ctx({ mode: "edit" }))).toBeNull();
   });
 });

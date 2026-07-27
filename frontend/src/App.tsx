@@ -189,7 +189,7 @@ export default function App() {
   const viewing = trace !== null;
 
   useShortcuts(
-    { mode: viewing ? "trace" : "edit", helpOpen, heapOpen: activeHeapCell !== null, loading },
+    { mode: viewing ? "trace" : "edit", helpOpen, heapOpen: activeHeapCell !== null, paletteOpen: false, loading },
     {
       prev: () => stepHandlers.current?.prev?.(),
       next: () => stepHandlers.current?.next?.(),
