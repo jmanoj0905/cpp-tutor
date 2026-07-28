@@ -1,5 +1,5 @@
 // frontend/src/palette/CommandPalette.tsx
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   buildCommands, rank, emptyOrder,
   type Command, type CommandCtx, type PaletteHandlers,
