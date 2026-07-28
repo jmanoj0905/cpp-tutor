@@ -192,3 +192,22 @@ describe("CodePanel exec arrows", () => {
     expect(container.querySelector(".cm-line.cm-next")).toBeNull();
   });
 });
+
+describe("CodePanel line-number mode", () => {
+  it("shows a relative gutter by default", async () => {
+    const { container } = render(<CodePanel {...base} readOnly={false} value={"a\nb\nc"} />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-relative-numbers")).toBeTruthy();
+  });
+
+  it("switches to a stock line-number gutter in absolute mode", async () => {
+    const { container, rerender } = render(
+      <CodePanel {...base} readOnly={false} value={"a\nb\nc"} lineNumberMode="relative" />,
+    );
+    await new Promise((r) => setTimeout(r, 0));
+    rerender(<CodePanel {...base} readOnly={false} value={"a\nb\nc"} lineNumberMode="absolute" />);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(container.querySelector(".cm-relative-numbers")).toBeNull();
+    expect(container.querySelector(".cm-lineNumbers")).toBeTruthy();
+  });
+});

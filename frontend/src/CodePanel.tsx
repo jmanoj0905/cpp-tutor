@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
 import {
   EditorView, keymap, gutter, GutterMarker, Decoration,
-  highlightActiveLine, highlightActiveLineGutter,
+  highlightActiveLine, highlightActiveLineGutter, lineNumbers,
 } from "@codemirror/view";
 import { cpp, cppLanguage } from "@codemirror/lang-cpp";
 import {
@@ -155,7 +155,7 @@ const NO_DEAD_LINES = new Set<number>();
 
 export function CodePanel({
   value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly,
-  deadLines = NO_DEAD_LINES, errorLine = null,
+  deadLines = NO_DEAD_LINES, errorLine = null, lineNumberMode = "relative",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -165,12 +165,14 @@ export function CodePanel({
   readOnly: boolean;
   deadLines?: Set<number>;
   errorLine?: number | null;
+  lineNumberMode?: "relative" | "absolute";
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onToggleRef = useRef(onToggleBreakpoint);
   const readOnlyComp = useRef(new Compartment());
+  const lineNumComp = useRef(new Compartment());
   const readOnlyRef = useRef(readOnly);
   onChangeRef.current = onChange;
   onToggleRef.current = onToggleBreakpoint;
@@ -207,7 +209,9 @@ export function CodePanel({
             return true; // swallow cursor placement in trace mode
           },
         }),
-        relativeLineNumbers(),
+        lineNumComp.current.of(
+          lineNumberMode === "absolute" ? lineNumbers() : relativeLineNumbers(),
+        ),
         foldGutter(),
         cpp(),
         cppLanguage.data.of({ autocomplete: cppCompletions }),
@@ -260,6 +264,15 @@ export function CodePanel({
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [readOnly]);
+
+  useEffect(() => {
+    view.current?.dispatch({
+      effects: lineNumComp.current.reconfigure(
+        lineNumberMode === "absolute" ? lineNumbers() : relativeLineNumbers(),
+      ),
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineNumberMode]);
 
   return <div className="editor codepanel" ref={host} />;
 }
