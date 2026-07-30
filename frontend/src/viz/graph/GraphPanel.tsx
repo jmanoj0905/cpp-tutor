@@ -40,7 +40,8 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
             onClick={() => setViewAs(v)}>{v}</button>
         ))}
       </div>
-      <svg className="graph-svg" viewBox={`0 0 ${W} ${H}`} width="100%">
+      <div className="graph-canvas">
+      <svg className="graph-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
         {scene.edges.map((e, i) => {
           const a = pos.get(e.from), b = pos.get(e.to);
           if (!a || !b) return null;
@@ -62,6 +63,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
           );
         })}
       </svg>
+      </div>
       {selected && <div className="graph-detail">node {selected} — inspected at step {step}</div>}
     </div>
   );
