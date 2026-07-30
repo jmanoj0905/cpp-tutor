@@ -159,6 +159,19 @@ describe("App shell", () => {
     expect(container.querySelector(".memory")).toBeNull();
     expect(container.querySelector(".calltree")).toBeTruthy();
   });
+
+  it("toggles between call tree and call log within the Call Tree tab", async () => {
+    (fetchTrace as any).mockResolvedValue(recTrace as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+    fireEvent.click(screen.getByRole("tab", { name: /call tree/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^log$/i }));
+    expect(document.querySelector(".calllog")).toBeTruthy();
+    expect(document.querySelector(".calltree")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^tree$/i }));
+    expect(document.querySelector(".calltree")).toBeTruthy();
+  });
 });
 
 describe("keyboard shortcuts", () => {

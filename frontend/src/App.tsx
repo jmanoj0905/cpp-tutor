@@ -6,6 +6,7 @@ import { Divider } from "./Divider.tsx";
 import { MemoryView } from "./viz/MemoryView";
 import { buildCallTree } from "./viz/callTree";
 import { CallTreePanel } from "./viz/CallTreePanel";
+import { CallLogPanel } from "./viz/CallLogPanel";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
@@ -49,6 +50,7 @@ function Workspace({
   const callTree = useMemo(() => buildCallTree(trace.trace), [trace]);
   const [tab, setTab] = useState<"memory" | "tree">("memory");
   const [treeSeen, setTreeSeen] = useState(false);
+  const [treeMode, setTreeMode] = useState<"tree" | "log">("tree");
   const openTab = (t: "memory" | "tree") => {
     setTab(t);
     if (t === "tree") setTreeSeen(true);
@@ -132,7 +134,15 @@ function Workspace({
           {tab === "memory" ? (
             <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} activeHeapCell={activeHeapCell} onHeapOpen={onHeapOpen} onHeapClose={onHeapClose} />
           ) : (
-            <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />
+            <div className="calltree-region">
+              <div className="calltree-mode" role="tablist">
+                <button aria-selected={treeMode === "tree"} onClick={() => setTreeMode("tree")}>tree</button>
+                <button aria-selected={treeMode === "log"} onClick={() => setTreeMode("log")}>log</button>
+              </div>
+              {treeMode === "tree"
+                ? <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />
+                : <CallLogPanel tree={callTree} step={player.index} trace={trace.trace} />}
+            </div>
           )}
         </div>
       </section>

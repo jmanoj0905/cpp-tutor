@@ -777,3 +777,12 @@ p {
 .cl-future { opacity: 0.35; }
 .cl-current { background: var(--yellow); }
 .cl-selected { outline: var(--border-thin) solid var(--blue); }
+
+/* --- call tree / call log sub-toggle --- */
+.calltree-region { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.calltree-mode { display: flex; gap: 0; border-bottom: var(--border-thin) dotted var(--ink); flex: none; }
+.calltree-mode button {
+  font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
+  background: none; border: none; color: var(--ink-soft);
+}
+.calltree-mode button[aria-selected="true"] { color: var(--ink); background: var(--yellow); }
