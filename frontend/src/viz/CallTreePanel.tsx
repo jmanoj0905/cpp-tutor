@@ -90,7 +90,7 @@ export function CallTreePanel({ tree, step, trace }: {
         <button aria-label="Zoom in" onClick={() => zoomCenter(1.25)}>+</button>
         <button aria-label="Zoom out" onClick={() => zoomCenter(1 / 1.25)}>−</button>
       </div>
-      {selected && <NodeDetail node={selected} trace={trace} onClose={() => select(null)} />}
+      {selected && <NodeDetail key={selected.id} node={selected} trace={trace} onClose={() => select(null)} />}
     </div>
   );
 }

@@ -146,11 +146,15 @@ const hLocals = {
   p: ["C_DATA", "0xA8", "int *", "0xB0"],
 };
 const mainX = { x: ["C_DATA", "0xB0", "int", 7] };
+// k also has a var named "n" (distinct value/address from h's) so a test can
+// switch selection directly from h to k and check that k's "n" row starts
+// collapsed rather than inheriting h's expanded state.
+const kLocals = { n: ["C_DATA", "0xC0", "int", 9] };
 const inspectTrace = [
   pt([["main", "0x1", mainX]]),
   pt([["main", "0x1", mainX], ["h", "0x2", hLocals]], "call"),
   pt([["main", "0x1", mainX], ["h", "0x2", hLocals]]),
-  pt([["main", "0x1", mainX], ["k", "0x3"]], "call"),
+  pt([["main", "0x1", mainX], ["k", "0x3", kLocals]], "call"),
 ];
 const inspectTree = buildCallTree(inspectTrace);
 const h = inspectTree.roots[0].children[0];
@@ -198,6 +202,23 @@ describe("CallTreePanel variable inspector", () => {
     expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(1);
     const k = inspectTree.roots[0].children[1];
     fireEvent.click(container.querySelector(`[data-testid="ct-node-${k.id}"]`)!);
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(0);
+  });
+
+  it("switching selection directly from one node to another (no close in between) starts the new node's vars collapsed", () => {
+    // Regression: NodeDetail's expandedVars state must reset per selected
+    // node, not persist across a direct h -> k selection change. Both h and
+    // k have a var named "n" so this exercises the exact case where a stale
+    // expanded-set entry would otherwise leak into the new node's row.
+    const container = openDetail();
+    fireEvent.click(rowFor(container, "n")); // expand h's "n"
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(1);
+
+    const k = inspectTree.roots[0].children[1];
+    fireEvent.click(container.querySelector(`[data-testid="ct-node-${k.id}"]`)!); // direct switch, no close
+
+    const kRow = rowFor(container, "n");
+    expect(kRow.getAttribute("aria-expanded")).toBe("false");
     expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(0);
   });
 
