@@ -135,10 +135,50 @@ function looksLikeGrid(matrix: string[][], mem: NormalizedMemory, name: string):
   return false;
 }
 
+function truthyScalar(v: string): boolean {
+  return v === "true" || v === "1" || (isIntLabel(v) && Number(v) !== 0);
+}
+
+function bindVisited(mem: NormalizedMemory, scene: GraphScene): void {
+  const nodeCount = scene.kind === "grid"
+    ? (scene.rows ?? 0) * (scene.cols ?? 0)
+    : scene.nodes.length;
+  for (const c of findContainers(mem)) {
+    if (!/visit|seen|vis|rott/i.test(c.name) && scene.kind !== "grid") {
+      // name-agnostic fallback still allowed below; prefer named vectors first
+    }
+    // grid: a same-dims bool/int matrix
+    if (scene.kind === "grid") {
+      const m = readMatrix(c);
+      if (m && m.length === scene.rows && m[0]?.length === scene.cols && m !== null) {
+        if (/visit|seen|vis/i.test(c.name)) {
+          m.forEach((row, r) => row.forEach((v, col) => {
+            if (truthyScalar(v)) scene.overlays.visited.add(`${r},${col}`);
+          }));
+          return;
+        }
+      }
+      continue;
+    }
+    // adjlist/matrix: a flat vector<bool|int> of length nodeCount
+    const flat = c.children;
+    if (!flat || flat.length !== nodeCount) continue;
+    if (flat.some((x) => x.kind !== "scalar")) continue;
+    if (!/visit|seen|vis/i.test(c.name)) continue;
+    flat.forEach((x, i) => { if (truthyScalar(x.displayValue)) scene.overlays.visited.add(String(i)); });
+    return;
+  }
+}
+
 export function buildGraphScene(
   mem: NormalizedMemory, _prevMem: NormalizedMemory | null,
   _trace: ExecPoint[], _index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
+  const finish = (scene: GraphScene): GraphScene => {
+    bindVisited(mem, scene);
+    return scene;
+  };
+
   for (const c of findContainers(mem)) {
     const m = readMatrix(c);
     if (!m || m.length === 0) continue;
@@ -147,16 +187,16 @@ export function buildGraphScene(
     const isChar = isCharMatrix(c);
     if (!isChar && !allInt) continue;               // not a graph/grid container
 
-    if (viewAs === "grid") return gridScene(m);
+    if (viewAs === "grid") return finish(gridScene(m));
     if (viewAs === "graph" && allInt)
-      return isBinarySquare(m) ? matrixScene(m) : adjlistScene(m);
+      return finish(isBinarySquare(m) ? matrixScene(m) : adjlistScene(m));
 
     // auto
-    if (isChar && rectangular) return gridScene(m);
+    if (isChar && rectangular) return finish(gridScene(m));
     if (allInt) {
-      if (looksLikeGrid(m, mem, c.name)) return gridScene(m);
-      if (isBinarySquare(m)) return matrixScene(m);
-      return adjlistScene(m);
+      if (looksLikeGrid(m, mem, c.name)) return finish(gridScene(m));
+      if (isBinarySquare(m)) return finish(matrixScene(m));
+      return finish(adjlistScene(m));
     }
   }
   return null;
