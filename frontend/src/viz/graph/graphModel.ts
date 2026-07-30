@@ -47,6 +47,26 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
+function frameNodeId(frame: { cells: NormalizedCell[] }, kind: GraphKind): string | null {
+  const ints = frame.cells.filter((c) => c.kind === "scalar" && isIntLabel(c.displayValue));
+  if (kind === "grid") {
+    const rc = frame.cells.filter((c) => /^(i|j|r|c|row|col|x|y)$/i.test(c.name) && isIntLabel(c.displayValue));
+    if (rc.length >= 2) return `${rc[0].displayValue},${rc[1].displayValue}`;
+    return null;
+  }
+  const named = frame.cells.find((c) => /^(node|curr|cur|n|u|v|src|start)$/i.test(c.name) && isIntLabel(c.displayValue));
+  return (named ?? ints[0])?.displayValue ?? null;
+}
+
+function bindCurrent(mem: NormalizedMemory, scene: GraphScene): void {
+  // frames are outermost-first in NormalizedMemory; reverse for top-first path.
+  const frames = [...mem.frames].reverse();
+  for (const f of frames) {
+    const id = frameNodeId(f, scene.kind);
+    if (id && scene.nodes.some((n) => n.id === id)) scene.overlays.current.push(id);
+  }
+}
+
 export function isCharMatrix(cell: NormalizedCell): boolean {
   const t = `${cell.elementType ?? ""} ${cell.type ?? ""}`.toLowerCase();
   return t.includes("char");
@@ -201,6 +221,7 @@ export function buildGraphScene(
   const finish = (scene: GraphScene): GraphScene => {
     bindVisited(mem, scene);
     bindFrontier(mem, scene);
+    bindCurrent(mem, scene);
     return scene;
   };
 
