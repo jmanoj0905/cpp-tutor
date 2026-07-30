@@ -47,10 +47,30 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
+export function isCharMatrix(cell: NormalizedCell): boolean {
+  const t = `${cell.elementType ?? ""} ${cell.type ?? ""}`.toLowerCase();
+  return t.includes("char");
+}
+
+function isRectangular(matrix: string[][]): boolean {
+  const w = matrix[0]?.length ?? 0;
+  return w > 0 && matrix.every((r) => r.length === w);
+}
+
 export function isBinarySquare(matrix: string[][]): boolean {
   const n = matrix.length;
   if (n === 0) return false;
   return matrix.every((r) => r.length === n && r.every((v) => v === "0" || v === "1"));
+}
+
+function gridScene(matrix: string[][]): GraphScene {
+  const rows = matrix.length;
+  const cols = matrix[0]?.length ?? 0;
+  const nodes: GraphNode[] = [];
+  for (let r = 0; r < rows; r++)
+    for (let c = 0; c < cols; c++)
+      nodes.push({ id: `${r},${c}`, label: matrix[r][c], row: r, col: c });
+  return { kind: "grid", nodes, edges: [], overlays: emptyOverlays(), rows, cols };
 }
 
 function matrixScene(matrix: string[][]): GraphScene {
@@ -96,7 +116,9 @@ export function buildGraphScene(
   const containers = findContainers(mem);
   for (const c of containers) {
     const m = readMatrix(c);
-    if (m && m.length > 0 && m.every((r) => r.every(isIntLabel))) {
+    if (!m || m.length === 0) continue;
+    if (isCharMatrix(c) && isRectangular(m)) return gridScene(m);
+    if (m.every((r) => r.every(isIntLabel))) {
       if (isBinarySquare(m)) return matrixScene(m);
       return adjlistScene(m);
     }
