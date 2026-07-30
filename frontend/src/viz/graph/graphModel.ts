@@ -47,6 +47,17 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
+// normalizeMemory is pure per ExecPoint; bindOrder re-derives the visited set
+// for trace[0..index] on every scene build, so without memoization a full-trace
+// scan re-normalizes each point O(n) times (O(n^2) overall). Cache by point
+// identity — a behavioural no-op that keeps the seek-safe order affordable.
+const normCache = new WeakMap<ExecPoint, NormalizedMemory>();
+function norm(point: ExecPoint): NormalizedMemory {
+  let m = normCache.get(point);
+  if (!m) { m = normalizeMemory(point); normCache.set(point, m); }
+  return m;
+}
+
 function frameNodeId(frame: { cells: NormalizedCell[] }, kind: GraphKind): string | null {
   const ints = frame.cells.filter((c) => c.kind === "scalar" && isIntLabel(c.displayValue));
   if (kind === "grid") {
@@ -159,13 +170,13 @@ function truthyScalar(v: string): boolean {
   return v === "true" || v === "1" || (isIntLabel(v) && Number(v) !== 0);
 }
 
-function visitedIdsAt(point: ExecPoint, kindHint: GraphScene): Set<string> {
+function visitedIdsAt(point: ExecPoint, kindHint: GraphScene, trace: ExecPoint[]): Set<string> {
   // reuse detection on a point's memory to read its visited set
-  const mem = normalizeMemory(point);
+  const mem = norm(point);
   const scene = { ...kindHint, overlays: {
     visited: new Set<string>(), current: [], frontier: new Set<string>(),
     order: new Map<string, number>(), flashed: new Set<string>() } };
-  bindVisited(mem, scene);
+  bindVisited(mem, scene, trace);
   return scene.overlays.visited;
 }
 
@@ -173,7 +184,7 @@ function bindOrder(trace: ExecPoint[], index: number, scene: GraphScene): void {
   let counter = 0;
   const prev = new Set<string>();
   for (let s = 0; s <= index; s++) {
-    const now = visitedIdsAt(trace[s], scene);
+    const now = visitedIdsAt(trace[s], scene, trace);
     for (const id of now) if (!prev.has(id)) { prev.add(id); scene.overlays.order.set(id, ++counter); }
   }
 }
@@ -188,6 +199,17 @@ function bindFlash(prevMem: NormalizedMemory | null, mem: NormalizedMemory, scen
       if (cur[r]?.[c] !== old[r]?.[c]) scene.overlays.flashed.add(`${r},${c}`);
 }
 
+/** The grid's initial state: its value matrix at the first step it exists.
+ *  (The grid is usually constructed a few steps into main, so this breaks
+ *  early; it is not necessarily present at trace[0].) */
+function gridBaseline(trace: ExecPoint[], scene: GraphScene): string[][] | null {
+  for (let s = 0; s < trace.length; s++) {
+    const m = readGridMatrix(norm(trace[s]), scene);
+    if (m) return m;
+  }
+  return null;
+}
+
 /** Re-read the grid's value matrix from a memory snapshot (same detector shape). */
 function readGridMatrix(mem: NormalizedMemory, scene: GraphScene): string[][] | null {
   for (const c of findContainers(mem)) {
@@ -197,34 +219,47 @@ function readGridMatrix(mem: NormalizedMemory, scene: GraphScene): string[][] | 
   return null;
 }
 
-function bindVisited(mem: NormalizedMemory, scene: GraphScene): void {
-  const nodeCount = scene.kind === "grid"
-    ? (scene.rows ?? 0) * (scene.cols ?? 0)
-    : scene.nodes.length;
+function bindVisited(mem: NormalizedMemory, scene: GraphScene, trace: ExecPoint[]): void {
+  if (scene.kind === "grid") {
+    bindGridVisited(mem, scene, trace);
+    return;
+  }
+  // adjlist/matrix: a flat vector<bool|int> of length nodeCount named visit/seen/vis
+  const nodeCount = scene.nodes.length;
   for (const c of findContainers(mem)) {
-    if (!/visit|seen|vis|rott/i.test(c.name) && scene.kind !== "grid") {
-      // name-agnostic fallback still allowed below; prefer named vectors first
-    }
-    // grid: a same-dims bool/int matrix
-    if (scene.kind === "grid") {
-      const m = readMatrix(c);
-      if (m && m.length === scene.rows && m[0]?.length === scene.cols && m !== null) {
-        if (/visit|seen|vis/i.test(c.name)) {
-          m.forEach((row, r) => row.forEach((v, col) => {
-            if (truthyScalar(v)) scene.overlays.visited.add(`${r},${col}`);
-          }));
-          return;
-        }
-      }
-      continue;
-    }
-    // adjlist/matrix: a flat vector<bool|int> of length nodeCount
     const flat = c.children;
     if (!flat || flat.length !== nodeCount) continue;
     if (flat.some((x) => x.kind !== "scalar")) continue;
     if (!/visit|seen|vis/i.test(c.name)) continue;
     flat.forEach((x, i) => { if (truthyScalar(x.displayValue)) scene.overlays.visited.add(String(i)); });
     return;
+  }
+}
+
+/**
+ * Grid "visited already" comes from two sources, unioned:
+ *  1. Cumulative in-place mutation — a cell whose value now differs from its
+ *     value at trace start. This is the general trail for grids that overwrite
+ *     themselves (islands 1->0, rotting 1->2, floodFill) and carry no visited
+ *     array. Reads the scene's own grid via the same selector as bindFlash.
+ *  2. An explicit same-dims `visit`/`seen` matrix (immutable-grid problems like
+ *     pacific-atlantic that track visited separately), truthy cells.
+ */
+function bindGridVisited(mem: NormalizedMemory, scene: GraphScene, trace: ExecPoint[]): void {
+  const cur = readGridMatrix(mem, scene);
+  const start = gridBaseline(trace, scene);
+  if (cur && start) {
+    for (let r = 0; r < scene.rows!; r++)
+      for (let c = 0; c < scene.cols!; c++)
+        if (cur[r]?.[c] !== start[r]?.[c]) scene.overlays.visited.add(`${r},${c}`);
+  }
+  for (const cont of findContainers(mem)) {
+    if (!/visit|seen|vis/i.test(cont.name)) continue;
+    const m = readMatrix(cont);
+    if (!m || m.length !== scene.rows || (m[0]?.length ?? 0) !== scene.cols) continue;
+    m.forEach((row, r) => row.forEach((v, col) => {
+      if (truthyScalar(v)) scene.overlays.visited.add(`${r},${col}`);
+    }));
   }
 }
 
@@ -273,7 +308,7 @@ export function buildGraphScene(
   trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
   const finish = (scene: GraphScene): GraphScene => {
-    bindVisited(mem, scene);
+    bindVisited(mem, scene, trace);
     bindFrontier(mem, scene);
     bindCurrent(mem, scene);
     bindOrder(trace, index, scene);
