@@ -170,12 +170,37 @@ function bindVisited(mem: NormalizedMemory, scene: GraphScene): void {
   }
 }
 
+function pairId(cell: NormalizedCell): string | null {
+  const kids = cell.children;
+  if (kids && kids.length === 2 && kids.every((k) => k.kind === "scalar" && isIntLabel(k.displayValue)))
+    return `${kids[0].displayValue},${kids[1].displayValue}`;
+  return null;
+}
+
+function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
+  for (const c of findContainers(mem)) {
+    const k = (c.containerKind ?? "").toLowerCase();
+    if (!(k.includes("queue") || k.includes("stack"))) continue;
+    if (c.placeholders) continue;
+    for (const el of c.children ?? []) {
+      if (scene.kind === "grid") {
+        const id = pairId(el);
+        if (id) scene.overlays.frontier.add(id);
+      } else if (el.kind === "scalar" && isIntLabel(el.displayValue)) {
+        scene.overlays.frontier.add(el.displayValue);
+      }
+    }
+    if (scene.overlays.frontier.size > 0) return;
+  }
+}
+
 export function buildGraphScene(
   mem: NormalizedMemory, _prevMem: NormalizedMemory | null,
   _trace: ExecPoint[], _index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
   const finish = (scene: GraphScene): GraphScene => {
     bindVisited(mem, scene);
+    bindFrontier(mem, scene);
     return scene;
   };
 
