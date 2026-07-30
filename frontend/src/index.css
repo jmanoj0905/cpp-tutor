@@ -763,3 +763,17 @@ p {
 }
 .heap-node-top > .cell { border-color: var(--blue); }
 .heap-node-top > .cell > .cell-head { background: var(--yellow); }
+
+/* Call Log panel */
+.calllog { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.calllog-list { flex: 1; overflow: auto; padding: 12px; font: 12px/1.6 var(--mono); }
+.cl-node {
+  display: flex; align-items: baseline; gap: 6px;
+  border: var(--border-thin) dotted var(--ink); padding: 2px 6px; margin-bottom: 2px;
+  cursor: pointer; white-space: nowrap;
+}
+.cl-fold { border: none; background: none; cursor: pointer; font: inherit; padding: 0; color: var(--ink-soft); }
+.cl-count { color: var(--ink-soft); }
+.cl-future { opacity: 0.35; }
+.cl-current { background: var(--yellow); }
+.cl-selected { outline: var(--border-thin) solid var(--blue); }
