@@ -788,8 +788,13 @@ p {
 .calltree-mode button[aria-selected="true"] { color: var(--ink); background: var(--yellow); }
 
 /* --- graph/grid visualizer panel --- */
-.graph-panel { border: var(--border-dotted); background: var(--panel); padding: 8px; }
-.graph-view-toggle button[aria-selected="true"] { background: var(--yellow); }
+.graph-panel { background: var(--panel); padding: 8px; }
+.graph-view-toggle { display: flex; gap: 0; border-bottom: var(--border-thin) dotted var(--ink); margin: -8px -8px 8px; }
+.graph-view-toggle button {
+  font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
+  background: none; border: none; color: var(--ink-soft);
+}
+.graph-view-toggle button[aria-selected="true"] { color: var(--ink); background: var(--yellow); }
 .graph-svg text { font: 12px var(--mono); fill: var(--ink); }
 .graph-node circle, .graph-node rect { fill: var(--panel); stroke: var(--ink); stroke-dasharray: 1 1; opacity: 0.4; }
 .graph-node.is-visited circle, .graph-node.is-visited rect { opacity: 1; }
@@ -801,5 +806,4 @@ p {
 .graph-edge.is-dangling { stroke: var(--red); stroke-dasharray: 3 2; }
 .graph-order { font-size: 9px; fill: var(--ink-soft); }
 
-.graph-region { overflow: auto; max-height: 40%; }
-.graph-region:empty { display: none; }
+.graph-region { flex: 1; min-height: 0; overflow: auto; }

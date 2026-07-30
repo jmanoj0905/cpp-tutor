@@ -252,6 +252,22 @@ function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
   }
 }
 
+/**
+ * Cheap structural check: would `buildGraphScene(mem, …, "auto")` produce a
+ * scene for this memory? Mirrors the auto-mode qualification (allInt always
+ * qualifies; a char matrix only when rectangular) without the O(prefix)
+ * overlay/order recompute, so it is safe to scan across a whole trace.
+ */
+export function hasGraphContent(mem: NormalizedMemory): boolean {
+  for (const c of findContainers(mem)) {
+    const m = readMatrix(c);
+    if (!m || m.length === 0) continue;
+    if (m.every((r) => r.every(isIntLabel))) return true;
+    if (isCharMatrix(c) && isRectangular(m)) return true;
+  }
+  return false;
+}
+
 export function buildGraphScene(
   mem: NormalizedMemory, prevMem: NormalizedMemory | null,
   trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",

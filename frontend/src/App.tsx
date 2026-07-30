@@ -8,6 +8,8 @@ import { buildCallTree } from "./viz/callTree";
 import { CallTreePanel } from "./viz/CallTreePanel";
 import { CallLogPanel } from "./viz/CallLogPanel";
 import { GraphPanel } from "./viz/graph/GraphPanel";
+import { normalizeMemory } from "./viz/memoryModel";
+import { hasGraphContent } from "./viz/graph/graphModel";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
@@ -49,13 +51,22 @@ function Workspace({
 }) {
   const player = usePlayer(trace);
   const callTree = useMemo(() => buildCallTree(trace.trace), [trace]);
-  const [tab, setTab] = useState<"memory" | "tree">("memory");
+  const [tab, setTab] = useState<"memory" | "tree" | "graph">("memory");
   const [treeSeen, setTreeSeen] = useState(false);
   const [treeMode, setTreeMode] = useState<"tree" | "log">("tree");
-  const openTab = (t: "memory" | "tree") => {
+  const openTab = (t: "memory" | "tree" | "graph") => {
     setTab(t);
     if (t === "tree") setTreeSeen(true);
   };
+  // Show the Graph tab only for graph/grid-shaped programs. Scan once per
+  // trace with the cheap structural detector (not buildGraphScene, which is
+  // O(prefix) per call → O(n^2) over a trace); break on the first hit.
+  const graphAvailable = useMemo(() => {
+    for (let s = 0; s < trace.trace.length; s++) {
+      if (hasGraphContent(normalizeMemory(trace.trace[s]))) return true;
+    }
+    return false;
+  }, [trace]);
   // null = auto: the stdout pane grows with its content (CSS min/max-height
   // defaults); a number pins it to that exact percentage after a drag.
   const [stdoutSplit, setStdoutSplit] = useState<number | null>(null);
@@ -112,10 +123,6 @@ function Workspace({
         {player.point.exception_msg && (
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
-        <div className="graph-region">
-          <GraphPanel point={player.point} prevPoint={player.prevPoint}
-            trace={trace.trace} step={player.index} />
-        </div>
         <div className="mem-region">
           <div className="panel-tabs" role="tablist">
             <button
@@ -135,8 +142,22 @@ function Workspace({
                 <span className="tab-dot" data-testid="tree-dot" />
               )}
             </button>
+            {graphAvailable && (
+              <button
+                role="tab"
+                aria-selected={tab === "graph"}
+                onClick={() => openTab("graph")}
+              >
+                Graph
+              </button>
+            )}
           </div>
-          {tab === "memory" ? (
+          {tab === "graph" ? (
+            <div className="graph-region">
+              <GraphPanel point={player.point} prevPoint={player.prevPoint}
+                trace={trace.trace} step={player.index} />
+            </div>
+          ) : tab === "memory" ? (
             <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} activeHeapCell={activeHeapCell} onHeapOpen={onHeapOpen} onHeapClose={onHeapClose} />
           ) : (
             <div className="calltree-region">

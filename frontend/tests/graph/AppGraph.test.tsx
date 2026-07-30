@@ -18,18 +18,23 @@ vi.mock("../../src/api/client", () => ({
   fetchTrace: vi.fn(),
 }));
 
-describe("App graph region", () => {
+describe("App graph tab", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("shows .graph-panel once stepped to a point where the dfs_list graph is built", async () => {
+  it("offers a Graph tab for a graph program and renders the panel when opened", async () => {
     (fetchTrace as any).mockResolvedValue(dfsList as unknown as Trace);
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
     await screen.findByRole("button", { name: /^stop$/i });
 
-    // Graph region is present but empty (self-hidden) before any stepping.
+    // Graph is a peer tab next to Memory / Call Tree, not a stacked region.
+    const graphTab = screen.getByRole("tab", { name: /^graph$/i });
+    // Panel is not mounted while another tab is active.
     expect(container.querySelector(".graph-panel")).toBeNull();
 
+    fireEvent.click(graphTab);
+    // Step to a point where the dfs_list graph is actually built, then the
+    // panel is present.
     const slider = screen.getByLabelText("Execution step");
     const total = (dfsList as any).trace.length;
     let found = false;
@@ -43,11 +48,13 @@ describe("App graph region", () => {
     expect(found).toBe(true);
   });
 
-  it("leaves the graph region empty/hidden for a non-graph trace", async () => {
+  it("offers no Graph tab for a non-graph trace", async () => {
     (fetchTrace as any).mockResolvedValue(vectorTrace as unknown as Trace);
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
     await screen.findByRole("button", { name: /^stop$/i });
+
+    expect(screen.queryByRole("tab", { name: /^graph$/i })).toBeNull();
 
     const slider = screen.getByLabelText("Execution step");
     const total = (vectorTrace as any).trace.length;
@@ -55,8 +62,5 @@ describe("App graph region", () => {
       fireEvent.change(slider, { target: { value: String(s) } });
       expect(container.querySelector(".graph-panel")).toBeNull();
     }
-    const region = container.querySelector(".graph-region");
-    expect(region).not.toBeNull();
-    expect(region!.childElementCount).toBe(0);
   });
 });
