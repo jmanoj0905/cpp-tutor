@@ -109,16 +109,52 @@ function adjlistScene(matrix: string[][]): GraphScene {
   return { kind: "adjlist", nodes, edges, overlays: emptyOverlays() };
 }
 
+function hasPairQueue(mem: NormalizedMemory): boolean {
+  return findContainers(mem).some((c) => {
+    const k = (c.containerKind ?? "").toLowerCase();
+    if (!(k.includes("queue") || k.includes("stack"))) return false;
+    return (c.children ?? []).some((child) =>
+      (child.children?.length ?? 0) === 2 ||
+      (child.type ?? "").toLowerCase().includes("pair"));
+  });
+}
+
+function looksLikeGrid(matrix: string[][], mem: NormalizedMemory, name: string): boolean {
+  if (hasPairQueue(mem)) return true;                 // BFS over cells: strongest signal
+  // A square binary matrix is an adjacency matrix, not a grid, even if its name
+  // happens to contain "matrix" (e.g. `adjMatrix`) — the name heuristic below
+  // must not override that unless a queue<pair> already proved otherwise above.
+  if (isBinarySquare(matrix)) return false;
+  if (/grid|board|maze|image|matrix/i.test(name)) return true;
+  // small value alphabet not usable as node indices (e.g. only 0/1/2) over a
+  // rectangular non-square shape is grid-ish; square binary already handled as matrix.
+  if (isRectangular(matrix) && matrix.length !== (matrix[0]?.length ?? 0)) {
+    const vals = new Set(matrix.flat());
+    if ([...vals].every((v) => Number(v) >= 0 && Number(v) <= 2)) return true;
+  }
+  return false;
+}
+
 export function buildGraphScene(
   mem: NormalizedMemory, _prevMem: NormalizedMemory | null,
-  _trace: ExecPoint[], _index: number, _viewAs: ViewAs = "auto",
+  _trace: ExecPoint[], _index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
-  const containers = findContainers(mem);
-  for (const c of containers) {
+  for (const c of findContainers(mem)) {
     const m = readMatrix(c);
     if (!m || m.length === 0) continue;
-    if (isCharMatrix(c) && isRectangular(m)) return gridScene(m);
-    if (m.every((r) => r.every(isIntLabel))) {
+    const rectangular = isRectangular(m);
+    const allInt = m.every((r) => r.every(isIntLabel));
+    const isChar = isCharMatrix(c);
+    if (!isChar && !allInt) continue;               // not a graph/grid container
+
+    if (viewAs === "grid") return gridScene(m);
+    if (viewAs === "graph" && allInt)
+      return isBinarySquare(m) ? matrixScene(m) : adjlistScene(m);
+
+    // auto
+    if (isChar && rectangular) return gridScene(m);
+    if (allInt) {
+      if (looksLikeGrid(m, mem, c.name)) return gridScene(m);
       if (isBinarySquare(m)) return matrixScene(m);
       return adjlistScene(m);
     }
