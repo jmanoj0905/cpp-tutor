@@ -166,10 +166,10 @@ describe("App shell", () => {
     fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
     await screen.findByRole("button", { name: /^stop$/i });
     fireEvent.click(screen.getByRole("tab", { name: /call tree/i }));
-    fireEvent.click(screen.getByRole("button", { name: /^log$/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /^log$/i }));
     expect(document.querySelector(".calllog")).toBeTruthy();
     expect(document.querySelector(".calltree")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: /^tree$/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /^tree$/i }));
     expect(document.querySelector(".calltree")).toBeTruthy();
   });
 });

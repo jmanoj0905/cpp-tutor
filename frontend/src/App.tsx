@@ -136,8 +136,8 @@ function Workspace({
           ) : (
             <div className="calltree-region">
               <div className="calltree-mode" role="tablist">
-                <button aria-selected={treeMode === "tree"} onClick={() => setTreeMode("tree")}>tree</button>
-                <button aria-selected={treeMode === "log"} onClick={() => setTreeMode("log")}>log</button>
+                <button role="tab" aria-selected={treeMode === "tree"} onClick={() => setTreeMode("tree")}>tree</button>
+                <button role="tab" aria-selected={treeMode === "log"} onClick={() => setTreeMode("log")}>log</button>
               </div>
               {treeMode === "tree"
                 ? <CallTreePanel tree={callTree} step={player.index} trace={trace.trace} />

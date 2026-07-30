@@ -54,10 +54,19 @@ export function CallLogPanel({ tree, step, trace }: {
         data-testid={`cl-node-${node.id}`}
         className={`cl-node cl-${state}${selected?.id === node.id ? " cl-selected" : ""}`}
         style={{ paddingLeft: node.depth * INDENT }}
+        role="button"
+        tabIndex={0}
         onClick={() => setSelected(node)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setSelected(node);
+          }
+        }}
       >
         {foldable && (
           <button
+            type="button"
             className="cl-fold"
             data-testid={`cl-fold-${node.id}`}
             aria-label={collapsed ? "Expand" : "Collapse"}

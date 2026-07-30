@@ -66,11 +66,37 @@ describe("CallLogPanel", () => {
     expect(getByTestId("ct-detail")).toBeTruthy();
   });
 
-  it("auto-folds a subtree that returned before the current step", () => {
-    // at step 3, f returned at step 2; if f had children they'd be hidden.
-    // Here assert main stays expanded (live) and f row present but marked returned.
+  it("marks a fully-returned row with cl-returned", () => {
     const { container } = render(<CallLogPanel tree={tree} step={3} trace={trace} />);
     expect(container.querySelector(`[data-testid="cl-node-${f.id}"]`)!.className).toContain("cl-returned");
+  });
+
+  it("auto-folds a subtree that returned before the current step, hiding its children", () => {
+    // main -> p -> c ; c returns (step3), p returns (step4), then q is called (step5).
+    // At step 5 p returned before now, so its subtree auto-collapses and c is hidden.
+    const nested = [
+      pt([["main", "0x1"]]),
+      pt([["main", "0x1"], ["p", "0x2"]], "call"),
+      pt([["main", "0x1"], ["p", "0x2"], ["c", "0x3"]], "call"),
+      pt([["main", "0x1"], ["p", "0x2"], ["c", "0x3", { __return__: ["C_DATA", "0xB0", "int", 1] }]], "return"),
+      pt([["main", "0x1"], ["p", "0x2", { __return__: ["C_DATA", "0xB1", "int", 2] }]], "return"),
+      pt([["main", "0x1"], ["q", "0x4"]], "call"),
+    ];
+    const nt = buildCallTree(nested);
+    const [p, q] = nt.roots[0].children;
+    const c = p.children[0];
+    const { container, queryByTestId } = render(<CallLogPanel tree={nt} step={5} trace={nested} />);
+    // p auto-collapsed -> child c hidden, p shows its descendant count.
+    expect(queryByTestId(`cl-node-${c.id}`)).toBeNull();
+    expect(container.querySelector(`[data-testid="cl-node-${p.id}"]`)!.textContent).toContain("(1 calls)");
+    // q (live current) is unaffected and visible.
+    expect(queryByTestId(`cl-node-${q.id}`)).toBeTruthy();
+  });
+
+  it("opens NodeDetail when a row is activated by keyboard (Enter), never moving the step", () => {
+    const { container, getByTestId } = render(<CallLogPanel tree={tree} step={3} trace={trace} />);
+    fireEvent.keyDown(container.querySelector(`[data-testid="cl-node-${g.id}"]`)!, { key: "Enter" });
+    expect(getByTestId("ct-detail")).toBeTruthy();
   });
 
   const rowFor = (container: HTMLElement, name: string) =>
