@@ -47,6 +47,30 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
+export function isBinarySquare(matrix: string[][]): boolean {
+  const n = matrix.length;
+  if (n === 0) return false;
+  return matrix.every((r) => r.length === n && r.every((v) => v === "0" || v === "1"));
+}
+
+function matrixScene(matrix: string[][]): GraphScene {
+  const n = matrix.length;
+  const nodes: GraphNode[] = Array.from({ length: n }, (_, i) => ({ id: String(i), label: String(i) }));
+  const seen = new Set<string>();
+  const edges: GraphEdge[] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < n; j++) {
+      if (matrix[i][j] !== "1") continue;
+      const directed = matrix[j]?.[i] !== "1";      // asymmetric => directed
+      const key = directed ? `${i}>${j}` : [i, j].sort((a, b) => a - b).join("-");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push({ from: String(i), to: String(j), directed });
+    }
+  }
+  return { kind: "matrix", nodes, edges, overlays: emptyOverlays() };
+}
+
 /** Build an adjacency-list scene from a vector<vector<int>> matrix. */
 function adjlistScene(matrix: string[][]): GraphScene {
   const n = matrix.length;
@@ -73,10 +97,8 @@ export function buildGraphScene(
   for (const c of containers) {
     const m = readMatrix(c);
     if (m && m.length > 0 && m.every((r) => r.every(isIntLabel))) {
-      // Only return if matrix has at least one non-empty row
-      if (m.some((r) => r.length > 0)) {
-        return adjlistScene(m);
-      }
+      if (isBinarySquare(m)) return matrixScene(m);
+      return adjlistScene(m);
     }
   }
   return null;
