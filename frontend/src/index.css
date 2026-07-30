@@ -800,3 +800,6 @@ p {
 .graph-edge { stroke: var(--blue); stroke-width: 1; }
 .graph-edge.is-dangling { stroke: var(--red); stroke-dasharray: 3 2; }
 .graph-order { font-size: 9px; fill: var(--ink-soft); }
+
+.graph-region { overflow: auto; max-height: 40%; }
+.graph-region:empty { display: none; }

@@ -7,6 +7,7 @@ import { MemoryView } from "./viz/MemoryView";
 import { buildCallTree } from "./viz/callTree";
 import { CallTreePanel } from "./viz/CallTreePanel";
 import { CallLogPanel } from "./viz/CallLogPanel";
+import { GraphPanel } from "./viz/graph/GraphPanel";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
@@ -111,6 +112,10 @@ function Workspace({
         {player.point.exception_msg && (
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
+        <div className="graph-region">
+          <GraphPanel point={player.point} prevPoint={player.prevPoint}
+            trace={trace.trace} step={player.index} />
+        </div>
         <div className="mem-region">
           <div className="panel-tabs" role="tablist">
             <button
