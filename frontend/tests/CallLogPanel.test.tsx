@@ -17,11 +17,14 @@ function pt(stack: Fr[], event = "step_line"): ExecPoint {
 }
 
 // main(0) -> f(returns 7 at step2) -> g(live at step3)
+// g also has a var named "n" (distinct address from f's) so a test can switch
+// selection directly from f to g and check that g's "n" row starts collapsed
+// rather than inheriting f's expanded state.
 const trace = [
   pt([["main", "0x1"]]),
   pt([["main", "0x1"], ["f", "0x2", { n: ["C_DATA", "0xA0", "int", 3] }]], "call"),
   pt([["main", "0x1"], ["f", "0x2", { __return__: ["C_DATA", "0xA0", "int", 7] }]], "return"),
-  pt([["main", "0x1"], ["g", "0x3"]], "call"),
+  pt([["main", "0x1"], ["g", "0x3", { n: ["C_DATA", "0xC0", "int", 9] }]], "call"),
 ];
 const tree = buildCallTree(trace);
 const main = tree.roots[0];
@@ -68,5 +71,26 @@ describe("CallLogPanel", () => {
     // Here assert main stays expanded (live) and f row present but marked returned.
     const { container } = render(<CallLogPanel tree={tree} step={3} trace={trace} />);
     expect(container.querySelector(`[data-testid="cl-node-${f.id}"]`)!.className).toContain("cl-returned");
+  });
+
+  const rowFor = (container: HTMLElement, name: string) =>
+    Array.from(container.querySelectorAll(".ct-detail-rows [aria-expanded]"))
+      .find((el) => el.querySelector("dt")?.textContent === name)!;
+
+  it("switching selection directly from one row to another (no close in between) starts the new node's vars collapsed", () => {
+    // Regression: NodeDetail's expandedVars state must reset per selected
+    // node, not persist across a direct f -> g selection change. Both f and
+    // g have a var named "n" so this exercises the exact case where a stale
+    // expanded-set entry would otherwise leak into the new node's row.
+    const { container } = render(<CallLogPanel tree={tree} step={3} trace={trace} />);
+    fireEvent.click(container.querySelector(`[data-testid="cl-node-${f.id}"]`)!);
+    fireEvent.click(rowFor(container, "n")); // expand f's "n"
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(1);
+
+    fireEvent.click(container.querySelector(`[data-testid="cl-node-${g.id}"]`)!); // direct switch, no close
+
+    const gRow = rowFor(container, "n");
+    expect(gRow.getAttribute("aria-expanded")).toBe("false");
+    expect(container.querySelectorAll(".ct-detail-inspect")).toHaveLength(0);
   });
 });

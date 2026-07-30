@@ -77,7 +77,7 @@ export function CallLogPanel({ tree, step, trace }: {
   return (
     <div className="calllog">
       <div className="calllog-list" ref={listRef}>{rows}</div>
-      {selected && <NodeDetail node={selected} trace={trace} onClose={() => setSelected(null)} />}
+      {selected && <NodeDetail key={selected.id} node={selected} trace={trace} onClose={() => setSelected(null)} />}
     </div>
   );
 }
