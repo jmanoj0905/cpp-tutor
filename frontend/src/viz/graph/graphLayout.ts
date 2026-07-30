@@ -1,0 +1,33 @@
+import type { GraphScene } from "./graphModel";
+
+export interface Placed { id: string; x: number; y: number; }
+export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid"; }
+export const CIRCLE_MAX = 30;
+
+export function layoutScene(scene: GraphScene): Layout {
+  if (scene.kind === "grid") {
+    const rows = scene.rows ?? 1, cols = scene.cols ?? 1;
+    const placed = scene.nodes.map((n) => ({
+      id: n.id,
+      x: cols === 1 ? 0.5 : (n.col ?? 0) / (cols - 1),
+      y: rows === 1 ? 0.5 : (n.row ?? 0) / (rows - 1),
+    }));
+    return { placed, mode: "grid" };
+  }
+  const n = scene.nodes.length;
+  if (n > CIRCLE_MAX) {
+    const cols = Math.ceil(Math.sqrt(n));
+    const placed = scene.nodes.map((node, i) => ({
+      id: node.id,
+      x: (i % cols) / Math.max(1, cols - 1),
+      y: Math.floor(i / cols) / Math.max(1, Math.ceil(n / cols) - 1),
+    }));
+    return { placed, mode: "compact" };
+  }
+  const R = 0.4;
+  const placed = scene.nodes.map((node, i) => {
+    const t = (2 * Math.PI * i) / Math.max(1, n) - Math.PI / 2;
+    return { id: node.id, x: 0.5 + R * Math.cos(t), y: 0.5 + R * Math.sin(t) };
+  });
+  return { placed, mode: "circle" };
+}
