@@ -1,4 +1,4 @@
-import type { NormalizedMemory, NormalizedCell } from "../memoryModel";
+import { normalizeMemory, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
 import type { ExecPoint } from "../../types/trace";
 
 export type GraphKind = "adjlist" | "matrix" | "grid";
@@ -159,6 +159,44 @@ function truthyScalar(v: string): boolean {
   return v === "true" || v === "1" || (isIntLabel(v) && Number(v) !== 0);
 }
 
+function visitedIdsAt(point: ExecPoint, kindHint: GraphScene): Set<string> {
+  // reuse detection on a point's memory to read its visited set
+  const mem = normalizeMemory(point);
+  const scene = { ...kindHint, overlays: {
+    visited: new Set<string>(), current: [], frontier: new Set<string>(),
+    order: new Map<string, number>(), flashed: new Set<string>() } };
+  bindVisited(mem, scene);
+  return scene.overlays.visited;
+}
+
+function bindOrder(trace: ExecPoint[], index: number, scene: GraphScene): void {
+  let counter = 0;
+  const prev = new Set<string>();
+  for (let s = 0; s <= index; s++) {
+    const now = visitedIdsAt(trace[s], scene);
+    for (const id of now) if (!prev.has(id)) { prev.add(id); scene.overlays.order.set(id, ++counter); }
+  }
+}
+
+function bindFlash(prevMem: NormalizedMemory | null, mem: NormalizedMemory, scene: GraphScene): void {
+  if (scene.kind !== "grid" || !prevMem) return;
+  const cur = readGridMatrix(mem, scene);
+  const old = readGridMatrix(prevMem, scene);
+  if (!cur || !old) return;
+  for (let r = 0; r < scene.rows!; r++)
+    for (let c = 0; c < scene.cols!; c++)
+      if (cur[r]?.[c] !== old[r]?.[c]) scene.overlays.flashed.add(`${r},${c}`);
+}
+
+/** Re-read the grid's value matrix from a memory snapshot (same detector shape). */
+function readGridMatrix(mem: NormalizedMemory, scene: GraphScene): string[][] | null {
+  for (const c of findContainers(mem)) {
+    const m = readMatrix(c);
+    if (m && m.length === scene.rows && (m[0]?.length ?? 0) === scene.cols) return m;
+  }
+  return null;
+}
+
 function bindVisited(mem: NormalizedMemory, scene: GraphScene): void {
   const nodeCount = scene.kind === "grid"
     ? (scene.rows ?? 0) * (scene.cols ?? 0)
@@ -215,13 +253,15 @@ function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
 }
 
 export function buildGraphScene(
-  mem: NormalizedMemory, _prevMem: NormalizedMemory | null,
-  _trace: ExecPoint[], _index: number, viewAs: ViewAs = "auto",
+  mem: NormalizedMemory, prevMem: NormalizedMemory | null,
+  trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
   const finish = (scene: GraphScene): GraphScene => {
     bindVisited(mem, scene);
     bindFrontier(mem, scene);
     bindCurrent(mem, scene);
+    bindOrder(trace, index, scene);
+    bindFlash(prevMem, mem, scene);
     return scene;
   };
 
