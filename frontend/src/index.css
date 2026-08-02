@@ -386,6 +386,8 @@ p {
   flex-wrap: wrap;
   align-items: stretch;
   gap: 4px;
+  border-left: none;
+  padding-left: 0;
 }
 .cell-children.bento > .cell {
   min-width: 0;
