@@ -378,8 +378,8 @@ p {
 .cell-children.kv .cell { border-bottom: var(--border-dotted); }
 
 /* Bento: struct-like value as a horizontal row of tiles; a nested struct child
-   is itself a .bento compartment. Layout only — borders/mono/square inherited
-   from the base .cell rules. */
+   is itself a .bento compartment. Each tile draws its own dotted box (base .cell
+   has no border — every sibling layout adds one), mono/square inherited. */
 .cell-children.bento {
   display: flex;
   flex-direction: row;
@@ -391,6 +391,8 @@ p {
 }
 .cell-children.bento > .cell {
   min-width: 0;
+  border: var(--border-dotted);
+  padding: 2px 6px;
 }
 /* member caption (first/second/[0]/field name) sits dimmed above its value */
 .cell-children.bento > .cell > .cell-head > .cell-name {
