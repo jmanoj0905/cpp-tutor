@@ -264,6 +264,16 @@ export function gridShape(cell: NormalizedCell): { rows: number; cols: number } 
   return { rows: rows.length, cols };
 }
 
+/** True for struct-like cells that should render in the horizontal bento tile
+ *  layout: plain structs and pair/tuple containers. Pure predicate derived from
+ *  kind/containerKind — never stored on the cell, so no pipeline spread can drop
+ *  or stale it. Arrays, maps/sets, strings, scalars, references stay false. */
+export function isBentoCell(cell: NormalizedCell): boolean {
+  if (cell.kind === "struct") return true;
+  return cell.kind === "container"
+    && (cell.containerKind === "pair" || cell.containerKind === "tuple");
+}
+
 function isIndexedCollection(cell: NormalizedCell): boolean {
   return cell.kind === "array" || cell.kind === "container";
 }
