@@ -377,6 +377,25 @@ p {
 .cell-children.kv { border-left: none; padding-left: 0; }
 .cell-children.kv .cell { border-bottom: var(--border-dotted); }
 
+/* Bento: struct-like value as a horizontal row of tiles; a nested struct child
+   is itself a .bento compartment. Layout only — borders/mono/square inherited
+   from the base .cell rules. */
+.cell-children.bento {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+}
+.cell-children.bento > .cell {
+  min-width: 0;
+}
+/* member caption (first/second/[0]/field name) sits dimmed above its value */
+.cell-children.bento > .cell > .cell-head > .cell-name {
+  color: var(--ink-soft);
+  font-size: 10px;
+}
+
 .matrix { display: grid; gap: 4px; margin-top: 6px; }
 .matrix .cell { border: var(--border-dotted); padding: 2px 6px; text-align: center; }
 .matrix-slices { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }

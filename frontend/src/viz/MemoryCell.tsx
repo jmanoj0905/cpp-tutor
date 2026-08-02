@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { NormalizedCell } from "./memoryModel";
-import { collectionDepth, gridShape } from "./memoryModel";
+import { collectionDepth, gridShape, isBentoCell } from "./memoryModel";
 import type { DpTableView } from "./dp/dpModel";
 import { DpTablePanel } from "./dp/DpTablePanel";
 
@@ -115,6 +115,26 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
 
   const depth = collectionDepth(cell);
   const linear = forceLinear || depth >= 4;
+  if (isBentoCell(cell) && !linear) {
+    return (
+      <div className="cell-children bento">
+        {all.map((child) => (
+          <MemoryCell
+            key={child.id}
+            cell={child}
+            highlightedIds={highlightedIds}
+            changedIds={changedIds}
+            noPorts={noPorts}
+            dpViews={dpViews}
+            onDpToggle={onDpToggle}
+            onCharViewToggle={onCharViewToggle}
+            onHeapOpen={onHeapOpen}
+            dpReadSteps={dpReadSteps}
+          />
+        ))}
+      </div>
+    );
+  }
   const kv = !cell.placeholders
     && ["map", "unordered_map", "multimap", "unordered_multimap"].includes(cell.containerKind ?? "");
   const isString = cell.containerKind === "string";
