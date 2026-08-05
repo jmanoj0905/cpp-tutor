@@ -103,6 +103,10 @@ function parseEdgeRow(r: NormalizedCell): ParsedRow | null {
     const nums = kids.map(intVal);
     if (nums.every((x) => x != null)) {
       const [u, v, w] = nums as number[];
+      // Deliberate tradeoff: pair/tuple/array are treated as unambiguous edge
+      // shapes and skip the EDGE_NAME gate (plain = false) that a bare
+      // vector<int> row requires. This means a genuine 3-column int table
+      // stored as vector<array<int,3>> could false-positive as an edge list.
       const plain = kind !== "pair" && kind !== "tuple" && kind !== "array";
       return kids.length === 3 ? { u, v, weight: w, plain } : { u, v, plain };
     }
@@ -474,6 +478,13 @@ export function hasGraphContent(mem: NormalizedMemory): boolean {
     if (!m || m.length === 0) continue;
     if (m.every((r) => r.every(isIntLabel))) return true;
     if (isCharMatrix(c) && isRectangular(m)) return true;
+  }
+  // Pair/tuple-shaped edge lists (vector<pair<int,int>>, nested {w,{u,v}}, …)
+  // never read as a matrix (readMatrix rejects pair/tuple rows), so they need
+  // their own check here or the Graph tab never surfaces for them.
+  for (const c of findContainers(mem)) {
+    const edges = readEdgeList(c);
+    if (edges && edges.length > 0) return true;
   }
   return false;
 }

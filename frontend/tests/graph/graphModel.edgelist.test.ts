@@ -116,6 +116,30 @@ describe("edgeListScene", () => {
   });
 });
 
+import { hasGraphContent } from "../../src/viz/graph/graphModel";
+
+describe("hasGraphContent agrees with readEdgeList for pair-shaped edge lists", () => {
+  it("is true for a memory whose only graph content is a flat vector<pair> edge list", () => {
+    const cell = outer("edges", rowOf("pair", "0", "1"), rowOf("pair", "1", "2"));
+    const mem = { globals: [cell], frames: [] } as unknown as NormalizedMemory;
+    expect(hasGraphContent(mem)).toBe(true);
+  });
+
+  it("(sanity) is still true for the int-matrix shape", () => {
+    const matrixRow = (...vs: string[]): NormalizedCell =>
+      ({ id: "r", kind: "container", containerKind: "vector", name: "", type: "vector",
+         displayValue: "", children: vs.map(scalar) } as any);
+    const cell = outer("adj", matrixRow("0", "1"), matrixRow("1", "0"));
+    const mem = { globals: [cell], frames: [] } as unknown as NormalizedMemory;
+    expect(hasGraphContent(mem)).toBe(true);
+  });
+
+  it("(sanity) is false for a memory with no graph content", () => {
+    const mem = { globals: [], frames: [] } as unknown as NormalizedMemory;
+    expect(hasGraphContent(mem)).toBe(false);
+  });
+});
+
 import { buildGraphScene } from "../../src/viz/graph/graphModel";
 import { normalizeMemory } from "../../src/viz/memoryModel";
 import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
