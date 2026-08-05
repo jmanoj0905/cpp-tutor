@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { GraphPanel } from "../../src/viz/graph/GraphPanel";
+import { buildGraphScene } from "../../src/viz/graph/graphModel";
+import { normalizeMemory } from "../../src/viz/memoryModel";
 import dfsList from "../fixtures/graph/dfs_list.json";
+import dijkstra from "../fixtures/graph/dijkstra.json";
 import trie from "../fixtures/trie.json"; // a non-graph fixture
 
 const tr = (dfsList as any).trace;
@@ -29,5 +32,18 @@ describe("GraphPanel", () => {
     const { container } = render(
       <GraphPanel point={point} prevPoint={null} trace={Array.isArray(t) ? t : t.trace} step={0} />);
     expect(container.querySelector("[data-node-id]")).toBeNull();
+  });
+
+  it("renders edge-weight labels for a weighted matrix", () => {
+    const trace = (dijkstra as any).trace;
+    let step = -1;
+    for (let s = 0; s < trace.length; s++) {
+      const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+      if (sc && sc.kind === "matrix" && sc.nodes.length === 3 && sc.edges.some((e) => e.weight != null)) { step = s; break; }
+    }
+    expect(step).toBeGreaterThanOrEqual(0);
+    const { container } = render(
+      <GraphPanel point={trace[step]} prevPoint={null} trace={trace} step={step} />);
+    expect(container.querySelector(".graph-edge-weight")).not.toBeNull();
   });
 });

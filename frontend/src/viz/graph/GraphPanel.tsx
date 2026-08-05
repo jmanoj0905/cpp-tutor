@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ExecPoint } from "../../types/trace";
 import { normalizeMemory } from "../memoryModel";
 import { buildGraphScene, type ViewAs } from "./graphModel";
-import { layoutScene } from "./graphLayout";
+import { layoutScene, labelPoint } from "./graphLayout";
 
 const W = 320, H = 320, PAD = 24, NODE_R = 14;
 
@@ -45,8 +45,18 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
         {scene.edges.map((e, i) => {
           const a = pos.get(e.from), b = pos.get(e.to);
           if (!a || !b) return null;
-          return <line key={i} x1={px(a.x)} y1={py(a.y)} x2={px(b.x)} y2={py(b.y)}
-            className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}`} />;
+          const off = e.directed ? (e.from < e.to ? 8 : -8) : 0;
+          const lp = labelPoint(px(a.x), py(a.y), px(b.x), py(b.y), off);
+          return (
+            <g key={i}>
+              <line x1={px(a.x)} y1={py(a.y)} x2={px(b.x)} y2={py(b.y)}
+                className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}`} />
+              {e.weight != null && (
+                <text className="graph-edge-weight" x={lp.x} y={lp.y}
+                  textAnchor="middle" dominantBaseline="central">{e.weight}</text>
+              )}
+            </g>
+          );
         })}
         {scene.nodes.map((n) => {
           const p = pos.get(n.id); if (!p) return null;
@@ -59,6 +69,11 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
                 : <circle cx={px(p.x)} cy={py(p.y)} r={NODE_R} />}
               <text x={px(p.x)} y={py(p.y)} textAnchor="middle" dominantBaseline="central">{n.label}</text>
               {order != null && <text className="graph-order" x={px(p.x) + NODE_R} y={py(p.y) - NODE_R}>{order}</text>}
+              {scene.kind !== "grid" && scene.dist?.get(n.id) != null && (
+                <text className="graph-node-dist" x={px(p.x)} y={py(p.y) + NODE_R + 9} textAnchor="middle">
+                  {scene.dist.get(n.id)}
+                </text>
+              )}
             </g>
           );
         })}

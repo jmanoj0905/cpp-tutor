@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { layoutScene } from "../../src/viz/graph/graphLayout";
+import { layoutScene, labelPoint } from "../../src/viz/graph/graphLayout";
 import type { GraphScene } from "../../src/viz/graph/graphModel";
 
 const bare = (over: Partial<GraphScene>): GraphScene => ({
@@ -37,5 +37,20 @@ describe("layoutScene", () => {
   it("falls back to compact mode past CIRCLE_MAX nodes", () => {
     const nodes = Array.from({ length: 40 }, (_, i) => ({ id: String(i), label: String(i) }));
     expect(layoutScene(bare({ nodes })).mode).toBe("compact");
+  });
+});
+
+describe("labelPoint", () => {
+  it("returns the midpoint when offset is 0", () => {
+    expect(labelPoint(0, 0, 10, 0, 0)).toEqual({ x: 5, y: 0 });
+  });
+  it("offsets perpendicular to the edge, opposite signs for reversed direction", () => {
+    const up = labelPoint(0, 0, 10, 0, 8);
+    const down = labelPoint(0, 0, 10, 0, -8);
+    expect(up.x).toBeCloseTo(5);
+    expect(down.x).toBeCloseTo(5);
+    expect(up.y).toBeCloseTo(-8);   // perpendicular to a horizontal edge
+    expect(down.y).toBeCloseTo(8);
+    expect(up.y).not.toBe(down.y);  // asymmetric pair labels don't coincide
   });
 });

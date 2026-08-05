@@ -31,3 +31,12 @@ export function layoutScene(scene: GraphScene): Layout {
   });
   return { placed, mode: "circle" };
 }
+
+/** Midpoint of an edge, optionally nudged `offset` px perpendicular to it so a
+ *  directed pair (u→v and v→u) doesn't stamp two labels on the same point. */
+export function labelPoint(ax: number, ay: number, bx: number, by: number, offset: number): { x: number; y: number } {
+  const mx = (ax + bx) / 2, my = (ay + by) / 2;
+  if (offset === 0) return { x: mx, y: my };
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
+  return { x: mx + (dy / len) * offset, y: my - (dx / len) * offset };
+}
