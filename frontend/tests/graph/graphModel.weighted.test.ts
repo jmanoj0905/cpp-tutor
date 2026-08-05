@@ -78,3 +78,16 @@ it("marks the dijkstra minHeap's node (pair.second) as frontier", () => {
   }
   expect(found).toBe(true);
 });
+
+it("annotates dijkstra nodes with shortest distances (INT_MAX ⇒ infinity)", () => {
+  const trace = (dijkstra as any).trace;
+  let withDist = null;
+  for (let s = 0; s < trace.length; s++) {
+    const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+    if (sc && sc.dist && sc.dist.size === 3) { withDist = sc; break; }
+  }
+  expect(withDist).not.toBeNull();
+  // early on, non-source nodes are unreachable
+  const vals = [...withDist!.dist!.values()];
+  expect(vals.some((v) => v === "∞")).toBe(true);
+});

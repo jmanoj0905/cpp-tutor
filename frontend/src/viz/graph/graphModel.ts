@@ -12,6 +12,7 @@ export interface GraphOverlays {
 export interface GraphScene {
   kind: GraphKind; nodes: GraphNode[]; edges: GraphEdge[];
   overlays: GraphOverlays; rows?: number; cols?: number;
+  dist?: Map<string, string>;
 }
 
 const emptyOverlays = (): GraphOverlays => ({
@@ -365,6 +366,46 @@ export function hasGraphContent(mem: NormalizedMemory): boolean {
   return false;
 }
 
+const INT_MAX_LABEL = "2147483647";
+
+function isFlatDistCandidate(c: NormalizedCell, n: number): boolean {
+  const flat = c.children;
+  return !!flat && flat.length === n && flat.every((x) => x.kind === "scalar");
+}
+
+/** Flat vector<int>/vector<double> of shortest distances/effort, keyed by node
+ *  index; INT_MAX (2147483647) reads as unreachable ⇒ "∞". Skips grid scenes.
+ *
+ *  Named containers (`dist`/`effort`) win. But `vector<int> dist(...)` returned
+ *  by value from a dijkstra-style function is routinely NRVO'd by the compiler:
+ *  the local is constructed directly in the caller's return slot, so the trace
+ *  never carries a container literally named "dist" — only the caller's `res`/
+ *  `result` holds the live values. Fall back to a length-n scalar vector that
+ *  still contains the INT_MAX sentinel (the unmistakable fingerprint of an
+ *  unrelaxed shortest-distance slot) so real dijkstra traces still annotate.
+ */
+function bindDist(mem: NormalizedMemory, scene: GraphScene): void {
+  if (scene.kind === "grid") return;
+  const n = scene.nodes.length;
+  const toMap = (flat: NormalizedCell[]): Map<string, string> => {
+    const map = new Map<string, string>();
+    flat.forEach((x, i) => map.set(String(i), x.displayValue === INT_MAX_LABEL ? "∞" : x.displayValue));
+    return map;
+  };
+  for (const c of findContainers(mem)) {
+    if (!/dist|effort/i.test(c.name)) continue;
+    if (!isFlatDistCandidate(c, n)) continue;
+    scene.dist = toMap(c.children!);
+    return;
+  }
+  for (const c of findContainers(mem)) {
+    if (!isFlatDistCandidate(c, n)) continue;
+    if (!c.children!.some((x) => x.displayValue === INT_MAX_LABEL)) continue;
+    scene.dist = toMap(c.children!);
+    return;
+  }
+}
+
 export function buildGraphScene(
   mem: NormalizedMemory, prevMem: NormalizedMemory | null,
   trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",
@@ -375,6 +416,7 @@ export function buildGraphScene(
     bindCurrent(mem, scene);
     bindOrder(trace, index, scene);
     bindFlash(prevMem, mem, scene);
+    bindDist(mem, scene);
     return scene;
   };
 
