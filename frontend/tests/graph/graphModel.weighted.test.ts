@@ -68,3 +68,13 @@ it("builds a weighted directed adjlist for shortestPathDAG", () => {
   expect(scene).not.toBeNull();
   expect(scene!.edges.every((e) => e.directed === true)).toBe(true);
 });
+
+it("marks the dijkstra minHeap's node (pair.second) as frontier", () => {
+  const trace = (dijkstra as any).trace;
+  let found = false;
+  for (let s = 0; s < trace.length; s++) {
+    const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+    if (sc && sc.kind === "matrix" && sc.overlays.frontier.size > 0) { found = true; break; }
+  }
+  expect(found).toBe(true);
+});

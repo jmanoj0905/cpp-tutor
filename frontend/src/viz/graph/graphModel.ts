@@ -196,6 +196,10 @@ function adjlistScene(matrix: string[][]): GraphScene {
 function hasPairQueue(mem: NormalizedMemory): boolean {
   return findContainers(mem).some((c) => {
     const k = (c.containerKind ?? "").toLowerCase();
+    // priority_queue<pair<int,int>> is dijkstra's {dist,node}/{weight,node}
+    // minHeap over graph nodes, not a grid BFS/DFS frontier of {r,c} cells —
+    // only a plain FIFO queue or stack of pairs implies a grid.
+    if (k.includes("priority_queue")) return false;
     if (!(k.includes("queue") || k.includes("stack"))) return false;
     return (c.children ?? []).some((child) =>
       (child.children?.length ?? 0) === 2 ||
@@ -334,6 +338,11 @@ function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
         if (id) scene.overlays.frontier.add(id);
       } else if (el.kind === "scalar" && isIntLabel(el.displayValue)) {
         scene.overlays.frontier.add(el.displayValue);
+      } else {
+        // {dist,node} / {weight,node} pair ⇒ node is the second element
+        const kids = el.children;
+        if (kids && kids.length === 2 && kids.every((k) => k.kind === "scalar" && isIntLabel(k.displayValue)))
+          scene.overlays.frontier.add(kids[1].displayValue);
       }
     }
     if (scene.overlays.frontier.size > 0) return;
