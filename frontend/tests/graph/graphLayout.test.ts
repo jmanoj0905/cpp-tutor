@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { layoutScene, labelPoint } from "../../src/viz/graph/graphLayout";
+import { layoutScene, labelPoint, trimEndpoint } from "../../src/viz/graph/graphLayout";
 import type { GraphScene } from "../../src/viz/graph/graphModel";
 
 const bare = (over: Partial<GraphScene>): GraphScene => ({
@@ -52,5 +52,17 @@ describe("labelPoint", () => {
     expect(up.y).toBeCloseTo(-8);   // perpendicular to a horizontal edge
     expect(down.y).toBeCloseTo(8);
     expect(up.y).not.toBe(down.y);  // asymmetric pair labels don't coincide
+  });
+});
+
+describe("trimEndpoint", () => {
+  it("pulls the endpoint back by r along a horizontal edge", () => {
+    expect(trimEndpoint(0, 0, 100, 0, 10)).toEqual({ x: 90, y: 0 });
+  });
+  it("pulls back along a vertical edge", () => {
+    expect(trimEndpoint(0, 0, 0, 100, 10)).toEqual({ x: 0, y: 90 });
+  });
+  it("returns b unchanged for a zero-length edge (no NaN)", () => {
+    expect(trimEndpoint(5, 5, 5, 5, 10)).toEqual({ x: 5, y: 5 });
   });
 });

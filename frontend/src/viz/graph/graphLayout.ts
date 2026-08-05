@@ -40,3 +40,12 @@ export function labelPoint(ax: number, ay: number, bx: number, by: number, offse
   const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy) || 1;
   return { x: mx + (dy / len) * offset, y: my - (dx / len) * offset };
 }
+
+/** Point distance `r` back from (bx,by) toward (ax,ay). Lets a directed line
+ *  stop at the target node's rim so its arrowhead sits at the edge, not hidden
+ *  under the node. Zero-length edge returns (bx,by) unchanged (no NaN). */
+export function trimEndpoint(ax: number, ay: number, bx: number, by: number, r: number): { x: number; y: number } {
+  const dx = bx - ax, dy = by - ay, len = Math.hypot(dx, dy);
+  if (len === 0) return { x: bx, y: by };
+  return { x: bx - (dx / len) * r, y: by - (dy / len) * r };
+}
