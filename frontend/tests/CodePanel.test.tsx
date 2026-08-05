@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
+import { useRef } from "react";
 import { CodePanel } from "../src/CodePanel";
 
 const base = {
@@ -209,5 +210,31 @@ describe("CodePanel line-number mode", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(container.querySelector(".cm-relative-numbers")).toBeNull();
     expect(container.querySelector(".cm-lineNumbers")).toBeTruthy();
+  });
+});
+
+describe("CodePanel replaceAll handle", () => {
+  it("replaces the whole document, fires onChange, and is undoable in one step", async () => {
+    let latest = "";
+    const apiRef: { current: { replaceAll: (t: string) => void } | null } = { current: null };
+    function Harness() {
+      const ref = useRef<{ replaceAll: (t: string) => void } | null>(null);
+      // expose ref to the test
+      apiRef.current = ref.current;
+      return (
+        <CodePanel {...base} readOnly={false} value={"original"} editorApiRef={ref as any}
+          onChange={(v) => { latest = v; apiRef.current = ref.current; }} />
+      );
+    }
+    const { container } = render(<Harness />);
+    await new Promise((r) => setTimeout(r, 0));
+    console.log("DEBUG apiRef.current", apiRef.current);
+    apiRef.current!.replaceAll("pasted code");
+    expect(latest).toBe("pasted code");
+
+    // Ctrl+Z restores the original in a single history step.
+    const content = container.querySelector(".cm-content") as HTMLElement;
+    fireEvent.keyDown(content, { key: "z", ctrlKey: true });
+    expect(latest).toBe("original");
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { EditorState, StateEffect, StateField, Compartment } from "@codemirror/state";
 import {
   EditorView, keymap, gutter, GutterMarker, Decoration,
@@ -156,6 +156,7 @@ const NO_DEAD_LINES = new Set<number>();
 export function CodePanel({
   value, onChange, exec, breakpoints, onToggleBreakpoint, readOnly,
   deadLines = NO_DEAD_LINES, errorLine = null, lineNumberMode = "relative",
+  editorApiRef,
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -166,6 +167,7 @@ export function CodePanel({
   deadLines?: Set<number>;
   errorLine?: number | null;
   lineNumberMode?: "relative" | "absolute";
+  editorApiRef?: MutableRefObject<{ replaceAll: (text: string) => void } | null>;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
@@ -249,7 +251,22 @@ export function CodePanel({
       ],
     });
     view.current = new EditorView({ state, parent: host.current });
-    return () => view.current?.destroy();
+    if (editorApiRef) {
+      editorApiRef.current = {
+        replaceAll: (text: string) => {
+          const v = view.current;
+          if (!v) return;
+          v.dispatch({
+            changes: { from: 0, to: v.state.doc.length, insert: text },
+            selection: { anchor: 0 },
+          });
+        },
+      };
+    }
+    return () => {
+      if (editorApiRef) editorApiRef.current = null;
+      view.current?.destroy();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
