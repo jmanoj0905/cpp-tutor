@@ -39,6 +39,11 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
   const out: string[][] = [];
   for (const row of rows) {
     if (!(row.kind === "container" || row.kind === "array") || !row.children) return null;
+    // A pair/tuple is a fixed heterogeneous record, not a matrix row: a
+    // vector<pair<int,int>> (e.g. knapsack {weight,value} items) must not read
+    // as a 2-column int matrix and get mistaken for an adjacency structure.
+    const rk = (row.containerKind ?? "").toLowerCase();
+    if (rk === "pair" || rk === "tuple") return null;
     if (row.children.some((x) => x.kind !== "scalar")) return null;
     out.push(row.children.map((x) => x.displayValue));
   }
