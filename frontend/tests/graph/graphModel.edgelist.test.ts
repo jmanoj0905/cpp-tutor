@@ -21,6 +21,12 @@ const outer = (name: string, ...rows: NormalizedCell[]): NormalizedCell =>
   ({ id: "o", kind: "container", containerKind: "vector", name, type: "vector",
      displayValue: "", children: rows } as any);
 
+// an adaptor outer (queue/priority_queue/stack) — BFS frontier / min-heap,
+// never an edge list even when its pair rows look like non-negative {u,v}.
+const adaptorOuter = (containerKind: string, name: string, ...rows: NormalizedCell[]): NormalizedCell =>
+  ({ id: "o", kind: "container", containerKind, name, type: containerKind,
+     displayValue: "", children: rows } as any);
+
 describe("readEdgeList", () => {
   it("reads vector<vector<int>> {u,v} rows when named 'edges'", () => {
     const cell = outer("edges", rowOf("vector", "0", "1"), rowOf("vector", "1", "2"));
@@ -67,6 +73,16 @@ describe("readEdgeList", () => {
   it("returns null for an empty container", () => {
     expect(readEdgeList(outer("edges"))).toBeNull();
   });
+
+  it("rejects a queue<pair<int,int>> BFS frontier of non-negative pairs (not an edge list)", () => {
+    const cell = adaptorOuter("queue", "q", rowOf("pair", "0", "1"), rowOf("pair", "1", "2"));
+    expect(readEdgeList(cell)).toBeNull();
+  });
+
+  it("rejects a priority_queue<pair<int,int>> min-heap of non-negative pairs (not an edge list)", () => {
+    const cell = adaptorOuter("priority_queue", "minHeap", rowOf("pair", "0", "1"), rowOf("pair", "1", "2"));
+    expect(readEdgeList(cell)).toBeNull();
+  });
 });
 
 import { edgeListScene } from "../../src/viz/graph/graphModel";
@@ -97,5 +113,26 @@ describe("edgeListScene", () => {
   it("ignores an n scalar that is not larger than maxId", () => {
     const s = edgeListScene([{ u: 0, v: 3 }], memWithN("2"));
     expect(s.nodes.length).toBe(4); // 0..3, n=2 ignored
+  });
+});
+
+import { buildGraphScene } from "../../src/viz/graph/graphModel";
+import { normalizeMemory } from "../../src/viz/memoryModel";
+import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
+
+describe("buildGraphScene edge-list integration", () => {
+  it("renders vector<vector<int>> edges as a 7-edge directed weighted graph", () => {
+    const trace = (shortestPathDAG as any).trace;
+    let scene = null;
+    for (let s = 0; s < trace.length; s++) {
+      const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+      if (sc && sc.edges.length === 7) { scene = sc; break; }
+    }
+    expect(scene).not.toBeNull();
+    expect(scene!.nodes.length).toBe(6);              // N = 6
+    expect(scene!.edges.every((e) => e.directed)).toBe(true);
+    expect(scene!.edges.every((e) => e.weight != null)).toBe(true);
+    // weights present in the literal, e.g. the {2,3,6} edge
+    expect(scene!.edges.some((e) => e.from === "2" && e.to === "3" && e.weight === 6)).toBe(true);
   });
 });

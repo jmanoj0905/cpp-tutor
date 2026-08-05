@@ -113,12 +113,22 @@ function parseEdgeRow(r: NormalizedCell): ParsedRow | null {
 const EDGE_NAME = /edges?|edgelist|times|prerequisites|adj_?edges|^e$/i;
 const MOVE_NAME = /dir|delta|move|offset|step/i;
 
+/** Outer containers eligible to be read as an edge list: a plain vector/array
+ *  of rows. Adaptors (queue/priority_queue/stack) are frontier/heap structures
+ *  — e.g. a BFS queue or Dijkstra min-heap of `pair<int,int>` — never edge
+ *  lists, even though their element shape (non-negative int pairs) can look
+ *  identical to one. `containerKind` is unset for plain `kind: "array"` cells
+ *  (C arrays / std::array-as-array), so those are allowed through too. */
+const EDGE_LIST_OUTER_KIND = new Set(["vector", "array"]);
+
 /** Detect an edge list: each row/element is one edge {u,v} or {u,v,w}. The
  *  ambiguous vector<vector<int>> shape is gated on an edge-ish container name
  *  (else it stays an adjacency list); the dedicated pair/array/tuple shapes
  *  need only the movement-vector guard. Negative endpoints ⇒ not an edge list. */
 export function readEdgeList(cell: NormalizedCell): Edge[] | null {
   if (!(cell.kind === "container" || cell.kind === "array")) return null;
+  const outerKind = (cell.containerKind ?? "").toLowerCase();
+  if (outerKind && !EDGE_LIST_OUTER_KIND.has(outerKind)) return null;
   const rows = cell.children ?? [];
   if (rows.length === 0) return null;
 
@@ -556,6 +566,17 @@ export function buildGraphScene(
     for (const c of findContainers(mem)) {
       const wadj = readWeightedAdjList(c);
       if (wadj && wadj.some((r) => r.length > 0)) return finish(weightedAdjListScene(wadj));
+    }
+  }
+
+  // Edge list ({u,v}/{u,v,w} rows) — must precede the readMatrix block, which
+  // would otherwise mis-read `vector<vector<int>> edges` as a matrix/adjlist.
+  // Weighted adjacency lists (vector<vector<pair>>, checked above) already
+  // returned; readEdgeList's name/shape guards keep true adjacency lists out.
+  if (viewAs !== "grid") {
+    for (const c of findContainers(mem)) {
+      const edges = readEdgeList(c);
+      if (edges && edges.length > 0) return finish(edgeListScene(edges, mem));
     }
   }
 
