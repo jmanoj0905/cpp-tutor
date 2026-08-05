@@ -149,6 +149,41 @@ function weightedAdjListScene(rows: { to: number; weight: number }[][]): GraphSc
   return { kind: "adjlist", nodes, edges, overlays: emptyOverlays() };
 }
 
+/** Largest int value of a scalar whose name matches `re`, scanning globals +
+ *  all frames (recurses into children). Null if none. Used to read a node
+ *  COUNT (`n`/`N`/`V`) that an edge list does not itself carry. */
+function findNamedIntScalar(mem: NormalizedMemory, re: RegExp): number | null {
+  let best: number | null = null;
+  const walk = (c: NormalizedCell) => {
+    if (c.kind === "scalar" && re.test(c.name) && isIntLabel(c.displayValue)) {
+      const v = Number(c.displayValue);
+      if (best == null || v > best) best = v;
+    }
+    c.children?.forEach(walk);
+  };
+  mem.globals.forEach(walk);
+  mem.frames.forEach((f) => f.cells.forEach(walk));
+  return best;
+}
+
+const NODE_COUNT_NAME = /^(n|v|numnodes|nodes|vertices)$/i;
+
+export function edgeListScene(edges: Edge[], mem: NormalizedMemory): GraphScene {
+  let maxId = 0;
+  for (const e of edges) maxId = Math.max(maxId, e.u, e.v);
+  let count = maxId + 1;
+  const declared = findNamedIntScalar(mem, NODE_COUNT_NAME);
+  if (declared != null && declared > maxId) count = declared;
+
+  const nodes: GraphNode[] = Array.from({ length: count }, (_, i) => ({ id: String(i), label: String(i) }));
+  const gedges: GraphEdge[] = edges.map((e) => ({
+    from: String(e.u), to: String(e.v), directed: true,
+    ...(e.weight != null ? { weight: e.weight } : {}),
+    dangling: e.u >= count || e.v >= count,
+  }));
+  return { kind: "adjlist", nodes, edges: gedges, overlays: emptyOverlays() };
+}
+
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
 // normalizeMemory is pure per ExecPoint; bindOrder re-derives the visited set

@@ -68,3 +68,34 @@ describe("readEdgeList", () => {
     expect(readEdgeList(outer("edges"))).toBeNull();
   });
 });
+
+import { edgeListScene } from "../../src/viz/graph/graphModel";
+import type { NormalizedMemory } from "../../src/viz/memoryModel";
+
+const emptyMem = { globals: [], frames: [] } as unknown as NormalizedMemory;
+const memWithN = (n: string): NormalizedMemory =>
+  ({ globals: [], frames: [{ cells: [
+      { id: "N", kind: "scalar", name: "N", type: "int", displayValue: n } ] }] } as any);
+
+describe("edgeListScene", () => {
+  it("nodes span 0..maxId from endpoints", () => {
+    const s = edgeListScene([{ u: 0, v: 1 }, { u: 1, v: 2 }], emptyMem);
+    expect(s.nodes.map((n) => n.id)).toEqual(["0", "1", "2"]);
+    expect(s.kind).toBe("adjlist");
+  });
+
+  it("marks every edge directed and carries weight", () => {
+    const s = edgeListScene([{ u: 0, v: 1, weight: 5 }], emptyMem);
+    expect(s.edges).toEqual([{ from: "0", to: "1", directed: true, weight: 5, dangling: false }]);
+  });
+
+  it("extends the node set when an n/N scalar exceeds maxId (isolated nodes)", () => {
+    const s = edgeListScene([{ u: 0, v: 1 }, { u: 1, v: 2 }], memWithN("5"));
+    expect(s.nodes.map((n) => n.id)).toEqual(["0", "1", "2", "3", "4"]);
+  });
+
+  it("ignores an n scalar that is not larger than maxId", () => {
+    const s = edgeListScene([{ u: 0, v: 3 }], memWithN("2"));
+    expect(s.nodes.length).toBe(4); // 0..3, n=2 ignored
+  });
+});
