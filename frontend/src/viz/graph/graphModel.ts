@@ -50,6 +50,37 @@ export function readMatrix(cell: NormalizedCell): string[][] | null {
   return out;
 }
 
+/** vector<vector<pair<int,int>>> → per-row [{to, weight}]. Null if any row
+ *  isn't entirely 2-int pairs (so plain int matrices fall through). */
+export function readWeightedAdjList(cell: NormalizedCell): { to: number; weight: number }[][] | null {
+  if (!(cell.kind === "container" || cell.kind === "array")) return null;
+  const rows = cell.children ?? [];
+  if (rows.length === 0) return null;
+  const out: { to: number; weight: number }[][] = [];
+  for (const r of rows) {
+    if (!(r.kind === "container" || r.kind === "array") || !r.children) return null;
+    const pairs: { to: number; weight: number }[] = [];
+    for (const el of r.children) {
+      const kids = el.children;
+      if (!kids || kids.length !== 2) return null;
+      if (!kids.every((k) => k.kind === "scalar" && isIntLabel(k.displayValue))) return null;
+      pairs.push({ to: Number(kids[0].displayValue), weight: Number(kids[1].displayValue) });
+    }
+    out.push(pairs);
+  }
+  return out;
+}
+
+function weightedAdjListScene(rows: { to: number; weight: number }[][]): GraphScene {
+  const n = rows.length;
+  const nodes: GraphNode[] = Array.from({ length: n }, (_, i) => ({ id: String(i), label: String(i) }));
+  const edges: GraphEdge[] = [];
+  rows.forEach((row, u) => row.forEach(({ to, weight }) => {
+    edges.push({ from: String(u), to: String(to), directed: true, weight, dangling: to < 0 || to >= n });
+  }));
+  return { kind: "adjlist", nodes, edges, overlays: emptyOverlays() };
+}
+
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
 // normalizeMemory is pure per ExecPoint; bindOrder re-derives the visited set
@@ -337,6 +368,15 @@ export function buildGraphScene(
     bindFlash(prevMem, mem, scene);
     return scene;
   };
+
+  // Weighted adjacency list wins over an edge-list param that would otherwise
+  // shadow it (both are vector<vector<int|pair>>; the pair form is unambiguous).
+  if (viewAs !== "grid") {
+    for (const c of findContainers(mem)) {
+      const wadj = readWeightedAdjList(c);
+      if (wadj && wadj.some((r) => r.length > 0)) return finish(weightedAdjListScene(wadj));
+    }
+  }
 
   for (const c of findContainers(mem)) {
     const m = readMatrix(c);
