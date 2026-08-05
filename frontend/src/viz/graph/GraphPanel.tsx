@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ExecPoint } from "../../types/trace";
 import { normalizeMemory } from "../memoryModel";
 import { buildGraphScene, type ViewAs } from "./graphModel";
-import { layoutScene, labelPoint } from "./graphLayout";
+import { layoutScene, labelPoint, trimEndpoint } from "./graphLayout";
 
 const W = 320, H = 320, PAD = 24, NODE_R = 14;
 
@@ -42,14 +42,23 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
       </div>
       <div className="graph-canvas">
       <svg className="graph-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="graph-arrow" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path className="graph-arrow-head" d="M0,0 L10,5 L0,10 z" />
+          </marker>
+        </defs>
         {scene.edges.map((e, i) => {
           const a = pos.get(e.from), b = pos.get(e.to);
           if (!a || !b) return null;
           const off = e.directed ? (e.from < e.to ? 8 : -8) : 0;
-          const lp = labelPoint(px(a.x), py(a.y), px(b.x), py(b.y), off);
+          const ax = px(a.x), ay = py(a.y), bx = px(b.x), by = py(b.y);
+          const end = e.directed ? trimEndpoint(ax, ay, bx, by, NODE_R + 2) : { x: bx, y: by };
+          const lp = labelPoint(ax, ay, bx, by, off);
           return (
             <g key={i}>
-              <line x1={px(a.x)} y1={py(a.y)} x2={px(b.x)} y2={py(b.y)}
+              <line x1={ax} y1={ay} x2={end.x} y2={end.y}
+                markerEnd={e.directed ? "url(#graph-arrow)" : undefined}
                 className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}`} />
               {e.weight != null && (
                 <text className="graph-edge-weight" x={lp.x} y={lp.y}

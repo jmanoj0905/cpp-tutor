@@ -842,6 +842,7 @@ p {
 .graph-node.is-selected circle, .graph-node.is-selected rect { stroke: var(--blue-deep); stroke-width: 2; }
 .graph-edge { stroke: var(--blue); stroke-width: 1; }
 .graph-edge.is-dangling { stroke: var(--red); stroke-dasharray: 3 2; }
+.graph-arrow-head { fill: var(--ink); }
 .graph-order { font-size: 9px; fill: var(--ink-soft); }
 .graph-edge-weight { font-size: 11px; font-family: var(--mono); fill: var(--ink); paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
 .graph-node-dist { font-size: 10px; font-family: var(--mono); fill: var(--ink-soft); }

@@ -5,6 +5,7 @@ import { buildGraphScene } from "../../src/viz/graph/graphModel";
 import { normalizeMemory } from "../../src/viz/memoryModel";
 import dfsList from "../fixtures/graph/dfs_list.json";
 import dijkstra from "../fixtures/graph/dijkstra.json";
+import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
 import trie from "../fixtures/trie.json"; // a non-graph fixture
 
 const tr = (dfsList as any).trace;
@@ -45,5 +46,27 @@ describe("GraphPanel", () => {
     const { container } = render(
       <GraphPanel point={trace[step]} prevPoint={null} trace={trace} step={step} />);
     expect(container.querySelector(".graph-edge-weight")).not.toBeNull();
+  });
+
+  it("renders an arrowhead marker and references it on directed edges", () => {
+    const trace = (shortestPathDAG as any).trace;
+    // pick the first step whose scene has directed edges (edges built, adj empty)
+    let step = 0;
+    for (let s = 0; s < trace.length; s++) {
+      // heuristic: the edge-list step is early; render each until a directed line appears
+      step = s;
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={s ? trace[s - 1] : null} trace={trace} step={s} />
+      );
+      const directed = container.querySelector("line.is-directed");
+      if (directed) {
+        expect(container.querySelector("marker#graph-arrow")).not.toBeNull();
+        expect(directed.getAttribute("marker-end")).toBe("url(#graph-arrow)");
+        unmount();
+        return;
+      }
+      unmount();
+    }
+    throw new Error("no directed edge rendered in trace");
   });
 });
