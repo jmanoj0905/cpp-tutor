@@ -54,6 +54,17 @@ RUN cd /opt/tracer && patch -p1 < /tmp/cpp-stl-node-payload.patch
 #        runtime to reach the object.
 COPY cpp-byval-param-capture.patch /tmp/cpp-byval-param-capture.patch
 RUN cd /opt/tracer && patch -p1 < /tmp/cpp-byval-param-capture.patch
+# Fix 7: recover partially-defined scalar words. Memcheck's is_mem_defined
+#        reports a value error for a read with ANY undefined bit, so the trace
+#        printer emitted "<UNINITIALIZED>" and discarded the value. A
+#        std::vector<bool> word copied by the container's copy-ctor has its
+#        unused high (padding) bits undefined while its live bits are defined
+#        false/true; the whole word was lost, rendering every bit as "?". This
+#        patch adds a trace-only is_mem_defined variant that emits the concrete
+#        value when the region is only PARTIALLY undefined (some live bits
+#        defined), keeping "<UNINITIALIZED>" for wholly-uninitialized scalars.
+COPY cpp-vector-bool-partial-defined.patch /tmp/cpp-vector-bool-partial-defined.patch
+RUN cd /opt/tracer && patch -p1 < /tmp/cpp-vector-bool-partial-defined.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 
