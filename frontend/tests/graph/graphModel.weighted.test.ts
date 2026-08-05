@@ -91,3 +91,22 @@ it("annotates dijkstra nodes with shortest distances (INT_MAX ⇒ infinity)", ()
   const vals = [...withDist!.dist!.values()];
   expect(vals.some((v) => v === "∞")).toBe(true);
 });
+
+it("persists dist badges through convergence (no INT_MAX sentinel left)", () => {
+  const trace = (dijkstra as any).trace;
+  // Scan from the end for the most recent step that's still a matrix scene
+  // AND still has a 3-entry dist map — i.e. after the dist vector's own
+  // INT_MAX-sentinel identification signal has vanished (all nodes relaxed),
+  // but before the vector itself is torn down at end of scope.
+  let converged = null;
+  for (let s = trace.length - 1; s >= 0; s--) {
+    const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+    if (sc && sc.kind === "matrix" && sc.dist && sc.dist.size === 3) { converged = sc; break; }
+  }
+  expect(converged).not.toBeNull();
+  const vals = [...converged!.dist!.values()];
+  expect(vals.some((v) => v === "∞")).toBe(false);
+  // dijkstra(V=3, adj={{0,1,6},{1,0,3},{6,3,0}}, src=2) converges to
+  // dist = [4 (via node 1: 3+1), 3, 0].
+  expect(new Set(vals)).toEqual(new Set(["4", "3", "0"]));
+});

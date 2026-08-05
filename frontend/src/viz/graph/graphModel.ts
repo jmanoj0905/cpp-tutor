@@ -373,36 +373,64 @@ function isFlatDistCandidate(c: NormalizedCell, n: number): boolean {
   return !!flat && flat.length === n && flat.every((x) => x.kind === "scalar");
 }
 
-/** Flat vector<int>/vector<double> of shortest distances/effort, keyed by node
- *  index; INT_MAX (2147483647) reads as unreachable ⇒ "∞". Skips grid scenes.
- *
- *  Named containers (`dist`/`effort`) win. But `vector<int> dist(...)` returned
- *  by value from a dijkstra-style function is routinely NRVO'd by the compiler:
- *  the local is constructed directly in the caller's return slot, so the trace
- *  never carries a container literally named "dist" — only the caller's `res`/
- *  `result` holds the live values. Fall back to a length-n scalar vector that
- *  still contains the INT_MAX sentinel (the unmistakable fingerprint of an
- *  unrelaxed shortest-distance slot) so real dijkstra traces still annotate.
- */
-function bindDist(mem: NormalizedMemory, scene: GraphScene): void {
-  if (scene.kind === "grid") return;
-  const n = scene.nodes.length;
-  const toMap = (flat: NormalizedCell[]): Map<string, string> => {
-    const map = new Map<string, string>();
-    flat.forEach((x, i) => map.set(String(i), x.displayValue === INT_MAX_LABEL ? "∞" : x.displayValue));
-    return map;
-  };
+function distToMap(flat: NormalizedCell[]): Map<string, string> {
+  const map = new Map<string, string>();
+  flat.forEach((x, i) => map.set(String(i), x.displayValue === INT_MAX_LABEL ? "∞" : x.displayValue));
+  return map;
+}
+
+/** Identify the dist/effort container in a memory snapshot, if any is
+ *  currently distinguishable. Named containers (`dist`/`effort`) win. Falls
+ *  back to a length-n scalar vector that still contains the INT_MAX sentinel
+ *  (the unmistakable fingerprint of an unrelaxed shortest-distance slot) —
+ *  needed because `vector<int> dist(...)` returned by value from a
+ *  dijkstra-style function is routinely NRVO'd by the compiler: the local is
+ *  constructed directly in the caller's return slot, so the trace never
+ *  carries a container literally named "dist", only the caller's `res`. */
+function identifyDistContainer(mem: NormalizedMemory, n: number): NormalizedCell | null {
   for (const c of findContainers(mem)) {
     if (!/dist|effort/i.test(c.name)) continue;
     if (!isFlatDistCandidate(c, n)) continue;
-    scene.dist = toMap(c.children!);
-    return;
+    return c;
   }
   for (const c of findContainers(mem)) {
     if (!isFlatDistCandidate(c, n)) continue;
     if (!c.children!.some((x) => x.displayValue === INT_MAX_LABEL)) continue;
-    scene.dist = toMap(c.children!);
-    return;
+    return c;
+  }
+  return null;
+}
+
+function findContainerByAddress(mem: NormalizedMemory, address: string | null): NormalizedCell | null {
+  if (!address) return null;
+  for (const c of findContainers(mem)) if (c.address === address) return c;
+  return null;
+}
+
+/** Flat vector<int>/vector<double> of shortest distances/effort, keyed by node
+ *  index; INT_MAX (2147483647) reads as unreachable ⇒ "∞". Skips grid scenes.
+ *
+ *  Once every node is relaxed, no INT_MAX sentinel remains in the vector, so
+ *  the current step alone can no longer distinguish the dist vector from any
+ *  other same-length int vector (e.g. the adjacency row it was just compared
+ *  against) — the identification signal that worked pre-convergence vanishes
+ *  exactly when a user wants to read the converged answer. Recover it by
+ *  container address: scan backward for the most recent earlier step where
+ *  it WAS identifiable (name match, or INT_MAX still present), capture that
+ *  container's stable stack address, then re-read the SAME address's (now
+ *  fully-relaxed) values in the current step's memory. A stack local's
+ *  address is stable for the lifetime of its frame, so this persists the
+ *  dist badges through convergence instead of losing them. */
+function bindDist(mem: NormalizedMemory, scene: GraphScene, trace: ExecPoint[], index: number): void {
+  if (scene.kind === "grid") return;
+  const n = scene.nodes.length;
+  const direct = identifyDistContainer(mem, n);
+  if (direct) { scene.dist = distToMap(direct.children!); return; }
+  for (let s = index - 1; s >= 0; s--) {
+    const past = identifyDistContainer(norm(trace[s]), n);
+    if (!past || !past.address) continue;
+    const here = findContainerByAddress(mem, past.address);
+    if (here && isFlatDistCandidate(here, n)) { scene.dist = distToMap(here.children!); return; }
   }
 }
 
@@ -416,7 +444,7 @@ export function buildGraphScene(
     bindCurrent(mem, scene);
     bindOrder(trace, index, scene);
     bindFlash(prevMem, mem, scene);
-    bindDist(mem, scene);
+    bindDist(mem, scene, trace, index);
     return scene;
   };
 
