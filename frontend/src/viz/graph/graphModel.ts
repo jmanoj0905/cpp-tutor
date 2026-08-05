@@ -4,7 +4,7 @@ import type { ExecPoint } from "../../types/trace";
 export type GraphKind = "adjlist" | "matrix" | "grid";
 export type ViewAs = "auto" | "graph" | "grid";
 export interface GraphNode { id: string; label: string; row?: number; col?: number; }
-export interface GraphEdge { from: string; to: string; directed: boolean; dangling?: boolean; }
+export interface GraphEdge { from: string; to: string; directed: boolean; dangling?: boolean; weight?: number; }
 export interface GraphOverlays {
   visited: Set<string>; current: string[]; frontier: Set<string>;
   order: Map<string, number>; flashed: Set<string>;
@@ -99,6 +99,21 @@ export function isBinarySquare(matrix: string[][]): boolean {
   return matrix.every((r) => r.length === n && r.every((v) => v === "0" || v === "1"));
 }
 
+export function isAdjacencyMatrix(m: string[][]): boolean {
+  const n = m.length;
+  if (n === 0) return false;
+  if (!m.every((r) => r.length === n && r.every(isIntLabel))) return false; // square int
+  const binary = m.every((r) => r.every((v) => v === "0" || v === "1"));
+  if (binary) return true;                          // preserves isBinarySquare behavior
+  const zeroDiag = m.every((r, i) => r[i] === "0");
+  const anyOverN = m.some((r) => r.some((v) => Number(v) >= n)); // can't be a node id ⇒ weight
+  return anyOverN || zeroDiag;
+}
+
+function isBinaryMatrix(m: string[][]): boolean {
+  return m.every((r) => r.every((v) => v === "0" || v === "1"));
+}
+
 function gridScene(matrix: string[][]): GraphScene {
   const rows = matrix.length;
   const cols = matrix[0]?.length ?? 0;
@@ -109,19 +124,21 @@ function gridScene(matrix: string[][]): GraphScene {
   return { kind: "grid", nodes, edges: [], overlays: emptyOverlays(), rows, cols };
 }
 
-function matrixScene(matrix: string[][]): GraphScene {
+function matrixScene(matrix: string[][], weighted: boolean): GraphScene {
   const n = matrix.length;
   const nodes: GraphNode[] = Array.from({ length: n }, (_, i) => ({ id: String(i), label: String(i) }));
   const seen = new Set<string>();
   const edges: GraphEdge[] = [];
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
-      if (matrix[i][j] !== "1") continue;
-      const directed = matrix[j]?.[i] !== "1";      // asymmetric => directed
+      if (matrix[i][j] === "0") continue;
+      const back = matrix[j]?.[i];
+      const directed = back !== matrix[i][j];       // asymmetric weight (incl back 0) ⇒ directed
       const key = directed ? `${i}>${j}` : [i, j].sort((a, b) => a - b).join("-");
       if (seen.has(key)) continue;
       seen.add(key);
-      edges.push({ from: String(i), to: String(j), directed });
+      edges.push({ from: String(i), to: String(j), directed,
+        ...(weighted ? { weight: Number(matrix[i][j]) } : {}) });
     }
   }
   return { kind: "matrix", nodes, edges, overlays: emptyOverlays() };
@@ -331,13 +348,13 @@ export function buildGraphScene(
 
     if (viewAs === "grid") return finish(gridScene(m));
     if (viewAs === "graph" && allInt)
-      return finish(isBinarySquare(m) ? matrixScene(m) : adjlistScene(m));
+      return finish(isAdjacencyMatrix(m) ? matrixScene(m, !isBinaryMatrix(m)) : adjlistScene(m));
 
     // auto
     if (isChar && rectangular) return finish(gridScene(m));
     if (allInt) {
       if (looksLikeGrid(m, mem, c.name)) return finish(gridScene(m));
-      if (isBinarySquare(m)) return finish(matrixScene(m));
+      if (isAdjacencyMatrix(m)) return finish(matrixScene(m, !isBinaryMatrix(m)));
       return finish(adjlistScene(m));
     }
   }
