@@ -72,6 +72,73 @@ export function readWeightedAdjList(cell: NormalizedCell): { to: number; weight:
   return out;
 }
 
+export interface Edge { u: number; v: number; weight?: number }
+
+interface ParsedRow { u: number; v: number; weight?: number; plain: boolean }
+
+function intVal(c: NormalizedCell): number | null {
+  return c.kind === "scalar" && isIntLabel(c.displayValue) ? Number(c.displayValue) : null;
+}
+
+/** Parse one edge-list row into {u,v,weight?}. `plain` = the ambiguous
+ *  vector<int> row shape (needs a name gate); pair/tuple/array are unambiguous. */
+function parseEdgeRow(r: NormalizedCell): ParsedRow | null {
+  const kind = (r.containerKind ?? "").toLowerCase();
+  const kids = r.children ?? [];
+
+  // nested pair {w, {u, v}}  (kruskal-style {weight,{u,v}})
+  if (kind === "pair" && kids.length === 2) {
+    const w = intVal(kids[0]);
+    const inner = kids[1];
+    if (w != null && (inner.containerKind ?? "").toLowerCase() === "pair") {
+      const ik = inner.children ?? [];
+      const u = ik[0] && intVal(ik[0]);
+      const v = ik[1] && intVal(ik[1]);
+      if (ik.length === 2 && u != null && v != null) return { u, v, weight: w, plain: false };
+    }
+  }
+
+  // flat 2- or 3-scalar row: pair / tuple / array / vector of ints
+  if (kids.length === 2 || kids.length === 3) {
+    const nums = kids.map(intVal);
+    if (nums.every((x) => x != null)) {
+      const [u, v, w] = nums as number[];
+      const plain = kind !== "pair" && kind !== "tuple" && kind !== "array";
+      return kids.length === 3 ? { u, v, weight: w, plain } : { u, v, plain };
+    }
+  }
+  return null;
+}
+
+const EDGE_NAME = /edges?|edgelist|times|prerequisites|adj_?edges|^e$/i;
+const MOVE_NAME = /dir|delta|move|offset|step/i;
+
+/** Detect an edge list: each row/element is one edge {u,v} or {u,v,w}. The
+ *  ambiguous vector<vector<int>> shape is gated on an edge-ish container name
+ *  (else it stays an adjacency list); the dedicated pair/array/tuple shapes
+ *  need only the movement-vector guard. Negative endpoints ⇒ not an edge list. */
+export function readEdgeList(cell: NormalizedCell): Edge[] | null {
+  if (!(cell.kind === "container" || cell.kind === "array")) return null;
+  const rows = cell.children ?? [];
+  if (rows.length === 0) return null;
+
+  const parsed: ParsedRow[] = [];
+  for (const r of rows) {
+    const p = parseEdgeRow(r);
+    if (!p) return null;
+    parsed.push(p);
+  }
+  if (parsed.some((p) => p.u < 0 || p.v < 0)) return null;
+
+  const name = cell.name ?? "";
+  if (parsed.some((p) => p.plain)) {
+    if (!EDGE_NAME.test(name)) return null;
+  } else if (MOVE_NAME.test(name)) {
+    return null;
+  }
+  return parsed.map(({ u, v, weight }) => (weight != null ? { u, v, weight } : { u, v }));
+}
+
 function weightedAdjListScene(rows: { to: number; weight: number }[][]): GraphScene {
   const n = rows.length;
   const nodes: GraphNode[] = Array.from({ length: n }, (_, i) => ({ id: String(i), label: String(i) }));
