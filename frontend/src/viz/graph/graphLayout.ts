@@ -1,10 +1,11 @@
 import type { GraphScene } from "./graphModel";
 
 export interface Placed { id: string; x: number; y: number; }
-export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid"; }
+export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid" | "tree"; }
 export const CIRCLE_MAX = 30;
 
 export function layoutScene(scene: GraphScene): Layout {
+  if (scene.kind === "tree") return treeLayout(scene);
   if (scene.kind === "grid") {
     const rows = scene.rows ?? 1, cols = scene.cols ?? 1;
     const placed = scene.nodes.map((n) => ({
@@ -30,6 +31,44 @@ export function layoutScene(scene: GraphScene): Layout {
     return { id: node.id, x: 0.5 + R * Math.cos(t), y: 0.5 + R * Math.sin(t) };
   });
   return { placed, mode: "circle" };
+}
+
+/** Lay out a tree from its parent→child edges (root = the node that is never a
+ *  `to`). Each depth level is one horizontal row; nodes in a level spread
+ *  evenly across the width by left-to-right order, so a partial last level
+ *  (an incomplete heap) still fills correctly. Reused by B1 pointer trees. */
+function treeLayout(scene: GraphScene): Layout {
+  const children = new Map<string, string[]>();
+  const hasParent = new Set<string>();
+  for (const e of scene.edges) {
+    if (!children.has(e.from)) children.set(e.from, []);
+    children.get(e.from)!.push(e.to);
+    hasParent.add(e.to);
+  }
+  const root = scene.nodes.find((n) => !hasParent.has(n.id));
+  if (!root) {
+    return { placed: scene.nodes.map((n) => ({ id: n.id, x: 0.5, y: 0.5 })), mode: "tree" };
+  }
+  const levels: string[][] = [];
+  const seen = new Set<string>();
+  let frontier = [root.id];
+  while (frontier.length) {
+    levels.push(frontier);
+    frontier.forEach((id) => seen.add(id));
+    const next: string[] = [];
+    for (const id of frontier) for (const c of children.get(id) ?? []) if (!seen.has(c)) next.push(c);
+    frontier = next;
+  }
+  const maxDepth = levels.length - 1;
+  const pos = new Map<string, { x: number; y: number }>();
+  levels.forEach((row, d) => {
+    const m = row.length;
+    row.forEach((id, k) => {
+      pos.set(id, { x: m === 1 ? 0.5 : k / (m - 1), y: maxDepth === 0 ? 0.5 : d / maxDepth });
+    });
+  });
+  const placed = scene.nodes.map((n) => ({ id: n.id, ...(pos.get(n.id) ?? { x: 0.5, y: 0.5 }) }));
+  return { placed, mode: "tree" };
 }
 
 /** Midpoint of an edge, optionally nudged `offset` px perpendicular to it so a

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { layoutScene, labelPoint, trimEndpoint } from "../../src/viz/graph/graphLayout";
+import { heapScene } from "../../src/viz/graph/graphModel";
 import type { GraphScene } from "../../src/viz/graph/graphModel";
 
 const bare = (over: Partial<GraphScene>): GraphScene => ({
@@ -64,5 +65,32 @@ describe("trimEndpoint", () => {
   });
   it("returns b unchanged for a zero-length edge (no NaN)", () => {
     expect(trimEndpoint(5, 5, 5, 5, 10)).toEqual({ x: 5, y: 5 });
+  });
+});
+
+describe("treeLayout", () => {
+  const xy = (l: { placed: { id: string; x: number; y: number }[] }, id: string) =>
+    l.placed.find((p) => p.id === id)!;
+
+  it("places the root at top-center and leaves at the bottom", () => {
+    const l = layoutScene(heapScene(Array.from({ length: 7 }, (_, i) => ({ label: String(i) }))));
+    expect(l.mode).toBe("tree");
+    expect(xy(l, "0").y).toBeCloseTo(0);     // root: depth 0
+    expect(xy(l, "0").x).toBeCloseTo(0.5);   // single node in its level -> centered
+    expect(xy(l, "3").y).toBeCloseTo(1);     // depth 2 leaf
+    expect(xy(l, "1").y).toBeCloseTo(0.5);   // depth 1
+  });
+
+  it("centers a single-node heap", () => {
+    const l = layoutScene(heapScene([{ label: "42" }]));
+    expect(xy(l, "0")).toMatchObject({ x: 0.5, y: 0.5 });
+  });
+
+  it("spreads a partial last level by actual occupancy (no NaN)", () => {
+    // 5 nodes: levels [0] / [1,2] / [3,4] ; last level has 2, not 4
+    const l = layoutScene(heapScene(Array.from({ length: 5 }, (_, i) => ({ label: String(i) }))));
+    expect(xy(l, "3").x).toBeCloseTo(0);   // first of 2 at depth 2
+    expect(xy(l, "4").x).toBeCloseTo(1);   // second of 2 at depth 2
+    expect(l.placed.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
   });
 });
