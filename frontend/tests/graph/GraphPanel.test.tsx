@@ -7,6 +7,7 @@ import dfsList from "../fixtures/graph/dfs_list.json";
 import dijkstra from "../fixtures/graph/dijkstra.json";
 import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
 import trie from "../fixtures/trie.json"; // a non-graph fixture
+import heapTrace from "../fixtures/graph/heap.json";
 
 const tr = (dfsList as any).trace;
 
@@ -68,5 +69,29 @@ describe("GraphPanel", () => {
       unmount();
     }
     throw new Error("no directed edge rendered in trace");
+  });
+});
+
+describe("GraphPanel heap tree", () => {
+  const ht = (heapTrace as any).trace;
+
+  it("renders the heap as circle nodes with plain (arrowless) edges", () => {
+    // find the first step whose scene is a >=5-node tree
+    let step = -1;
+    for (let s = 0; s < ht.length; s++) {
+      const sc = buildGraphScene(normalizeMemory(ht[s]), null, ht, s);
+      if (sc && sc.kind === "tree" && sc.nodes.length >= 5) { step = s; break; }
+    }
+    expect(step).toBeGreaterThanOrEqual(0);
+
+    const { container } = render(
+      <GraphPanel point={ht[step]} prevPoint={step ? ht[step - 1] : null} trace={ht} step={step} />);
+
+    // nodes are circles (non-grid), one per heap element
+    expect(container.querySelectorAll("[data-node-id] circle").length).toBeGreaterThanOrEqual(5);
+    // edges are plain lines, none carrying the graph-arrow marker
+    const lines = Array.from(container.querySelectorAll("line.graph-edge"));
+    expect(lines.length).toBeGreaterThan(0);
+    expect(lines.every((l) => l.getAttribute("marker-end") === null)).toBe(true);
   });
 });
