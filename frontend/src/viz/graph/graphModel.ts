@@ -1,7 +1,7 @@
 import { normalizeMemory, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
 import type { ExecPoint } from "../../types/trace";
 
-export type GraphKind = "adjlist" | "matrix" | "grid";
+export type GraphKind = "adjlist" | "matrix" | "grid" | "tree";
 export type ViewAs = "auto" | "graph" | "grid";
 export interface GraphNode { id: string; label: string; row?: number; col?: number; }
 export interface GraphEdge { from: string; to: string; directed: boolean; dangling?: boolean; weight?: number; }
@@ -225,6 +225,18 @@ export function readHeap(cell: NormalizedCell): HeapNode[] | null {
     return null;
   }
   return out;
+}
+
+/** Binary-heap array → tree scene. Node i's parent is floor((i-1)/2); every
+ *  i>0 gets one undirected parent→child edge. The tree layout (graphLayout)
+ *  derives positions from these edges, so this stays render-agnostic. */
+export function heapScene(nodes: HeapNode[]): GraphScene {
+  const gnodes: GraphNode[] = nodes.map((n, i) => ({ id: String(i), label: n.label }));
+  const edges: GraphEdge[] = [];
+  for (let i = 1; i < nodes.length; i++) {
+    edges.push({ from: String((i - 1) >> 1), to: String(i), directed: false });
+  }
+  return { kind: "tree", nodes: gnodes, edges, overlays: emptyOverlays() };
 }
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
