@@ -486,7 +486,7 @@ function pairId(cell: NormalizedCell): string | null {
 }
 
 function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
-  if (scene.kind === "tree") return;   // a priority_queue matches the queue check below
+  // tree scenes are gated in `finish` before any binder runs; see there.
   for (const c of findContainers(mem)) {
     const k = (c.containerKind ?? "").toLowerCase();
     if (!(k.includes("queue") || k.includes("stack"))) continue;
@@ -609,6 +609,10 @@ export function buildGraphScene(
   trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",
 ): GraphScene | null {
   const finish = (scene: GraphScene): GraphScene => {
+    // Heap-tree node ids are array indices ("0".."n-1"), not real graph node
+    // ids — no overlay binder's id-matching logic is meaningful against them.
+    // Skip all binders so a tree scene always carries only its emptyOverlays().
+    if (scene.kind === "tree") return scene;
     bindVisited(mem, scene, trace);
     bindFrontier(mem, scene);
     bindCurrent(mem, scene);

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readHeap, heapScene, buildGraphScene, hasGraphContent } from "../../src/viz/graph/graphModel";
 import { normalizeMemory } from "../../src/viz/memoryModel";
-import type { NormalizedCell } from "../../src/viz/memoryModel";
+import type { NormalizedCell, NormalizedMemory } from "../../src/viz/memoryModel";
 import heapTrace from "../fixtures/graph/heap.json";
 
 const scalar = (v: string): NormalizedCell =>
@@ -99,5 +99,49 @@ describe("buildGraphScene heap integration", () => {
     expect(anyTree).toBe(true);
     const anyContent = trace.some((p: any) => hasGraphContent(normalizeMemory(p)));
     expect(anyContent).toBe(true);
+  });
+
+  // Regression: a pure-heap program that also happens to have a live int
+  // local whose value falls in [0, n) — heap-tree node ids are plain array
+  // indices "0".."n-1", so a scalar local like `i = 1` would previously get
+  // matched by bindCurrent/bindVisited/bindDist against those ids and tint
+  // an unrelated heap node. No overlay binder should ever run against a
+  // tree scene; `finish` must gate them all before any binder executes.
+  it("does not let ANY overlay binder tint a heap-tree scene, even with a live int local in [0, n)", () => {
+    const pqContainer: NormalizedCell = pq(scalar("9"), scalar("5"), scalar("8"), scalar("1"));
+    const mem: NormalizedMemory = {
+      globals: [],
+      frames: [
+        {
+          id: "f0",
+          name: "main",
+          // "i" is a live int local whose value (1) lands inside [0, n) for
+          // this 4-node heap — exactly the shape that previously fooled
+          // frameNodeId's ints[0] fallback into painting node "1" current.
+          cells: [{ id: "i", kind: "scalar", name: "i", type: "int", displayValue: "1" } as any, pqContainer],
+        },
+      ],
+      heap: [],
+      links: [],
+    };
+
+    // A minimal single-point trace lets bindOrder's internal renormalize
+    // (norm(trace[0])) run without crashing, so a failure here reflects the
+    // actual mistint bug, not an unrelated empty-trace edge case.
+    const stubPoint = {
+      line: 1, event: "step", func_name: "main", stack_to_render: [],
+      heap: {}, globals: {}, ordered_globals: [], stdout: "",
+    } as any;
+
+    const scene = buildGraphScene(mem, null, [stubPoint], 0);
+
+    expect(scene).not.toBeNull();
+    expect(scene!.kind).toBe("tree");
+    expect(scene!.overlays.current).toEqual([]);
+    expect(scene!.overlays.visited.size).toBe(0);
+    expect(scene!.overlays.frontier.size).toBe(0);
+    expect(scene!.overlays.order.size).toBe(0);
+    expect(scene!.overlays.flashed.size).toBe(0);
+    expect(scene!.dist).toBeUndefined();
   });
 });
