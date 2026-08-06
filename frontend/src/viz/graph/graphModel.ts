@@ -486,6 +486,7 @@ function pairId(cell: NormalizedCell): string | null {
 }
 
 function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
+  if (scene.kind === "tree") return;   // a priority_queue matches the queue check below
   for (const c of findContainers(mem)) {
     const k = (c.containerKind ?? "").toLowerCase();
     if (!(k.includes("queue") || k.includes("stack"))) continue;
@@ -526,6 +527,11 @@ export function hasGraphContent(mem: NormalizedMemory): boolean {
   for (const c of findContainers(mem)) {
     const edges = readEdgeList(c);
     if (edges && edges.length > 0) return true;
+  }
+  // A pure-heap program has no matrix/edge-list container, so surface the Graph
+  // tab on the priority_queue itself.
+  for (const c of findContainers(mem)) {
+    if (readHeap(c)) return true;
   }
   return false;
 }
@@ -650,6 +656,17 @@ export function buildGraphScene(
       if (looksLikeGrid(m, mem, c.name)) return finish(gridScene(m));
       if (isAdjacencyMatrix(m)) return finish(matrixScene(m, !isBinaryMatrix(m)));
       return finish(adjlistScene(m));
+    }
+  }
+
+  // Heap-as-tree — lowest priority, after every graph detector. A dijkstra pq
+  // lives inside a graph program, so a matrix/adjlist/edge-list scene already
+  // returned above and its pq stays a frontier overlay; only a pure-heap
+  // program (no graph container) reaches here.
+  if (viewAs !== "grid") {
+    for (const c of findContainers(mem)) {
+      const h = readHeap(c);
+      if (h && h.length > 0) return finish(heapScene(h));
     }
   }
   return null;

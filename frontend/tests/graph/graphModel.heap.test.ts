@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readHeap, heapScene } from "../../src/viz/graph/graphModel";
+import { readHeap, heapScene, buildGraphScene, hasGraphContent } from "../../src/viz/graph/graphModel";
+import { normalizeMemory } from "../../src/viz/memoryModel";
 import type { NormalizedCell } from "../../src/viz/memoryModel";
+import heapTrace from "../fixtures/graph/heap.json";
 
 const scalar = (v: string): NormalizedCell =>
   ({ id: v, kind: "scalar", name: "", type: "int", displayValue: v } as any);
@@ -68,5 +70,34 @@ describe("heapScene", () => {
     const s = heapScene([{ label: "42" }]);
     expect(s.edges).toEqual([]);
     expect(s.nodes.length).toBe(1);
+  });
+});
+
+describe("buildGraphScene heap integration", () => {
+  const trace = (heapTrace as any).trace;
+
+  it("renders a priority_queue<int> as a >=5-node tree with parent-child edges", () => {
+    let scene = null;
+    for (let s = 0; s < trace.length; s++) {
+      const sc = buildGraphScene(normalizeMemory(trace[s]), null, trace, s);
+      if (sc && sc.kind === "tree" && sc.nodes.length >= 5) { scene = sc; break; }
+    }
+    expect(scene).not.toBeNull();
+    // undirected parent->child edges, count = nodes-1 for a contiguous heap array
+    expect(scene!.edges.length).toBe(scene!.nodes.length - 1);
+    expect(scene!.edges.every((e) => !e.directed)).toBe(true);
+    expect(scene!.edges.every((e) => e.from === String((Number(e.to) - 1) >> 1))).toBe(true);
+    // bindFrontier must NOT tint heap nodes on a tree scene
+    expect(scene!.overlays.frontier.size).toBe(0);
+  });
+
+  it("surfaces the Graph tab for a pure-heap program (hasGraphContent true)", () => {
+    const anyTree = trace.some((p: any) => {
+      const sc = buildGraphScene(normalizeMemory(p), null, trace, 0);
+      return sc && sc.kind === "tree";
+    });
+    expect(anyTree).toBe(true);
+    const anyContent = trace.some((p: any) => hasGraphContent(normalizeMemory(p)));
+    expect(anyContent).toBe(true);
   });
 });
