@@ -198,6 +198,35 @@ export function edgeListScene(edges: Edge[], mem: NormalizedMemory): GraphScene 
   return { kind: "adjlist", nodes, edges: gedges, overlays: emptyOverlays() };
 }
 
+export interface HeapNode { label: string }
+
+/** A priority_queue backing vector as a binary-heap array. pq<int> children →
+ *  int labels; pq<pair<int,int>> children → "{a,b}" labels. Null for a
+ *  non-priority_queue container, an empty or placeholder heap, or any child
+ *  that is neither a scalar int nor a 2-int pair (the whole heap is rejected —
+ *  no partial heaps). Detection runs last in buildGraphScene, so a dijkstra pq
+ *  never reaches here as a tree — it stays a frontier overlay on a graph. */
+export function readHeap(cell: NormalizedCell): HeapNode[] | null {
+  if ((cell.containerKind ?? "").toLowerCase() !== "priority_queue") return null;
+  if (cell.placeholders) return null;
+  const els = cell.children ?? [];
+  if (els.length === 0) return null;
+  const out: HeapNode[] = [];
+  for (const el of els) {
+    if (el.kind === "scalar" && isIntLabel(el.displayValue)) {
+      out.push({ label: el.displayValue });
+      continue;
+    }
+    const kids = el.children ?? [];
+    if (kids.length === 2 && kids.every((k) => k.kind === "scalar" && isIntLabel(k.displayValue))) {
+      out.push({ label: `{${kids[0].displayValue},${kids[1].displayValue}}` });
+      continue;
+    }
+    return null;
+  }
+  return out;
+}
+
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
 // normalizeMemory is pure per ExecPoint; bindOrder re-derives the visited set
