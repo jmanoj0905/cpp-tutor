@@ -4,8 +4,6 @@ import { findContainers } from "./containers";
 import type { ShapeModel } from "../shapes";
 import { treeSceneFrom } from "./treeScene";
 
-export { findContainers };
-
 export type GraphKind = "adjlist" | "matrix" | "grid" | "tree";
 export type ViewAs = "auto" | "graph" | "grid";
 export interface GraphNode { id: string; label: string; row?: number; col?: number; }
