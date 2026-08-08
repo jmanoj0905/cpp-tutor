@@ -827,6 +827,14 @@ p {
   width: 100%; height: 100%;
   max-width: var(--graph-max); max-height: var(--graph-max);
 }
+/* Shown instead of the canvas when the current view/step has nothing to draw
+   (e.g. "grid" on a pure pointer-tree program) — the toggle above it stays
+   live so the user always has a way back to "auto"/"graph". */
+.graph-empty {
+  flex: 1 1 auto; min-height: 0; display: flex;
+  align-items: center; justify-content: center;
+  font: 12px var(--mono); color: var(--ink-soft);
+}
 .graph-view-toggle { display: flex; gap: 0; border-bottom: var(--border-thin) dotted var(--ink); margin: -8px -8px 8px; flex: none; }
 .graph-view-toggle button {
   font: 12px var(--mono); padding: 4px 12px; cursor: pointer;

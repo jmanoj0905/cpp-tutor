@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render } from "@testing-library/react";
+import { render, fireEvent } from "@testing-library/react";
 import { GraphPanel } from "../../src/viz/graph/GraphPanel";
 import { buildGraphScene } from "../../src/viz/graph/graphModel";
 import { normalizeMemory } from "../../src/viz/memoryModel";
@@ -111,6 +111,35 @@ describe("GraphPanel pointer trees", () => {
       if (nodes >= 2 && onPath >= 1) return;   // found one — assertion satisfied
     }
     throw new Error("no step rendered a pointer tree with an on-path edge");
+  });
+
+  // Finding 3: a pure pointer-tree program has no matrix container, so
+  // buildGraphScene(..., "grid") returns null. Before the fix, GraphPanel
+  // returned null for the whole panel in that case — the view-toggle
+  // disappeared along with the canvas, stranding the user on "grid" with no
+  // control left to click back to "auto"/"graph".
+  it("keeps the view toggle visible (not stranded) when 'grid' has nothing to show", () => {
+    // any step with a live tree scene under auto/graph (buildGraphScene needs
+    // the detected shapes to find a tree — GraphPanel computes those itself)
+    let step = -1;
+    for (let s = 0; s < trace.length; s++) {
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={null} trace={trace} step={s} />);
+      const nodes = container.querySelectorAll("[data-node-id]").length;
+      unmount();
+      if (nodes >= 2) { step = s; break; }
+    }
+    expect(step).toBeGreaterThanOrEqual(0);
+
+    const { container, getByRole } = render(
+      <GraphPanel point={trace[step]} prevPoint={null} trace={trace} step={step} />);
+    // switch to "grid" — a pure pointer-tree program has no matrix container
+    fireEvent.click(getByRole("tab", { name: "grid" }));
+    // the toggle (and its "auto" tab) must still be there to click back
+    expect(container.querySelector(".graph-view-toggle")).not.toBeNull();
+    const autoTab = getByRole("tab", { name: "auto" });
+    expect(autoTab).not.toBeNull();
+    expect(container.querySelectorAll("[data-node-id]").length).toBe(0);
   });
 
   it("renders order labels for visited tree nodes", () => {

@@ -25,7 +25,30 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
   }, [point, prevPoint, trace, step, viewAs]);
 
   const layout = useMemo(() => (scene ? layoutScene(scene) : null), [scene]);
-  if (!scene || !layout) return null;
+
+  // A view toggle button is the only way back to "auto"/"graph" once picked.
+  // Finding 3: `viewAs: "grid"` is a dead end on a pure pointer-tree program
+  // (no matrix container, so buildGraphScene returns null for that view) —
+  // returning null for the whole panel here would strand the user with no
+  // control left to escape "grid". Always render the toggle; only the canvas
+  // beneath it is conditional on having a scene.
+  const toggle = (
+    <div className="graph-view-toggle" role="tablist">
+      {(["auto", "graph", "grid"] as ViewAs[]).map((v) => (
+        <button key={v} role="tab" aria-selected={viewAs === v}
+          onClick={() => setViewAs(v)}>{v}</button>
+      ))}
+    </div>
+  );
+
+  if (!scene || !layout) {
+    return (
+      <div className="graph-panel">
+        {toggle}
+        <div className="graph-empty">nothing to show for this view</div>
+      </div>
+    );
+  }
 
   const pos = new Map(layout.placed.map((p) => [p.id, p]));
   const px = (x: number) => PAD + x * (W - 2 * PAD);
