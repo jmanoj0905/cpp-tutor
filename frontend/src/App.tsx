@@ -10,6 +10,7 @@ import { CallLogPanel } from "./viz/CallLogPanel";
 import { GraphPanel } from "./viz/graph/GraphPanel";
 import { normalizeMemory } from "./viz/memoryModel";
 import { hasGraphContent } from "./viz/graph/graphModel";
+import { shapeInfoFor } from "./viz/shapes";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
@@ -61,7 +62,12 @@ function Workspace({
   // Show the Graph tab only for graph/grid-shaped programs. Scan once per
   // trace with the cheap structural detector (not buildGraphScene, which is
   // O(prefix) per call → O(n^2) over a trace); break on the first hit.
+  // A pointer-tree program has no such container — its Graph content comes
+  // from a confirmed `tree` shape, which is already a cached whole-trace pass.
   const graphAvailable = useMemo(() => {
+    for (const kind of shapeInfoFor(trace.trace).confirmed.values()) {
+      if (kind === "tree") return true;
+    }
     for (let s = 0; s < trace.trace.length; s++) {
       if (hasGraphContent(normalizeMemory(trace.trace[s]))) return true;
     }

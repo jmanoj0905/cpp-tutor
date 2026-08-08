@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import App from "../../src/App";
 import dfsList from "../fixtures/graph/dfs_list.json";
 import vectorTrace from "../fixtures/vector-trace.json";
+import treeInsert from "../fixtures/shapes/tree-insert.json";
 import { fetchTrace } from "../../src/api/client";
 import type { Trace } from "../../src/types/trace";
 
@@ -44,6 +45,26 @@ describe("App graph tab", () => {
         found = true;
         break;
       }
+    }
+    expect(found).toBe(true);
+  });
+
+  it("offers a Graph tab for a pointer-tree program", async () => {
+    // tree-insert has no matrix/edge-list/heap container at all — only
+    // TreeNode heap structs — so the tab must come from shape confirmation.
+    (fetchTrace as any).mockResolvedValue(treeInsert as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+
+    fireEvent.click(screen.getByRole("tab", { name: /^graph$/i }));
+
+    const slider = screen.getByLabelText("Execution step");
+    const total = (treeInsert as any).trace.length;
+    let found = false;
+    for (let s = 0; s < total; s++) {
+      fireEvent.change(slider, { target: { value: String(s) } });
+      if (container.querySelector(".graph-panel")) { found = true; break; }
     }
     expect(found).toBe(true);
   });
