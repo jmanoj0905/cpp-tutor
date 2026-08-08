@@ -1,5 +1,8 @@
 import { normalizeMemory, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
 import type { ExecPoint } from "../../types/trace";
+import { findContainers } from "./containers";
+
+export { findContainers };
 
 export type GraphKind = "adjlist" | "matrix" | "grid" | "tree";
 export type ViewAs = "auto" | "graph" | "grid";
@@ -19,18 +22,6 @@ const emptyOverlays = (): GraphOverlays => ({
   visited: new Set(), current: [], frontier: new Set(),
   order: new Map(), flashed: new Set(),
 });
-
-/** Depth-first collect every container/array cell in globals + all frames. */
-export function findContainers(mem: NormalizedMemory): NormalizedCell[] {
-  const out: NormalizedCell[] = [];
-  const walk = (c: NormalizedCell) => {
-    if (c.kind === "container" || c.kind === "array") out.push(c);
-    c.children?.forEach(walk);
-  };
-  mem.globals.forEach(walk);
-  mem.frames.forEach((f) => f.cells.forEach(walk));
-  return out;
-}
 
 /** A vector<vector<scalar>> reads as rows of scalar displayValues. Null otherwise. */
 export function readMatrix(cell: NormalizedCell): string[][] | null {
