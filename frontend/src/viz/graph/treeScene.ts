@@ -10,6 +10,7 @@ import type { NormalizedMemory } from "../memoryModel";
 import type { ShapeModel } from "../shapes";
 import type { GraphEdge, GraphNode, GraphOverlays, GraphScene } from "./graphModel";
 import type { ExecPoint } from "../../types/trace";
+import { findContainers } from "./containers";
 
 const emptyOverlays = (): GraphOverlays => ({
   visited: new Set(), current: [], frontier: new Set(),
@@ -99,6 +100,25 @@ export function bindTreeOrder(
       if (!id) continue;                       // not a tree node (or already freed)
       scene.overlays.visited.add(id);
       scene.overlays.order.set(id, ++counter);
+    }
+  }
+}
+
+/** `frontier` = tree nodes sitting in a queue/stack of node pointers — the
+ *  level-order BFS queue (`queue<TreeNode*>`) or the iterative-DFS stack
+ *  (`stack<TreeNode*>`). Matching is by the element's targetAddress, so a
+ *  priority_queue of pointers would also qualify; that is intended. */
+export function bindTreeFrontier(
+  mem: NormalizedMemory, scene: GraphScene, addrById: Map<string, string>,
+): void {
+  const idByAddr = new Map([...addrById].map(([id, addr]) => [addr, id]));
+  for (const c of findContainers(mem)) {
+    const k = (c.containerKind ?? "").toLowerCase();
+    if (!(k.includes("queue") || k.includes("stack"))) continue;
+    if (c.placeholders) continue;
+    for (const el of c.children ?? []) {
+      const id = el.targetAddress ? idByAddr.get(el.targetAddress) : undefined;
+      if (id) scene.overlays.frontier.add(id);
     }
   }
 }

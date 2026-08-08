@@ -143,3 +143,48 @@ describe("bindTreeOrder", () => {
     expect(scene(s)).toBeGreaterThanOrEqual(scene(Math.floor(s / 2)));
   });
 });
+
+import { bindTreeFrontier } from "../../src/viz/graph/treeScene";
+import type { NormalizedCell } from "../../src/viz/memoryModel";
+
+/** A queue<TreeNode*> holding pointers to the given addresses. */
+const ptrQueue = (name: string, kind: string, addrs: string[]): NormalizedCell => ({
+  id: `frame-0-${name}`, name, source: "stack", kind: "container", address: null,
+  type: `std::${kind}<TreeNode*>`, displayValue: kind, rawValue: null, containerKind: kind,
+  children: addrs.map((a, i) => ({
+    id: `frame-0-${name}-${i}`, name: `[${i}]`, source: "stack", kind: "reference" as const,
+    address: null, type: "TreeNode *", displayValue: `-> ${a}`, rawValue: null, targetAddress: a,
+  })),
+});
+
+describe("bindTreeFrontier", () => {
+  const idOf = (scene: { nodes: { id: string; label: string }[] }, label: string) =>
+    scene.nodes.find((n) => n.label === label)!.id;
+
+  it("marks nodes held in a queue<TreeNode*> as frontier", () => {
+    const m = bst();
+    m.frames = [{ id: "frame-0", name: "levelOrder", cells: [ptrQueue("q", "queue", ["0x20", "0x30"])] }];
+    const shapes = shapesOf(m);
+    const scene = shapeToScene(shapes)!;
+    bindTreeFrontier(m, scene, addressIndex(shapes));
+    expect(scene.overlays.frontier).toEqual(new Set([idOf(scene, "3"), idOf(scene, "8")]));
+  });
+
+  it("marks nodes held in a stack<TreeNode*> as frontier", () => {
+    const m = bst();
+    m.frames = [{ id: "frame-0", name: "preorder", cells: [ptrQueue("st", "stack", ["0x10"])] }];
+    const shapes = shapesOf(m);
+    const scene = shapeToScene(shapes)!;
+    bindTreeFrontier(m, scene, addressIndex(shapes));
+    expect(scene.overlays.frontier).toEqual(new Set([idOf(scene, "5")]));
+  });
+
+  it("ignores a vector of pointers (not a frontier structure)", () => {
+    const m = bst();
+    m.frames = [{ id: "frame-0", name: "f", cells: [ptrQueue("v", "vector", ["0x20"])] }];
+    const shapes = shapesOf(m);
+    const scene = shapeToScene(shapes)!;
+    bindTreeFrontier(m, scene, addressIndex(shapes));
+    expect(scene.overlays.frontier.size).toBe(0);
+  });
+});
