@@ -122,3 +122,17 @@ export function bindTreeFrontier(
     }
   }
 }
+
+/** Entry point used by buildGraphScene: build the tree scene for this step and
+ *  bind every pointer-tree overlay. Null when no tree shape has nodes here. */
+export function treeSceneFrom(
+  shapes: ShapeModel[], mem: NormalizedMemory, trace: ExecPoint[], index: number,
+): GraphScene | null {
+  const scene = shapeToScene(shapes);
+  if (!scene) return null;
+  const addrById = addressIndex(shapes);
+  bindTreeCurrent(mem, scene, addrById);
+  bindTreeOrder(trace, index, scene, addrById);
+  bindTreeFrontier(mem, scene, addrById);
+  return scene;
+}

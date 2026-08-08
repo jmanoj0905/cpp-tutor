@@ -157,6 +157,26 @@ const ptrQueue = (name: string, kind: string, addrs: string[]): NormalizedCell =
   })),
 });
 
+import { treeSceneFrom } from "../../src/viz/graph/treeScene";
+
+describe("treeSceneFrom", () => {
+  it("returns a bound scene with every overlay applied", () => {
+    const m = bst();
+    m.links = [{ fromId: "frame-0-root", fromName: "root", toId: "heap-heap-0x10", targetAddress: "0x10" }];
+    m.frames = [{ id: "frame-0", name: "levelOrder", cells: [ptrQueue("q", "queue", ["0x20"])] }];
+    const point = { line: 1, event: "step_line", stack_to_render: [], heap: {}, globals: {}, ordered_globals: [], stdout: "" } as unknown as ExecPoint;
+    const scene = treeSceneFrom(shapesOf(m), m, [point], 0)!;
+    expect(scene.kind).toBe("tree");
+    expect(scene.overlays.current).toHaveLength(1);
+    expect(scene.overlays.frontier.size).toBe(1);
+  });
+
+  it("returns null with no tree shapes", () => {
+    const m = mem([]);
+    expect(treeSceneFrom(shapesOf(m), m, [], 0)).toBeNull();
+  });
+});
+
 describe("bindTreeFrontier", () => {
   const idOf = (scene: { nodes: { id: string; label: string }[] }, label: string) =>
     scene.nodes.find((n) => n.label === label)!.id;
