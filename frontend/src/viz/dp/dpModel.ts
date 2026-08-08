@@ -1,6 +1,7 @@
 import type { ExecPoint } from "../../types/trace";
-import type { NormalizedCell, NormalizedMemory } from "../memoryModel";
+import { normalizeMemory, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
 import type { DpCandidate } from "./detect";
+import type { ArrayEnv, ArrayValue } from "./exprEval";
 import { isAssignmentLhs, resolveOccurrences, type Coord } from "./readSet";
 
 export interface DpCellView {
@@ -30,6 +31,36 @@ export function intEnv(point: ExecPoint): Map<string, number> {
     }
   }
   return env;
+}
+
+/** Integer arrays in scope — globals plus the innermost frame's own cells, the
+ *  same scoping as `intEnv` — so index expressions that read through a second
+ *  array (`dp[a - coins[k]]`) can be resolved. Values come from the already
+ *  decoded memory, so heap-backed containers (`vector<int>`) work the same as
+ *  plain C arrays. */
+export function arrayEnv(mem: NormalizedMemory): ArrayEnv {
+  const env = new Map<string, ArrayValue>();
+  const inScope = [...mem.globals, ...(mem.frames.at(-1)?.cells ?? [])];
+  for (const cell of inScope) {
+    const value = intArrayValue(cell);
+    if (value) env.set(cell.name, value);
+  }
+  return env;
+}
+
+/** An array-like cell as nested integers, with null for anything that isn't a
+ *  recoverable integer. Non-array cells return null. */
+function intArrayValue(cell: NormalizedCell): ArrayValue | null {
+  if (cell.kind !== "array" && cell.containerKind !== "vector") return null;
+  const kids = cell.children;
+  if (!kids?.length) return null;
+  return kids.map((kid) => {
+    const nested = intArrayValue(kid);
+    if (nested) return nested;
+    if (kid.children?.length) return null;
+    const n = Number(kid.displayValue);
+    return kid.displayValue !== "" && Number.isInteger(n) ? n : null;
+  });
 }
 
 export function buildDpView(
@@ -76,7 +107,8 @@ export function buildDpView(
   const usePrevPoint = currentWrite !== null && prevPoint !== null;
   const readPoint = usePrevPoint ? prevPoint! : point;
   const lineText = codeLines[readPoint.line - 1] ?? "";
-  const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint));
+  const readMem = usePrevPoint ? normalizeMemory(readPoint) : mem;
+  const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint), arrayEnv(readMem));
   const reads = [...occ];
   // Structural primary defense: on an assignment line `name[...] = expr;`,
   // the LHS subscript occurrence is always the write target, independent of
@@ -123,7 +155,8 @@ export function collectReadSteps(
   const log = new Map<string, number[]>();
   trace.forEach((point, step) => {
     const lineText = codeLines[point.line - 1] ?? "";
-    const occ = resolveOccurrences(lineText, candidate.name, intEnv(point));
+    const occ = resolveOccurrences(lineText, candidate.name, intEnv(point),
+                                   arrayEnv(normalizeMemory(point)));
     const reads = [...occ];
     if (isAssignmentLhs(lineText, candidate.name) && occ.length > 0) {
       const i = reads.findIndex((c) => c.join(",") === occ[0].join(","));

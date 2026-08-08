@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
+import coinChange from "./fixtures/dp/coin-change.json";
 import type { Trace } from "../src/types/trace";
 import { normalizeMemory } from "../src/viz/memoryModel";
 import { detectDpTables } from "../src/viz/dp/detect";
@@ -207,5 +208,35 @@ describe("collectReadSteps", () => {
     expect(steps).toBeDefined();
     expect(steps!.length).toBeGreaterThan(0);
     expect(steps).not.toContain(writeStep4);
+  });
+});
+
+// dp[a] = dp[a - coins[k]] + 1 — the operand index is itself a subscript of a
+// second array. Before array-aware index evaluation these steps resolved no
+// reads at all, so coin change (and knapsack, same shape) drew zero arrows.
+describe("buildDpView: index expressions that subscript another array (coin-change fixture)", () => {
+  const cc = coinChange as Trace;
+  const ccCodeLines = cc.code.split("\n");
+  const [ccCand] = detectDpTables(cc.trace, cc.code);
+  const ccViewAt = (step: number) =>
+    buildDpView(ccCand, step, cc.trace[step], normalizeMemory(cc.trace[step]),
+                ccCodeLines, cc.trace[step - 1] ?? null);
+
+  it("at the a=8, k=2 write: reads resolve to dp[8 - coins[2]] = dp[4]", () => {
+    const v = ccViewAt(81);
+    expect(v.currentWrite).toEqual([8]);
+    expect(v.reads).toEqual([[4]]);
+  });
+
+  it("at the a=3, k=1 write: reads resolve to dp[3 - coins[1]] = dp[0]", () => {
+    const v = ccViewAt(30);
+    expect(v.currentWrite).toEqual([3]);
+    expect(v.reads).toEqual([[0]]);
+  });
+
+  it("collectReadSteps logs the coords reached through the inner subscript", () => {
+    const log = collectReadSteps(cc.trace, ccCand, ccCodeLines);
+    expect(log.get("4")).toBeDefined();
+    expect(log.get("4")!.length).toBeGreaterThan(0);
   });
 });

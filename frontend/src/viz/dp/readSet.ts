@@ -1,4 +1,4 @@
-import { evalIndexExpr } from "./exprEval";
+import { evalIndexExpr, type ArrayEnv } from "./exprEval";
 
 export type Coord = readonly number[];
 
@@ -29,10 +29,11 @@ export function resolveOccurrences(
   lineText: string,
   tableName: string,
   env: ReadonlyMap<string, number>,
+  arrays?: ArrayEnv,
 ): Coord[] {
   const coords: Coord[] = [];
   for (const indices of subscriptOccurrences(lineText, tableName)) {
-    const coord = indices.map((e) => evalIndexExpr(e, env));
+    const coord = indices.map((e) => evalIndexExpr(e, env, arrays));
     if (coord.every((v): v is number => v !== null)) coords.push(coord);
   }
   return coords;
