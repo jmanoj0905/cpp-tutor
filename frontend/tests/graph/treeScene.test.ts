@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { addressIndex, bindTreeCurrent, shapeToScene } from "../../src/viz/graph/treeScene";
+import { addressIndex, bindTreeCurrent, bindTreeOrder, shapeToScene } from "../../src/viz/graph/treeScene";
 import { applyShapes } from "../../src/viz/shapes";
 import type { NormalizedMemory } from "../../src/viz/memoryModel";
 import { treeNode } from "../shapeHelpers";
+import type { ExecPoint } from "../../src/types/trace";
+import treeInsert from "../fixtures/shapes/tree-insert.json";
+import { normalizeMemory } from "../../src/viz/memoryModel";
 
 const CONFIRMED = new Map([["TreeNode", "tree" as const]]);
 
@@ -96,5 +99,47 @@ describe("bindTreeCurrent", () => {
     const onPath = scene.edges.filter((e) => e.onPath);
     expect(onPath).toHaveLength(1);
     expect(onPath[0].to).toBe(idOf(scene, "3"));
+  });
+});
+
+describe("bindTreeOrder", () => {
+  const trace = (treeInsert as { trace: ExecPoint[] }).trace;
+
+  /** last step where the BST has all 5 nodes */
+  const fullStep = () => {
+    for (let s = trace.length - 1; s >= 0; s--) {
+      const scene = shapeToScene(shapesOf(normalizeMemory(trace[s])));
+      if (scene && scene.nodes.length === 5) return s;
+    }
+    throw new Error("no 5-node step in tree-insert fixture");
+  };
+
+  it("numbers visited nodes in first-visit order and marks them visited", () => {
+    const s = fullStep();
+    const m = normalizeMemory(trace[s]);
+    const shapes = shapesOf(m);
+    const scene = shapeToScene(shapes)!;
+    bindTreeOrder(trace, s, scene, addressIndex(shapes));
+
+    expect(scene.overlays.visited.size).toBeGreaterThan(0);
+    const orders = [...scene.overlays.order.values()].sort((a, b) => a - b);
+    expect(orders[0]).toBe(1);                               // numbering starts at 1
+    expect(new Set(orders).size).toBe(orders.length);        // no duplicates
+    expect(scene.overlays.order.size).toBe(scene.overlays.visited.size);
+    for (const id of scene.overlays.order.keys()) {
+      expect(scene.nodes.some((n) => n.id === id)).toBe(true); // only live nodes
+    }
+  });
+
+  it("never shrinks as the step index advances", () => {
+    const s = fullStep();
+    const m = normalizeMemory(trace[s]);
+    const scene = (i: number) => {
+      const shapes = shapesOf(m);
+      const sc = shapeToScene(shapes)!;
+      bindTreeOrder(trace, i, sc, addressIndex(shapes));
+      return sc.overlays.visited.size;
+    };
+    expect(scene(s)).toBeGreaterThanOrEqual(scene(Math.floor(s / 2)));
   });
 });
