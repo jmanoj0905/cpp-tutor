@@ -456,3 +456,14 @@ export function confirmShapeTypes(trace: ExecPoint[]): ShapeInfo {
   }
   return { confirmed, firstSeen, selfNames };
 }
+
+// confirmShapeTypes normalizes every point in the trace. Both MemoryView and
+// GraphPanel need its result; memoize by trace array identity so the whole-
+// trace pass runs once per trace instead of once per consumer.
+const shapeInfoCache = new WeakMap<ExecPoint[], ShapeInfo>();
+
+export function shapeInfoFor(trace: ExecPoint[]): ShapeInfo {
+  let info = shapeInfoCache.get(trace);
+  if (!info) { info = confirmShapeTypes(trace); shapeInfoCache.set(trace, info); }
+  return info;
+}

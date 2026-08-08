@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { applyShapes, buildTrieEdges, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes } from "../src/viz/shapes";
+import { applyShapes, buildTrieEdges, candidateKind, collectGroups, selfPtrMembers, confirmShapeTypes, shapeInfoFor } from "../src/viz/shapes";
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../src/viz/memoryModel";
 import type { ExecPoint } from "../src/types/trace";
 import { listNode, structCell, treeNode, trieNode } from "./shapeHelpers";
+import treeInsert from "./fixtures/shapes/tree-insert.json";
 
 describe("candidacy", () => {
   it("one self-pointer (even when null) makes a list candidate", () => {
@@ -452,5 +453,17 @@ describe("trie confirmation", () => {
     // (Fixture-backed end-to-end confirmation lives in Task 8.)
     const info = confirmShapeTypes([point([])]);
     expect(info.confirmed.get("TrieNode")).toBeUndefined(); // empty heap -> nothing yet
+  });
+});
+
+describe("shapeInfoFor", () => {
+  it("returns the same ShapeInfo object for the same trace array", () => {
+    const trace = (treeInsert as { trace: ExecPoint[] }).trace;
+    expect(shapeInfoFor(trace)).toBe(shapeInfoFor(trace));
+  });
+
+  it("matches confirmShapeTypes", () => {
+    const trace = (treeInsert as { trace: ExecPoint[] }).trace;
+    expect([...shapeInfoFor(trace).confirmed]).toEqual([...confirmShapeTypes(trace).confirmed]);
   });
 });

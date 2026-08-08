@@ -6,7 +6,7 @@ import { changedCellIds } from "./memoryDiff";
 import { MemoryCell } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
 import { Divider } from "../Divider.tsx";
-import { applyShapes, confirmShapeTypes } from "./shapes";
+import { applyShapes, shapeInfoFor } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
 import { HeapTreeOverlay } from "./stl/HeapTreeOverlay";
 import { detectDpTables } from "./dp/detect";
@@ -42,7 +42,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   const [selected, setSelected] = useState<ConnectorSelection | null>(null);
   const [expandedFrames, setExpandedFrames] = useState<Set<string>>(new Set());
   const [split, setSplit] = useState(50);
-  const shapeInfo = useMemo(() => confirmShapeTypes(trace), [trace]);
+  const shapeInfo = useMemo(() => shapeInfoFor(trace), [trace]);
   const [disabledShapes, setDisabledShapes] = useState<Set<string>>(new Set());
   const { memory: shaped, shapes } = applyShapes(viewMemory, shapeInfo.confirmed, disabledShapes, shapeInfo.selfNames);
   const toggleShape = (typeName: string) =>
