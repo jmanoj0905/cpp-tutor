@@ -177,6 +177,48 @@ describe("treeSceneFrom", () => {
   });
 });
 
+// Finding 1: a pointer held inside a container (a queue/stack frontier
+// element) must never count as an algorithm "finger" — it corrupted `current`
+// (swallowed the whole frontier), `order` (numbered push time, not visit
+// time), and `onPath` (lit disconnected subtrees). These tests build a real
+// container cell (as bindTreeFrontier's tests do) AND the matching mem.links
+// entry a real normalizeMemory would produce for a reference cell nested
+// inside it, so they fail against the pre-fix fingerAddresses that only
+// excluded `heap-*` sources.
+describe("bindTreeCurrent excludes container-held pointers (Finding 1)", () => {
+  const idOf = (scene: { nodes: { id: string; label: string }[] }, label: string) =>
+    scene.nodes.find((n) => n.label === label)!.id;
+
+  it("does not mark a node sitting in a queue<TreeNode*> as current", () => {
+    const m = bst();
+    m.frames = [{ id: "frame-0", name: "levelOrder", cells: [ptrQueue("q", "queue", ["0x20"])] }];
+    // The link a real normalizeMemory would emit for that queue element.
+    m.links = [{ fromId: "frame-0-q-0", fromName: "[0]", toId: "heap-heap-0x20", targetAddress: "0x20" }];
+    const scene = shapeToScene(shapesOf(m))!;
+    bindTreeCurrent(m, scene, addrById(m));
+    expect(scene.overlays.current).toEqual([]);
+    expect(scene.overlays.current).not.toContain(idOf(scene, "3"));
+  });
+
+  it("does not mark the edge into a queue-held node as onPath just because a sibling is current", () => {
+    const m = bst();
+    m.frames = [{
+      id: "frame-0", name: "levelOrder",
+      cells: [ptrQueue("q", "queue", ["0x20"])],
+    }];
+    m.links = [
+      // "curr" is a genuine local finger on the root (0x10)...
+      { fromId: "frame-0-curr", fromName: "curr", toId: "heap-heap-0x10", targetAddress: "0x10" },
+      // ...but 0x20 is only reachable via the queue, not a live local.
+      { fromId: "frame-0-q-0", fromName: "[0]", toId: "heap-heap-0x20", targetAddress: "0x20" },
+    ];
+    const scene = shapeToScene(shapesOf(m))!;
+    bindTreeCurrent(m, scene, addrById(m));
+    expect(scene.overlays.current).toEqual([idOf(scene, "5")]);
+    expect(scene.edges.some((e) => e.onPath)).toBe(false);
+  });
+});
+
 describe("bindTreeFrontier", () => {
   const idOf = (scene: { nodes: { id: string; label: string }[] }, label: string) =>
     scene.nodes.find((n) => n.label === label)!.id;

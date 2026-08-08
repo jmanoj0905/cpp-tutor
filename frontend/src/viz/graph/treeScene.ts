@@ -6,7 +6,7 @@
 // time). Importing a value from there would create a runtime import cycle,
 // because graphModel.ts imports this module's entry point.
 import { normalizeMemory } from "../memoryModel";
-import type { NormalizedMemory } from "../memoryModel";
+import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../memoryModel";
 import type { ShapeModel } from "../shapes";
 import type { GraphEdge, GraphNode, GraphOverlays, GraphScene } from "./graphModel";
 import type { ExecPoint } from "../../types/trace";
@@ -42,33 +42,74 @@ export function addressIndex(shapes: ShapeModel[]): Map<string, string> {
   return map;
 }
 
-/** Addresses a stack/global pointer currently targets — the algorithm's
- *  "fingers". Heap-sourced links (a node's own left/right member) are excluded:
- *  they are tree structure, not algorithm position. */
-function fingerAddresses(mem: NormalizedMemory): Set<string> {
+/** Ids of every cell nested (at any depth) inside a container/array cell —
+ *  e.g. a `queue<TreeNode*>` element. A pointer sitting in a container is
+ *  queued for later visitation, not "at" the node; it must never count as an
+ *  algorithm finger (that was Finding 1: it made `current` swallow the whole
+ *  `frontier`, corrupted `order` into push order, and made `onPath` mark
+ *  disconnected subtrees). Derived via `findContainers`, which already knows
+ *  how to walk every container/array cell in globals + frames + heap. */
+function containerDescendantIds(mem: NormalizedMemory): Set<string> {
   const out = new Set<string>();
-  for (const l of mem.links) {
-    if (l.fromId.startsWith("heap-")) continue;
-    out.add(l.targetAddress);
-  }
+  const walk = (c: NormalizedCell) => {
+    for (const child of c.children ?? []) { out.add(child.id); walk(child); }
+  };
+  for (const c of findContainers(mem)) walk(c);
   return out;
 }
 
-/** `current` = nodes a live pointer local targets. An edge with both endpoints
- *  current lies on the recursion path (tree path nodes are parent-child
- *  adjacent), so it gets `onPath` for emphasis. */
+/** Links a live stack/global pointer local holds on a tree node — the
+ *  algorithm's "fingers". Excludes:
+ *   - heap-sourced links (a node's own left/right member): tree structure,
+ *     not algorithm position.
+ *   - links whose source cell is a descendant of a container/array cell (a
+ *     `queue`/`stack` frontier element): queued for later, not current.
+ */
+function fingerLinks(mem: NormalizedMemory): MemoryLink[] {
+  const inContainer = containerDescendantIds(mem);
+  return mem.links.filter((l) => !l.fromId.startsWith("heap-") && !inContainer.has(l.fromId));
+}
+
+function fingerAddresses(mem: NormalizedMemory): Set<string> {
+  return new Set(fingerLinks(mem).map((l) => l.targetAddress));
+}
+
+/** `current` = nodes a live pointer local targets, ordered outermost frame ->
+ *  innermost (matching `bindCurrent`'s convention in graphModel.ts): a link is
+ *  grouped into the stack frame whose id its `fromId` is scoped under, frames
+ *  are walked innermost-first (mem.frames is outermost-first), and any link
+ *  that doesn't scope to a known frame (e.g. a global) is appended last.
+ *  `onPath` is derived from real parent-child adjacency between CONSECUTIVE
+ *  entries of that ordered chain — not "both endpoints somewhere in current" —
+ *  because a recursive call chain visits one ancestor path at a time; two
+ *  unrelated current nodes must never both light up an edge between them. */
 export function bindTreeCurrent(
   mem: NormalizedMemory, scene: GraphScene, addrById: Map<string, string>,
 ): void {
-  const fingers = fingerAddresses(mem);
-  const current = new Set<string>();
-  for (const n of scene.nodes) {
-    const addr = addrById.get(n.id);
-    if (addr && fingers.has(addr)) current.add(n.id);
+  const idByAddr = new Map([...addrById].map(([id, addr]) => [addr, id]));
+  const links = fingerLinks(mem);
+  const current: string[] = [];
+  const seen = new Set<string>();
+  const consumed = new Set<MemoryLink>();
+  const pushFrom = (ls: MemoryLink[]) => {
+    for (const l of ls) {
+      const id = idByAddr.get(l.targetAddress);
+      if (!id || !scene.nodes.some((n) => n.id === id) || seen.has(id)) continue;
+      seen.add(id);
+      current.push(id);
+    }
+  };
+  for (const f of [...mem.frames].reverse()) {                 // innermost first
+    const frameLinks = links.filter((l) => l.fromId.startsWith(`stack-${f.id}-`));
+    frameLinks.forEach((l) => consumed.add(l));
+    pushFrom(frameLinks);
   }
-  scene.overlays.current = [...current];
-  for (const e of scene.edges) {
-    if (current.has(e.from) && current.has(e.to)) e.onPath = true;
+  pushFrom(links.filter((l) => !consumed.has(l)));              // globals / unscoped
+  scene.overlays.current = current;
+  for (let i = 0; i < current.length - 1; i++) {
+    const a = current[i], b = current[i + 1];
+    const edge = scene.edges.find((e) => (e.from === a && e.to === b) || (e.from === b && e.to === a));
+    if (edge) edge.onPath = true;
   }
 }
 
