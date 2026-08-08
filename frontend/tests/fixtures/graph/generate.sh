@@ -4,7 +4,7 @@
 # Requires the backend on :8000 with the tracer Docker image built.
 set -euo pipefail
 cd "$(dirname "$0")"
-for name in dijkstra shortestPathDAG heap; do
+for name in dijkstra shortestPathDAG heap tree-traversal tree-levelorder tree-same tree-skewed; do
   echo "tracing $name..."
   python3 - "$name" <<'EOF'
 import json, sys, urllib.request
