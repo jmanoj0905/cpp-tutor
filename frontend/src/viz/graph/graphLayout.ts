@@ -1,4 +1,4 @@
-import type { GraphScene } from "./graphModel";
+import type { GraphEdge, GraphScene } from "./graphModel";
 
 export interface Placed { id: string; x: number; y: number; }
 export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid" | "tree"; }
@@ -33,40 +33,81 @@ export function layoutScene(scene: GraphScene): Layout {
   return { placed, mode: "circle" };
 }
 
-/** Lay out a tree from its parent→child edges (root = the node that is never a
- *  `to`). Each depth level is one horizontal row; nodes in a level spread
- *  evenly across the width by left-to-right order, so a partial last level
- *  (an incomplete heap) still fills correctly. Reused by B1 pointer trees. */
-function treeLayout(scene: GraphScene): Layout {
-  const children = new Map<string, string[]>();
-  const hasParent = new Set<string>();
-  for (const e of scene.edges) {
-    if (!children.has(e.from)) children.set(e.from, []);
-    children.get(e.from)!.push(e.to);
-    hasParent.add(e.to);
-  }
-  const root = scene.nodes.find((n) => !hasParent.has(n.id));
-  if (!root) {
-    return { placed: scene.nodes.map((n) => ({ id: n.id, x: 0.5, y: 0.5 })), mode: "tree" };
-  }
+interface Band {
+  pos: Map<string, { x: number; depth: number }>;  // x in [0,1] band-local
+  depth: number;                                   // deepest level index
+  count: number;
+}
+
+/** One root's reachable subtree. `seen` is shared across bands so a node is
+ *  claimed by the first root that reaches it. Children of an edge carrying
+ *  `slot` are placed by binary path (left = -, right = +) so a lone right child
+ *  sits right of its parent; slotless levels (A3 heap trees) keep the original
+ *  even spread across the level. */
+function layoutBand(rootId: string, children: Map<string, GraphEdge[]>, seen: Set<string>): Band {
   const levels: string[][] = [];
-  const seen = new Set<string>();
-  let frontier = [root.id];
+  const slotX = new Map<string, number>([[rootId, 0.5]]);
+  let frontier = [rootId];
+  let half = 0.25;
+  seen.add(rootId);
   while (frontier.length) {
     levels.push(frontier);
-    frontier.forEach((id) => seen.add(id));
     const next: string[] = [];
-    for (const id of frontier) for (const c of children.get(id) ?? []) if (!seen.has(c)) next.push(c);
+    for (const id of frontier) {
+      for (const e of children.get(id) ?? []) {
+        if (seen.has(e.to)) continue;
+        seen.add(e.to);
+        next.push(e.to);
+        if (e.slot != null) slotX.set(e.to, (slotX.get(id) ?? 0.5) + (e.slot === 0 ? -half : half));
+      }
+    }
     frontier = next;
+    half /= 2;
   }
-  const maxDepth = levels.length - 1;
-  const pos = new Map<string, { x: number; y: number }>();
+  const pos = new Map<string, { x: number; depth: number }>();
   levels.forEach((row, d) => {
     const m = row.length;
     row.forEach((id, k) => {
-      pos.set(id, { x: m === 1 ? 0.5 : k / (m - 1), y: maxDepth === 0 ? 0.5 : d / maxDepth });
+      const even = m === 1 ? 0.5 : k / (m - 1);
+      pos.set(id, { x: slotX.get(id) ?? even, depth: d });
     });
   });
+  return { pos, depth: levels.length - 1, count: pos.size };
+}
+
+/** Lay out a forest from its parent→child edges (roots = nodes that are never a
+ *  `to`). Depth is one horizontal row, shared across all roots. Each root's
+ *  subtree occupies its own horizontal band, sized by node count, so two live
+ *  trees (sameTree) sit side by side. A single slotless root reproduces the A3
+ *  heap-tree layout exactly. */
+function treeLayout(scene: GraphScene): Layout {
+  const children = new Map<string, GraphEdge[]>();
+  const hasParent = new Set<string>();
+  for (const e of scene.edges) {
+    const list = children.get(e.from) ?? [];
+    list.push(e);
+    children.set(e.from, list);
+    hasParent.add(e.to);
+  }
+  const roots = scene.nodes.filter((n) => !hasParent.has(n.id)).map((n) => n.id);
+  if (roots.length === 0) {
+    return { placed: scene.nodes.map((n) => ({ id: n.id, x: 0.5, y: 0.5 })), mode: "tree" };
+  }
+
+  const seen = new Set<string>();
+  const bands = roots.map((r) => layoutBand(r, children, seen));
+  const maxDepth = Math.max(...bands.map((b) => b.depth));
+  const total = bands.reduce((s, b) => s + Math.max(1, b.count), 0);
+
+  const pos = new Map<string, { x: number; y: number }>();
+  let cursor = 0;
+  for (const band of bands) {
+    const w = Math.max(1, band.count) / total;
+    for (const [id, p] of band.pos) {
+      pos.set(id, { x: cursor + p.x * w, y: maxDepth === 0 ? 0.5 : p.depth / maxDepth });
+    }
+    cursor += w;
+  }
   const placed = scene.nodes.map((n) => ({ id: n.id, ...(pos.get(n.id) ?? { x: 0.5, y: 0.5 }) }));
   return { placed, mode: "tree" };
 }

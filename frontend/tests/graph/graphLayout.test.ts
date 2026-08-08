@@ -93,4 +93,39 @@ describe("treeLayout", () => {
     expect(xy(l, "4").x).toBeCloseTo(1);   // second of 2 at depth 2
     expect(l.placed.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
   });
+
+  const treeScene = (
+    nodes: string[],
+    edges: Array<[string, string, number?]>,
+  ): GraphScene => bare({
+    kind: "tree",
+    nodes: nodes.map((id) => ({ id, label: id })),
+    edges: edges.map(([from, to, slot]) => ({ from, to, directed: true, ...(slot != null ? { slot } : {}) })),
+  });
+
+  it("places a right-only child to the right of its parent (slot-aware)", () => {
+    // a -> b as RIGHT child; b -> c as RIGHT child (skewed right spine)
+    const l = layoutScene(treeScene(["a", "b", "c"], [["a", "b", 1], ["b", "c", 1]]));
+    expect(xy(l, "b").x).toBeGreaterThan(xy(l, "a").x);
+    expect(xy(l, "c").x).toBeGreaterThan(xy(l, "b").x);
+  });
+
+  it("places a left-only child to the left of its parent (slot-aware)", () => {
+    const l = layoutScene(treeScene(["a", "b"], [["a", "b", 0]]));
+    expect(xy(l, "b").x).toBeLessThan(xy(l, "a").x);
+  });
+
+  it("lays out two roots as side-by-side bands", () => {
+    // tree 1: p -> p2 ; tree 2: q -> q2
+    const l = layoutScene(treeScene(["p", "p2", "q", "q2"], [["p", "p2", 0], ["q", "q2", 0]]));
+    expect(xy(l, "p").x).toBeLessThan(xy(l, "q").x);
+    expect(xy(l, "p2").x).toBeLessThan(xy(l, "q").x);   // bands do not overlap
+    expect(xy(l, "p").y).toBeCloseTo(xy(l, "q").y);     // both roots on the top row
+    expect(l.placed.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
+  });
+
+  it("keeps every placement inside the unit square", () => {
+    const l = layoutScene(treeScene(["a", "b", "c"], [["a", "b", 0], ["a", "c", 1]]));
+    expect(l.placed.every((p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)).toBe(true);
+  });
 });
