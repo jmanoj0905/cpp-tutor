@@ -3,6 +3,8 @@ import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
 import inputFill from "./fixtures/dp/input-fill.json";
+import editDistance from "./fixtures/dp/edit-distance.json";
+import coinChange from "./fixtures/dp/coin-change.json";
 import type { Trace } from "../src/types/trace";
 
 const fixtures: [string, Trace][] = [
@@ -10,6 +12,8 @@ const fixtures: [string, Trace][] = [
   ["climb-topdown", climbTopdown as Trace],
   ["grid-paths", gridPaths as Trace],
   ["input-fill", inputFill as Trace],
+  ["edit-distance", editDistance as Trace],
+  ["coin-change", coinChange as Trace],
 ];
 
 describe("dp fixtures", () => {

@@ -13,7 +13,6 @@ export interface DpCandidate {
 }
 
 export const MIN_WRITE_STEPS = 3;
-const MAX_BOTTOMUP_LINE_SPAN = 4;
 
 interface Tracked {
   cellId: string;
@@ -22,7 +21,6 @@ interface Tracked {
   writes: DpWrite[];
   writeSteps: Set<number>;
   selfRefSteps: Set<number>;
-  writeLines: Set<number>;
   writeDepths: Set<number>;
   writeFuncs: Set<string>;
 }
@@ -71,7 +69,7 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       let t = tracked.get(arrayId);
       if (!t) {
         t = { cellId: arrayId, name: info.name, maxDims: [], writes: [],
-              writeSteps: new Set(), selfRefSteps: new Set(), writeLines: new Set(),
+              writeSteps: new Set(), selfRefSteps: new Set(),
               writeDepths: new Set(), writeFuncs: new Set() };
         tracked.set(arrayId, t);
       }
@@ -81,7 +79,6 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       // The write is visible at `step`, but the line that PERFORMED it is the
       // previous point's line (trace records state after each line executes).
       const writeLine = trace[step - 1]?.line ?? point.line;
-      t.writeLines.add(writeLine);
       const lineText = codeLines[writeLine - 1] ?? "";
       // Self-reference evidence must come from a single line that actually
       // EXECUTED — never from summing occurrences across source-adjacent
@@ -184,12 +181,17 @@ function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** Bottom-up vs top-down is a question about the SHAPE OF THE STACK at the
+ *  writes, not about where the writes sit in the source: one frame depth
+ *  throughout = an iterative fill; several depths in one recursive function =
+ *  memoization. Source distance between write lines is deliberately not
+ *  consulted — textbook 2D DP writes its base cases in separate loops well
+ *  above the recurrence (edit distance: lines 8, 9 then 12, 13), and any
+ *  line-span cutoff rejects exactly those. Requiring a single writing function
+ *  is what keeps a global array poked at from unrelated places out. */
 function classify(t: Tracked): DpCandidate["mode"] | null {
-  const lines = [...t.writeLines];
-  const span = Math.max(...lines) - Math.min(...lines);
-  if (t.writeDepths.size === 1 && span <= MAX_BOTTOMUP_LINE_SPAN) return "bottom-up";
-  if (t.writeDepths.size > 1 && t.writeFuncs.size === 1) return "top-down";
-  return null;
+  if (t.writeFuncs.size !== 1) return null;
+  return t.writeDepths.size === 1 ? "bottom-up" : "top-down";
 }
 
 interface LeafOwner { arrayId: string; coord: Coord; value: string; }

@@ -4,7 +4,7 @@
 # Requires the backend on :8000 with the tracer Docker image built.
 set -euo pipefail
 cd "$(dirname "$0")"
-for name in climb-bottomup climb-topdown grid-paths input-fill; do
+for name in climb-bottomup climb-topdown grid-paths input-fill edit-distance coin-change; do
   echo "tracing $name..."
   python3 - "$name" <<'EOF'
 import json, sys, urllib.request

@@ -3,6 +3,8 @@ import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
 import inputFill from "./fixtures/dp/input-fill.json";
+import editDistance from "./fixtures/dp/edit-distance.json";
+import coinChange from "./fixtures/dp/coin-change.json";
 import type { ExecPoint, Trace } from "../src/types/trace";
 import { detectDpTables } from "../src/viz/dp/detect";
 
@@ -222,6 +224,25 @@ describe("detectDpTables", () => {
     const [c] = detect(gridPaths as Trace);
     expect(c.dims).toEqual([3, 4]);
     expect(c.writes.at(-1)!.coord).toEqual([2, 3]);
+  });
+
+  it("edit-distance: confirms dp even though base-case fills sit far above the recurrence", () => {
+    // The two base-case loops write on lines 8 and 9; the recurrence writes on
+    // lines 12 and 13 — a 5-line span. A source-distance cutoff would reject
+    // this textbook 2D DP outright, so classification must not use one.
+    const [c, ...rest] = detect(editDistance as Trace);
+    expect(rest).toEqual([]);
+    expect(c.name).toBe("dp");
+    expect(c.mode).toBe("bottom-up");
+    expect(c.dims).toEqual([4, 4]);
+    expect(c.writes.at(-1)!.coord).toEqual([3, 3]);
+  });
+
+  it("coin-change: confirms dp as 1D bottom-up", () => {
+    const [c] = detect(coinChange as Trace);
+    expect(c.name).toBe("dp");
+    expect(c.mode).toBe("bottom-up");
+    expect(c.dims).toEqual([9]);
   });
 
   it("input-fill: confirms nothing (no self-reads)", () => {
