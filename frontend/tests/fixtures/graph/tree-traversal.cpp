@@ -90,7 +90,7 @@ int main() {
     root->left->right = new TreeNode(5);
 
     // Run traversal
-    vector<int> result = levelOrder(root);
+    vector<int> result = preorderTraversal(root);
 
     // Print output
     cout << "Preorder Traversal: ";

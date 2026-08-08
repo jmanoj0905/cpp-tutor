@@ -46,10 +46,27 @@ const findScene = (trace: ExecPoint[], ok: (sc: GraphScene) => boolean): GraphSc
 };
 
 describe("pointer-tree fixtures", () => {
-  it("tree-traversal: 5-node tree with a stack<TreeNode*> frontier", () => {
+  it("tree-traversal: 5-node tree with a stack<TreeNode*> frontier (preorderTraversal, iterative DFS)", () => {
     const trace = (traversal as { trace: ExecPoint[] }).trace;
     const sc = findScene(trace, (s) => s.kind === "tree" && s.overlays.frontier.size > 0);
     expect(sc.nodes.length).toBeGreaterThanOrEqual(2);
+  });
+
+  // Regression test for Finding 1: `order` must be true VISIT order, not PUSH
+  // order. main() drives preorderTraversal (an iterative stack<TreeNode*> DFS)
+  // over the sample tree (1 -> left 2 -> {4,5}, right 3). preorder visits
+  // 1, 2, 4, 5, 3 — but the stack pushes right-before-left, so a push-order
+  // bug would number left/right children out of visit sequence. Before the
+  // fix, container-held pointers (the stack's own elements) were counted as
+  // algorithm "fingers", so `order` numbered enqueue/push time instead.
+  it("tree-traversal: order pins true preorder visit sequence 1,2,4,5,3", () => {
+    const trace = (traversal as { trace: ExecPoint[] }).trace;
+    const sc = findScene(trace, (s) => s.kind === "tree" && s.overlays.order.size === 5);
+    const labelOf = (id: string) => sc.nodes.find((n) => n.id === id)!.label;
+    const visitOrder = [...sc.overlays.order.entries()]
+      .sort((a, b) => a[1] - b[1])
+      .map(([id]) => labelOf(id));
+    expect(visitOrder).toEqual(["1", "2", "4", "5", "3"]);
   });
 
   it("tree-levelorder: the tree beats the vector<vector<int>> result", () => {
