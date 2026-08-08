@@ -65,7 +65,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
             <g key={i}>
               <line x1={ax} y1={ay} x2={end.x} y2={end.y}
                 markerEnd={e.directed ? "url(#graph-arrow)" : undefined}
-                className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}`} />
+                className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}${e.onPath ? " is-on-path" : ""}`} />
               {e.weight != null && (
                 <text className="graph-edge-weight" x={lp.x} y={lp.y}
                   textAnchor="middle" dominantBaseline="central">{e.weight}</text>

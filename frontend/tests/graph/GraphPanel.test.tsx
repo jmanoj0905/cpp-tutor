@@ -8,6 +8,7 @@ import dijkstra from "../fixtures/graph/dijkstra.json";
 import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
 import trie from "../fixtures/trie.json"; // a non-graph fixture
 import heapTrace from "../fixtures/graph/heap.json";
+import treeInsert from "../fixtures/shapes/tree-insert.json";
 
 const tr = (dfsList as any).trace;
 
@@ -93,5 +94,36 @@ describe("GraphPanel heap tree", () => {
     const lines = Array.from(container.querySelectorAll("line.graph-edge"));
     expect(lines.length).toBeGreaterThan(0);
     expect(lines.every((l) => l.getAttribute("marker-end") === null)).toBe(true);
+  });
+});
+
+describe("GraphPanel pointer trees", () => {
+  const trace = (treeInsert as any).trace;
+
+  it("renders the BST as a tree scene with on-path edges", () => {
+    // find a step deep in recursion: >=2 nodes rendered and an on-path edge
+    for (let s = 0; s < trace.length; s++) {
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={null} trace={trace} step={s} />);
+      const onPath = container.querySelectorAll(".graph-edge.is-on-path").length;
+      const nodes = container.querySelectorAll("[data-node-id]").length;
+      unmount();
+      if (nodes >= 2 && onPath >= 1) return;   // found one — assertion satisfied
+    }
+    throw new Error("no step rendered a pointer tree with an on-path edge");
+  });
+
+  it("renders order labels for visited tree nodes", () => {
+    // scan backward for the last step whose scene still shows order labels
+    // (the very last trace step is post-return with no locals in scope)
+    let found = false;
+    for (let s = trace.length - 1; s >= 0; s--) {
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={null} trace={trace} step={s} />);
+      const orderCount = container.querySelectorAll(".graph-order").length;
+      unmount();
+      if (orderCount > 0) { found = true; break; }
+    }
+    expect(found).toBe(true);
   });
 });
