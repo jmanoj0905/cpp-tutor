@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import type { ExecPoint } from "../../types/trace";
 import { normalizeMemory } from "../memoryModel";
+import { applyShapes, shapeInfoFor } from "../shapes";
 import { buildGraphScene, type ViewAs } from "./graphModel";
 import { layoutScene, labelPoint, trimEndpoint } from "./graphLayout";
 
 const W = 320, H = 320, PAD = 24, NODE_R = 14;
+const NO_DISABLED: Set<string> = new Set();
 
 export function GraphPanel({ point, prevPoint, trace, step }: {
   point: ExecPoint; prevPoint: ExecPoint | null; trace: ExecPoint[]; step: number;
@@ -15,7 +17,11 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
   const scene = useMemo(() => {
     const mem = normalizeMemory(point);
     const prev = prevPoint ? normalizeMemory(prevPoint) : null;
-    return buildGraphScene(mem, prev, trace, step, viewAs);
+    const info = shapeInfoFor(trace);
+    // The Graph tab has no per-type shape disable toggle (that lives in
+    // MemoryView), so nothing is ever disabled here.
+    const { shapes } = applyShapes(mem, info.confirmed, NO_DISABLED, info.selfNames);
+    return buildGraphScene(mem, prev, trace, step, viewAs, shapes);
   }, [point, prevPoint, trace, step, viewAs]);
 
   const layout = useMemo(() => (scene ? layoutScene(scene) : null), [scene]);

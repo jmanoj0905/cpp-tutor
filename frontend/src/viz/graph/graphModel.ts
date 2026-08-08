@@ -1,6 +1,8 @@
 import { normalizeMemory, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
 import type { ExecPoint } from "../../types/trace";
 import { findContainers } from "./containers";
+import type { ShapeModel } from "../shapes";
+import { treeSceneFrom } from "./treeScene";
 
 export { findContainers };
 
@@ -398,6 +400,7 @@ function bindOrder(trace: ExecPoint[], index: number, scene: GraphScene): void {
   let counter = 0;
   const prev = new Set<string>();
   for (let s = 0; s <= index; s++) {
+    if (!trace[s]) continue;
     const now = visitedIdsAt(trace[s], scene, trace);
     for (const id of now) if (!prev.has(id)) { prev.add(id); scene.overlays.order.set(id, ++counter); }
   }
@@ -606,6 +609,7 @@ function bindDist(mem: NormalizedMemory, scene: GraphScene, trace: ExecPoint[], 
 export function buildGraphScene(
   mem: NormalizedMemory, prevMem: NormalizedMemory | null,
   trace: ExecPoint[], index: number, viewAs: ViewAs = "auto",
+  shapes?: ShapeModel[],
 ): GraphScene | null {
   const finish = (scene: GraphScene): GraphScene => {
     // Heap-tree node ids are array indices ("0".."n-1"), not real graph node
@@ -620,6 +624,17 @@ export function buildGraphScene(
     bindDist(mem, scene, trace, index);
     return scene;
   };
+
+  // Pointer trees (B1) win over every array-family detector. Tree programs
+  // routinely carry a `vector<vector<int>> res` accumulator or a test table
+  // that the matrix detectors would otherwise read as an adjacency list — but
+  // the tree is what the user came to see. `treeSceneFrom` binds its own
+  // overlays (address-keyed), so it deliberately does NOT go through `finish`,
+  // whose array-family binders are meaningless against heap-cell node ids.
+  if (viewAs !== "grid" && shapes) {
+    const tree = treeSceneFrom(shapes, mem, trace, index);
+    if (tree) return tree;
+  }
 
   // Weighted adjacency list wins over an edge-list param that would otherwise
   // shadow it (both are vector<vector<int|pair>>; the pair form is unambiguous).
