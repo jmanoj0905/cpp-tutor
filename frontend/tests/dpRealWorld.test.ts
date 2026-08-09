@@ -9,6 +9,7 @@ import houseRobberIi from "./fixtures/dp/house-robber-ii.json";
 import longestPalindromeExpand from "./fixtures/dp/longest-palindrome-expand.json";
 import knapsackStub from "./fixtures/dp/knapsack-stub.json";
 import mapMemo from "./fixtures/dp/map-memo.json";
+import mapCounter from "./fixtures/dp/map-counter.json";
 import compileErrorTrace from "./fixtures/dp/compile-error-trace.json";
 import type { ExecPoint, Trace } from "../src/types/trace";
 import { detectDpTables } from "../src/viz/dp/detect";
@@ -27,6 +28,9 @@ export const realWorld = {
   "longest-palindrome-expand": longestPalindromeExpand as Trace,
   "knapsack-stub": knapsackStub as Trace,
   "map-memo": mapMemo as Trace,
+  // The map analogue of the negatives above: a plain unordered_map frequency
+  // counter (`freq[v[i]]++`) with no recurrence anywhere.
+  "map-counter": mapCounter as Trace,
 };
 
 const detect = (t: Trace) => detectDpTables(t.trace, t.code);
@@ -43,6 +47,7 @@ describe("real-world DP fixtures", () => {
     ["house-robber-ii", "rolling scalars, no table"],
     ["knapsack-stub", "stub program"],
     ["longest-palindrome-expand", "positionsOdd/positionsEven are not tables"],
+    ["map-counter", "unordered_map frequency counter, no recurrence"],
   ] as const)("%s detects no DP table (%s)", (name) => {
     expect(detect(realWorld[name])).toEqual([]);
   });

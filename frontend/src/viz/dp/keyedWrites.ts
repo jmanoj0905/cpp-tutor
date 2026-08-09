@@ -3,6 +3,7 @@ import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryM
 import { allRoots } from "../cells";
 import type { FrameIdentity } from "../callTree";
 import { statementAtExecLine } from "./statements";
+import { countSubscripts } from "./readSet";
 import { keyedRead, selfRefBeforeWrite, type TrackedTable } from "./writes";
 
 /** Ordered key list plus per-key writes for one memo container. */
@@ -95,7 +96,17 @@ export function collectKeyedWrites(
       const writeIdx = step - 1;
       const writeLine = trace[writeIdx]?.line ?? point.line;
       const writeText = statementAtExecLine(codeLines, statements, writeLine);
-      if (keyedRead(writeText, cell.name)
+      // Same floor as the array path (writes.ts): the WRITE STATEMENT itself
+      // is evidence of self-reference only when it subscripts the table at
+      // least TWICE — once as the assignment target plus at least one read.
+      // Using the one-subscript `keyedRead` here would be vacuous: a map
+      // write is always `memo[k] = ...` / `memo[k]++`, exactly one subscript,
+      // so every written map would score selfRefSteps === writeSteps and the
+      // thresholds in detect.ts would discriminate nothing (a plain
+      // `freq[v[i]]++` frequency counter rendered as a DP table — see the
+      // map-counter fixture). `keyedRead` still belongs on the PRIOR-
+      // statement replay below, where `.count(`/`.find(` memo guards live.
+      if (countSubscripts(writeText, cell.name) >= 2
           || selfRefBeforeWrite(trace, writeIdx, codeLines, statements, cell.name, keyedRead)) {
         t.selfRefSteps.add(step);
       }
