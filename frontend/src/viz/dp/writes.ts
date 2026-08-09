@@ -22,6 +22,27 @@ export interface TrackedTable {
 
 type StackFrameLike = FrameIdentity;
 
+/** A read-detection predicate: given a candidate statement's text and the
+ *  table's name, does the statement read the table in a way that counts as
+ *  self-reference evidence? Shared between the array path (`subscriptRead`)
+ *  and the map/unordered_map path (`keyedRead`, which additionally accepts
+ *  `.count(`/`.find(` lookups) so `selfRefBeforeWrite` doesn't have to know
+ *  which kind of table it's replaying for. */
+export type ReadMatcher = (statementText: string, name: string) => boolean;
+
+/** Array-path read evidence: at least one subscript of `name` on the line.
+ *  Reproduces exactly the inline `countSubscripts(text, name) >= 1` check
+ *  `selfRefBeforeWrite` used before the matcher was extracted. */
+export const subscriptRead: ReadMatcher = (text, name) => countSubscripts(text, name) >= 1;
+
+/** Map-path read evidence: a subscript read, OR a `name.count(...)` /
+ *  `name.find(...)` lookup — the idiomatic memo-guard read for
+ *  map/unordered_map that never subscripts the table at all
+ *  (`if (memo.count(n)) return memo[n];`). */
+export const keyedRead: ReadMatcher = (text, name) =>
+  countSubscripts(text, name) >= 1
+  || new RegExp(`\\b${escapeRe(name)}\\s*\\.(count|find)\\s*\\(`).test(text);
+
 /** Whole-trace scan that tracks every array-like cell's writes across a
  *  trace, keyed by cell id. Shared by auto-detection and manual promote, so
  *  it lives independently of the scoring thresholds in detect.ts. Pure, no
@@ -87,7 +108,7 @@ export function collectWrites(trace: ExecPoint[], codeLines: string[], statement
       //       frame invocation already executed before the write (see
       //       selfRefBeforeWrite).
       let selfRef = countSubscripts(lineText, info.name) >= 2;
-      if (!selfRef) selfRef = selfRefBeforeWrite(trace, step - 1, codeLines, statements, info.name);
+      if (!selfRef) selfRef = selfRefBeforeWrite(trace, step - 1, codeLines, statements, info.name, subscriptRead);
       if (selfRef) t.selfRefSteps.add(step);
       const prev = trace[step - 1] ?? point;
       const prevFrames = prev.stack_to_render ?? [];
@@ -113,9 +134,15 @@ export function collectWrites(trace: ExecPoint[], codeLines: string[], statement
  *
  *  Execution adjacency, not source adjacency: the frame's executed lines are
  *  replayed from the trace via frameKey, because the point literally before
- *  the write can be a callee's return artifact. */
-function selfRefBeforeWrite(
+ *  the write can be a callee's return artifact.
+ *
+ *  `matcher` supplies the plain-read check at the end (a `ReadMatcher`, see
+ *  above) so this function is shared between the array path (`subscriptRead`)
+ *  and the map/unordered_map path (`keyedRead`) without duplicating the frame
+ *  replay. */
+export function selfRefBeforeWrite(
   trace: ExecPoint[], writeIdx: number, codeLines: string[], statements: string[], name: string,
+  matcher: ReadMatcher,
 ): boolean {
   if (writeIdx < 1) return false;
   const writePoint = trace[writeIdx];
@@ -146,14 +173,14 @@ function selfRefBeforeWrite(
       if (returnsOwnSubscript(text, name)) return true;
       continue;
     }
-    if (countSubscripts(text, name) >= 1) return true;
+    if (matcher(text, name)) return true;
   }
   return false;
 }
 
 /** A statement whose subscripts express control dependence: if / while / for /
  *  ternary / return. */
-function isControlStatement(text: string): boolean {
+export function isControlStatement(text: string): boolean {
   return /^(if|while|for|return)\b/.test(text.trimStart()) || text.includes("?");
 }
 
