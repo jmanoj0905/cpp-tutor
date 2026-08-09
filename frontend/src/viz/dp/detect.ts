@@ -16,8 +16,8 @@ export interface DpCandidate {
   keyed?: { projection: KeyedProjection; keyOrder: string[] };
 }
 
-export const MIN_WRITE_STEPS = 3;
-export const MIN_SELF_REF_STEPS = 2;
+export const MIN_WRITE_STEPS = 2;
+export const MIN_SELF_REF_STEPS = 1;
 
 /** The whole-trace tracked-table map, for callers that need both auto-detected
  *  candidates and manual promotion from one scan. Memoize at the call site.
@@ -66,12 +66,26 @@ export function promoteToDp(
  *  table. Shared by auto-detection and manual promote (which bypasses the
  *  thresholds but reuses the mode classification). */
 export function scoreCandidate(t: TrackedTable): DpCandidate | null {
+  // Counting evidence does not separate DP tables from ordinary arrays —
+  // CONTROL DEPENDENCE does, and that judgement already happened when
+  // `selfRefSteps` was populated. Every non-DP program in the fixture set
+  // scores exactly zero self-referential writes (input-fill's `a`,
+  // longest-palindrome-expand's `positionsOdd`/`positionsEven`, map-counter's
+  // `freq`, knapsack-stub, house-robber-ii), so count and ratio floors reject
+  // nothing real — they only punish small inputs, which is what these
+  // problems are actually run on:
+  //   minCostStairs on {10,15,20}: 2 writes, BOTH self-referential, was
+  //     rejected by a floor of 3 writes.
+  //   countSubstrings on "aaa": 6 writes, 1 self-referential, because a
+  //     3-character string contains exactly one length-3 substring to recurse
+  //     on. A one-third ratio rejected it.
+  // So: at least one control-dependent write, and more than a single write
+  // overall. A consequence worth naming — an in-place algorithm that tests an
+  // array in a loop condition and writes it in the body (insertion sort's
+  // `while (arr[j] > key) arr[j+1] = arr[j];`) now scores as a table. The raw
+  // chip demotes it in one click, which is the cheaper failure.
   if (t.writeSteps.size < MIN_WRITE_STEPS) return null;
-  // Base cases are never self-referential and dominate at small n
-  // (house-robber on {1,2,3}: 4 writes, 2 self-referential), so a strict
-  // majority rejects real tables on the tiny inputs these problems run on.
   if (t.selfRefSteps.size < MIN_SELF_REF_STEPS) return null;
-  if (t.selfRefSteps.size * 3 < t.writeSteps.size) return null;
   const mode = classify(t);
   if (!mode) return null;
   if (isKeyedTrack(t)) return keyedCandidate(t, mode);

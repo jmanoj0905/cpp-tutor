@@ -55,7 +55,10 @@ describe("real-world DP fixtures", () => {
   // Multi-line recurrences: the write statement spans several source lines.
   it.each([
     ["frog-jump", "dp", [5], "bottom-up"],
-    ["min-cost-stairs", "dp", [6], "bottom-up"],
+    // cost={10,15,20} — the user's own input. dp is size n+1 = 4 and only two
+    // writes ever land, both self-referential. Do NOT enlarge this input to
+    // make detection easier; the small size is the point.
+    ["min-cost-stairs", "dp", [4], "bottom-up"],
   ] as const)("%s detects %s%p as %s", (name, table, dims, mode) => {
     const found = detect(realWorld[name]);
     expect(found).toHaveLength(1);
