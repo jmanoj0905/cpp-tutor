@@ -5,6 +5,7 @@ import memoFib from "./fixtures/dp/memo-fib-vector.json";
 import minCost from "./fixtures/dp/min-cost-stairs.json";
 import editDistance from "./fixtures/dp/edit-distance.json";
 import mapMemo from "./fixtures/dp/map-memo.json";
+import coinChange from "./fixtures/dp/coin-change.json";
 import type { Trace } from "../src/types/trace";
 import { detectDpTables } from "../src/viz/dp/detect";
 import { explainWrite, splitAssignment, splitOperands, pickWinner } from "../src/viz/dp/provenance";
@@ -31,9 +32,28 @@ describe("explainWrite — statement and single operand", () => {
   });
 
   it("reads the written value at the write step, not at some later step", () => {
-    const w = gridWrite(1, 1);
-    const p = explainWrite(gridCand, [1, 1], w.step, grid.trace, gridLines)!;
-    expect(p.written).toBe("2");
+    // coin-change: dp[3] is written twice — first via `dp[2] + 1` (= 3) at
+    // step 27, then overwritten via `dp[0] + 1` (= 1) at step 30, once a
+    // cheaper coin combination is found. If `written` were read from
+    // wherever the cell's value currently sits (or from some other later
+    // step) rather than pinned to `writeStep`, this first write would
+    // wrongly report "1" — the value the cell holds AFTER being overwritten
+    // — instead of the "3" it actually held right after step 27.
+    const t = coinChange as Trace;
+    const lines = t.code.split("\n");
+    const [cand] = detectDpTables(t.trace, t.code);
+    const writesToDp3 = cand.writes.filter((w) => w.coord[0] === 3);
+    expect(writesToDp3.length).toBeGreaterThan(1); // guards the premise itself
+    const [firstWrite, secondWrite] = writesToDp3;
+    expect(firstWrite.step).toBeLessThan(secondWrite.step);
+
+    const first = explainWrite(cand, [3], firstWrite.step, t.trace, lines)!;
+    expect(first.written).toBe("3");
+    expect(first.rhs).toBe("dp[2] + 1");
+
+    const second = explainWrite(cand, [3], secondWrite.step, t.trace, lines)!;
+    expect(second.written).toBe("1");
+    expect(second.rhs).toBe("dp[0] + 1");
   });
 
   it("tags a seed write as a base case", () => {

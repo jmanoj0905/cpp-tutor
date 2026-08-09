@@ -132,7 +132,9 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
       </div>
       {detail && (
         <div className="dp-detail">
-          <span>{candidate.name}[{detail.coord.join("][")}] = {detail.value}</span>
+          <span>
+            {candidate.name}[{view.keyed && detail.label !== undefined ? detail.label : detail.coord.join("][")}] = {detail.value}
+          </span>
           <span>{detail.writeStep === null ? "not yet written" : `written at step ${detail.writeStep}`}</span>
           {detail.writeStep !== null && (() => {
             const p = explain?.(detail) ?? null;

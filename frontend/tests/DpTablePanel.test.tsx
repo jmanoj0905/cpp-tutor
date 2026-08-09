@@ -71,7 +71,7 @@ const keyed2dView: DpTableView = {
     mode: "top-down", writes: [{ step: 4, coord: [0, 0] }],
     keyed: { projection: keyed2dProjection, keyOrder: ["(0,0)", "(1,1)"] },
   },
-  cells: [{ coord: [0, 0], id: "k0", value: "1", writeStep: 4 }],
+  cells: [{ coord: [0, 0], id: "k0", value: "1", writeStep: 4, label: "(0,0)" }],
   currentWrite: null, reads: [], maxWriteStep: 4, keyed: true,
 };
 
@@ -150,6 +150,34 @@ describe("DpTablePanel", () => {
     expect(container.querySelectorAll(".dp-ghost")).toHaveLength(4);   // 0,1,4,5
     const labels = [...container.querySelectorAll(".dp-key-label")].map((e) => e.textContent);
     expect(labels).toContain("6");
+  });
+
+  it("keyed detail box header shows the real key, not the grid coord", () => {
+    const { container } = render(<DpTablePanel view={keyed2dView} onToggleGeneric={() => {}} />);
+    fireEvent.click(container.querySelector('[data-coord="0,0"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    // The pair key "(0,0)" happens to look like the coord textually, so also
+    // check with a fixture whose key and coord diverge — the single-key case
+    // below would false-pass if the header still used the raw coord.
+    expect(detail.textContent).toContain("memo[(0,0)]");
+  });
+
+  it("keyed detail box header uses the key even when it does not match the coord", () => {
+    const projection = projectKeys(["(2,5)"]);
+    const divergingView: DpTableView = {
+      candidate: {
+        cellId: "global-globals-memo", name: "memo", dims: projection.dims,
+        mode: "top-down", writes: [{ step: 4, coord: [0, 0] }],
+        keyed: { projection, keyOrder: ["(2,5)"] },
+      },
+      cells: [{ coord: [0, 0], id: "k0", value: "9", writeStep: 4, label: "(2,5)" }],
+      currentWrite: null, reads: [], maxWriteStep: 4, keyed: true,
+    };
+    const { container } = render(<DpTablePanel view={divergingView} onToggleGeneric={() => {}} />);
+    fireEvent.click(container.querySelector('[data-coord="0,0"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("memo[(2,5)]");
+    expect(detail.textContent).not.toContain("memo[0][0]");
   });
 
   it("2D tables get numeric column and row headers", () => {
