@@ -4,7 +4,10 @@
 # Requires the backend on :8000 with the tracer Docker image built.
 set -euo pipefail
 cd "$(dirname "$0")"
-for name in climb-bottomup climb-topdown grid-paths input-fill edit-distance coin-change; do
+for name in climb-bottomup climb-topdown grid-paths input-fill edit-distance coin-change \
+            memo-fib-vector frog-jump min-cost-stairs house-robber count-substrings \
+            longest-palindrome-substr house-robber-ii longest-palindrome-expand \
+            knapsack-stub map-memo compile-error; do
   echo "tracing $name..."
   python3 - "$name" <<'EOF'
 import json, sys, urllib.request
@@ -17,8 +20,9 @@ req = urllib.request.Request(
 )
 body = urllib.request.urlopen(req, timeout=120).read().decode()
 parsed = json.loads(body)
-assert "trace" in parsed, f"{name}: unexpected response {list(parsed)[:5]}"
+assert "trace" in parsed or parsed.get("status") == "compile_error", \
+    f"{name}: unexpected response {list(parsed)[:5]}"
 open(f"{name}.json", "w").write(body)
-print(f"  {name}.json: {len(parsed['trace'])} steps")
+print(f"  {name}.json: {len(parsed.get('trace', []))} steps")
 EOF
 done
