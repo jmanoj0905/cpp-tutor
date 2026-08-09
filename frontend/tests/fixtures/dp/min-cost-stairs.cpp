@@ -15,7 +15,7 @@ int minCostClimbingStairs(vector<int> cost){
 }
 
 int main(){
-    vector<int> cost = {10, 15, 20};
+    vector<int> cost = {10, 15, 20, 25, 30};
     cout << minCostClimbingStairs(cost);
     return 0;
 }

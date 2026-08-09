@@ -15,7 +15,7 @@ export interface DpCandidate {
   writes: DpWrite[];
 }
 
-export const MIN_WRITE_STEPS = 2;
+export const MIN_WRITE_STEPS = 3;
 
 interface Tracked {
   cellId: string;

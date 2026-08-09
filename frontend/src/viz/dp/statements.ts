@@ -28,16 +28,27 @@ export function buildStatements(codeLines: string[]): string[] {
  *  backward from `line` for the earliest start whose own bracket-balanced
  *  span reaches exactly through `line`, i.e. the true enclosing statement.
  *
- *  Deliberately stricter than `joinFrom`'s own line-count: a candidate start
- *  only extends into a following line when THIS line leaves brackets
- *  genuinely unclosed (e.g. the open "(" of "dp[i] = min("). A bodyless
- *  control header ("if (cond)" with no brace, body on the next line) is
- *  bracket-balanced by itself, so it is never treated as reaching into the
- *  next line even though `joinFrom` itself (lacking a ";"/"{" terminator on
- *  that line) would keep reading past it — that behavior is fine for
- *  `buildStatements`' own single-line-at-a-time text, but would otherwise
- *  make an unrelated preceding if-condition's reads leak into a subsequent,
- *  independent assignment's read set here.
+ *  `openEndLine` below extends a candidate span past a line for exactly the
+ *  two reasons `joinFrom` itself would refuse to stop there: (1) brackets
+ *  opened on that line are still unclosed (e.g. the open "(" of
+ *  "dp[i] = min("), or (2) the line has no unclosed bracket but the NEXT
+ *  physical line opens with a token that cannot begin a new statement — a
+ *  binary operator or comma, as in a bare continuation split
+ *  ("dp[i] = dp[i-1]\n + dp[i-2];"). Both cases end up producing the exact
+ *  span `joinFrom` would produce for that start, so the text returned
+ *  (`statements[s]`) is always consistent with what `buildStatements` itself
+ *  says that start's statement is.
+ *
+ *  Condition (2) is also what keeps a bodyless control header ("if (cond)"
+ *  with no brace, body on the next line) from being treated as reaching
+ *  into that body: the body's line ("dp[a] = ...;") begins with an
+ *  identifier, not a continuation token, so the header does not "reach"
+ *  forward here even though `joinFrom` itself (lacking a ";"/"{" terminator
+ *  on the header line) would keep reading past it when building `statements`
+ *  for the header's OWN start index — that's correct behavior for
+ *  `buildStatements`' guard-idiom use ("if (memo[n] != -1) return
+ *  memo[n];"), just not for resolving which statement a LATER, unrelated
+ *  line belongs to.
  *
  *  Pure: no React, no DOM. */
 export function statementAtExecLine(codeLines: string[], statements: string[], line: number): string {
@@ -48,15 +59,26 @@ export function statementAtExecLine(codeLines: string[], statements: string[], l
   return statements[idx] ?? "";
 }
 
+/** A leading token that can only be continuing an expression from the
+ *  previous line — never the start of a new C/C++ statement. */
+const CONTINUATION_START = /^[-+*/%<>=!&|^?:,]/;
+
 /** Index of the last physical line a statement starting at `start` (0-based)
- *  reaches, extending only while brackets opened on a prior line remain
- *  unclosed — see `statementAtExecLine`'s doc for why this is stricter than
- *  `joinFrom`'s own ";"/"{"-terminator rule. */
+ *  reaches — see `statementAtExecLine`'s doc for the two conditions that
+ *  extend a span, both of which reproduce spans `joinFrom` itself would
+ *  produce. */
 function openEndLine(codeLines: string[], start: number): number {
+  let text = "";
   let depth = 0;
   for (let i = start; i < codeLines.length && i - start < MAX_LINES; i++) {
-    depth += netDepth(stripComment(codeLines[i]).trim());
-    if (depth <= 0) return i;
+    const line = stripComment(codeLines[i]).trim();
+    text = text ? `${text} ${line}` : line;
+    depth += netDepth(line);
+    if (depth <= 0 && /[;{]$/.test(text)) return i;
+    if (depth <= 0) {
+      const next = i + 1 < codeLines.length ? stripComment(codeLines[i + 1]).trim() : "";
+      if (!CONTINUATION_START.test(next)) return i;
+    }
   }
   return Math.min(start + MAX_LINES, codeLines.length) - 1;
 }
