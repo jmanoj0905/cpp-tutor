@@ -15,13 +15,19 @@ export interface DpCandidate {
 export const MIN_WRITE_STEPS = 3;
 export const MIN_SELF_REF_STEPS = 2;
 
+/** The whole-trace tracked-table map, for callers that need both auto-detected
+ *  candidates and manual promotion from one scan. Memoize at the call site. */
+export function collectTables(trace: ExecPoint[], code: string): Map<string, TrackedTable> {
+  const codeLines = code.split("\n");
+  const statements = buildStatements(codeLines);
+  return collectWrites(trace, codeLines, statements);
+}
+
 /** Whole-trace DP table detection. Sticky: run once per trace (memoize at the
  *  call site) and apply the result at every step. Never lies — anything not
  *  matching a rule cleanly is simply not returned. Pure, no React/DOM. */
 export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] {
-  const codeLines = code.split("\n");
-  const statements = buildStatements(codeLines);
-  const tracked = collectWrites(trace, codeLines, statements);
+  const tracked = collectTables(trace, code);
 
   const out: DpCandidate[] = [];
   for (const t of tracked.values()) {
@@ -29,6 +35,21 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
     if (c) out.push(c);
   }
   return out;
+}
+
+/** A candidate for any tracked cell id, bypassing the detection thresholds.
+ *  This is the user saying "this IS a DP table" — detection is a default, not
+ *  a gate. Returns null only when the id was never written during the trace,
+ *  which means there is nothing to render. */
+export function promoteToDp(
+  tracked: Map<string, TrackedTable>, cellId: string,
+): DpCandidate | null {
+  const t = tracked.get(cellId);
+  if (!t || t.writes.length === 0) return null;
+  return {
+    cellId: t.cellId, name: t.name, dims: t.maxDims,
+    mode: classify(t) ?? "bottom-up", writes: t.writes,
+  };
 }
 
 /** Score one tracked table into a candidate, or null when it is not a DP

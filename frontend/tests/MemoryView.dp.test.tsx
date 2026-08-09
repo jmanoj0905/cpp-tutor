@@ -123,3 +123,44 @@ describe("MemoryView DP — top-down and 2D", () => {
     expect(arrows.length).toBeGreaterThan(0);
   });
 });
+
+describe("MemoryView DP — manual promote", () => {
+  // The brief suggests house-robber-ii's `nums` (fallback: knapsack-stub's
+  // `item`). Neither works: both are vectors filled once from an
+  // initializer list and never mutated afterward, so collectWrites/
+  // collectTables never sees a write for them at all (materialization,
+  // not a write) — they come back untracked, not merely undetected, so
+  // promoteToDp would return null and no chip would ever render. input-fill's
+  // plain array `a` IS written (6 writes, one per loop iteration) but never
+  // auto-detects (single write per index, no self-reference), which is
+  // exactly the "tracked but undetected" shape this test needs.
+  it("promotes an undetected array to a DP table when the dp chip is clicked", () => {
+    const t = inputFill as Trace;
+    const step = lastStepInScope(t, "a");
+    const { container } = renderAt(t, step);
+    expect(detectDpTables(t.trace, t.code)).toEqual([]); // nothing auto-detected
+    expect(container.querySelector(".dp-panel")).toBeNull();
+
+    const chip = container.querySelector<HTMLButtonElement>(".dp-promote-toggle");
+    expect(chip).not.toBeNull();
+    fireEvent.click(chip!);
+
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+  });
+
+  it("keeps a promotion when the step changes", () => {
+    const t = inputFill as Trace;
+    const step = lastStepInScope(t, "a");
+    const { container, rerender } = renderAt(t, step);
+    fireEvent.click(container.querySelector<HTMLButtonElement>(".dp-promote-toggle")!);
+    rerender(
+      <MemoryView
+        point={t.trace[step - 1]}
+        prevPoint={t.trace[step - 2]}
+        trace={t.trace}
+        code={t.code}
+      />,
+    );
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+  });
+});

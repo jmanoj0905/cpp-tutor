@@ -32,6 +32,15 @@ export interface CellView {
   dpReadSteps?: Map<string, Map<string, number[]>>;
   /** Open the binary-tree popup for a priority_queue cell (see HeapTreeOverlay). */
   onHeapOpen?: (cellId: string) => void;
+  /** Manually promote a tracked-but-undetected array/map cell to a DP table
+   *  view. Detection is a default, not a gate: this bypasses the scoring
+   *  thresholds entirely. Rendered as a header chip beside the char-view
+   *  toggle, only for cells in `promotableDpIds` that aren't already showing
+   *  a DP panel. */
+  onDpPromote?: (cellId: string) => void;
+  /** Cell ids that were written during the trace and so are eligible for
+   *  manual promotion (see `collectTables`/`promoteToDp` in detect.ts). */
+  promotableDpIds?: Set<string>;
 }
 
 interface MemoryCellProps {
@@ -46,7 +55,7 @@ interface MemoryCellProps {
 }
 
 export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = false }: MemoryCellProps) {
-  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen } = view;
+  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen, onDpPromote, promotableDpIds } = view;
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -92,6 +101,15 @@ export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = fal
             ⇄ tree
           </button>
         )}
+        {onDpPromote && promotableDpIds?.has(cell.id) && isDpPromotable(cell) && (
+          <button
+            className="cell-chip dp-promote-toggle"
+            title="View as DP table"
+            onClick={(e) => { e.stopPropagation(); onDpPromote(cell.id); }}
+          >
+            ⇄ dp
+          </button>
+        )}
       </div>
       {hasKids && <Children cell={cell} view={view} forceLinear={forceLinear} noPorts={noPorts} />}
     </div>
@@ -120,6 +138,14 @@ function CellValue({ cell, noPorts }: { cell: NormalizedCell; noPorts?: boolean 
 
 function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
+}
+
+/** Array-likes and keyed memos are the shapes DpTablePanel can draw. */
+function isDpPromotable(cell: NormalizedCell): boolean {
+  return cell.kind === "array"
+    || cell.containerKind === "vector"
+    || cell.containerKind === "map"
+    || cell.containerKind === "unordered_map";
 }
 
 function Children({ cell, view = {}, forceLinear, noPorts }: MemoryCellProps) {

@@ -10,7 +10,7 @@ import { toggleInSet } from "../util";
 import { applyShapes, shapeInfoFor } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
 import { HeapTreeOverlay } from "./stl/HeapTreeOverlay";
-import { detectDpTables } from "./dp/detect";
+import { collectTables, promoteToDp, scoreCandidate, type DpCandidate } from "./dp/detect";
 import { buildDpView, collectReadSteps, type DpTableView } from "./dp/dpModel";
 
 export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = null, onHeapOpen, onHeapClose }: {
@@ -43,8 +43,23 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   const { memory: shaped, shapes } = applyShapes(viewMemory, shapeInfo.confirmed, disabledShapes, shapeInfo.selfNames);
   const toggleShape = (typeName: string) => setDisabledShapes((prev) => toggleInSet(prev, typeName));
 
-  const dpCandidates = useMemo(() => detectDpTables(trace, code), [trace, code]);
+  const trackedTables = useMemo(() => collectTables(trace, code), [trace, code]);
+  const dpCandidates = useMemo(
+    () => [...trackedTables.values()].map(scoreCandidate).filter((c): c is DpCandidate => c !== null),
+    [trackedTables],
+  );
   const [disabledDp, setDisabledDp] = useState<Set<string>>(new Set());
+  const [promotedDp, setPromotedDp] = useState<Set<string>>(new Set());
+  const promoteDp = (cellId: string) => setPromotedDp((prev) => toggleInSet(prev, cellId));
+  const activeCandidates = useMemo(() => {
+    const byId = new Map(dpCandidates.map((c) => [c.cellId, c]));
+    for (const id of promotedDp) {
+      if (byId.has(id)) continue;
+      const promoted = promoteToDp(trackedTables, id);
+      if (promoted) byId.set(id, promoted);
+    }
+    return [...byId.values()];
+  }, [dpCandidates, promotedDp, trackedTables]);
   const step = trace.indexOf(point);
   const heapRoots = [...viewMemory.globals, ...viewMemory.frames.flatMap((f) => f.cells), ...viewMemory.heap];
   const rawHeapCell = activeHeapCell ? findCellById(heapRoots, activeHeapCell) : null;
@@ -56,21 +71,24 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   const codeLines = useMemo(() => code.split("\n"), [code]);
   const dpViews = useMemo(() => {
     const m = new Map<string, DpTableView>();
-    for (const c of dpCandidates) {
+    for (const c of activeCandidates) {
       if (disabledDp.has(c.cellId)) continue;
       m.set(c.cellId, buildDpView(c, step, point, memory, codeLines, trace[step - 1] ?? null));
     }
     return m;
     // memory identity changes every render; safe: views derive from point
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dpCandidates, disabledDp, step, point, codeLines, trace]);
-  const toggleDp = (cellId: string) => setDisabledDp((prev) => toggleInSet(prev, cellId));
+  }, [activeCandidates, disabledDp, step, point, codeLines, trace]);
+  const toggleDp = (cellId: string) => {
+    setDisabledDp((prev) => toggleInSet(prev, cellId));
+    setPromotedDp((prev) => { const next = new Set(prev); next.delete(cellId); return next; });
+  };
   // Whole-trace, so computed once per candidate set (not per step).
   const dpReadSteps = useMemo(() => {
     const m = new Map<string, Map<string, number[]>>();
-    for (const c of dpCandidates) m.set(c.cellId, collectReadSteps(trace, c, codeLines));
+    for (const c of activeCandidates) m.set(c.cellId, collectReadSteps(trace, c, codeLines));
     return m;
-  }, [dpCandidates, trace, codeLines]);
+  }, [activeCandidates, trace, codeLines]);
 
   const cellView: CellView = {
     highlightedIds: selected ? new Set([selected.fromId, selected.toId]) : undefined,
@@ -80,6 +98,8 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     onCharViewToggle: toggleCharView,
     onHeapOpen,
     dpReadSteps,
+    onDpPromote: promoteDp,
+    promotableDpIds: new Set(trackedTables.keys()),
   };
 
   useEffect(() => { setSelected(null); }, [point]);

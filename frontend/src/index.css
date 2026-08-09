@@ -435,6 +435,12 @@ p {
 /* A chip that ends a header row pushes itself to the trailing edge. */
 .cell-head .cell-chip:last-child, .shape-generic-toggle, .dp-generic-toggle { margin-left: auto; }
 
+/* Manual DP promotion: same chip family as char-view-toggle, just tinted
+   blue at rest since clicking it is a selection-like act (promoting THIS
+   cell into a DP view), not a plain on/off flip. */
+.dp-promote-toggle { color: var(--blue); }
+.dp-promote-toggle:hover { border: var(--border-dotted); color: var(--blue-deep); }
+
 /* connectors */
 .connectors { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
 .connector { fill: none; stroke-width: 1.5; }
