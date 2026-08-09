@@ -1,11 +1,8 @@
 import type { ExecPoint } from "../../types/trace";
-import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
-import { countSubscripts, isAssignmentLhs, type Coord } from "./readSet";
-import { escapeRe } from "../../util";
-import { frameKey, type FrameIdentity } from "../callTree";
-import { buildStatements, statementAtExecLine } from "./statements";
+import { buildStatements } from "./statements";
+import { collectWrites, type TrackedTable, type DpWrite } from "./writes";
 
-export interface DpWrite { step: number; coord: Coord; }
+export type { DpWrite };
 
 export interface DpCandidate {
   cellId: string;
@@ -18,172 +15,36 @@ export interface DpCandidate {
 export const MIN_WRITE_STEPS = 3;
 export const MIN_SELF_REF_STEPS = 2;
 
-interface Tracked {
-  cellId: string;
-  name: string;
-  maxDims: number[];
-  writes: DpWrite[];
-  writeSteps: Set<number>;
-  selfRefSteps: Set<number>;
-  writeDepths: Set<number>;
-  writeFuncs: Set<string>;
-}
-
-type StackFrameLike = FrameIdentity;
-
 /** Whole-trace DP table detection. Sticky: run once per trace (memoize at the
  *  call site) and apply the result at every step. Never lies — anything not
  *  matching a rule cleanly is simply not returned. Pure, no React/DOM. */
 export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] {
   const codeLines = code.split("\n");
   const statements = buildStatements(codeLines);
-  const tracked = new Map<string, Tracked>();
-  // Last known displayValue per leaf id, carried across the WHOLE trace (not
-  // just the immediately preceding step). Recursive traces can momentarily
-  // drop a caller frame from `stack_to_render` mid-unwind (observed in the
-  // climb-topdown fixture: `main` disappears for exactly one step while
-  // `solve` finishes returning), which would make a naive step-to-step diff
-  // (e.g. changedCellIds(prev, curr)) see every leaf as "newly appeared" once
-  // the frame reappears — a false write burst with no real value change.
-  // Diffing against the last value ever observed for that id sidesteps this.
-  const lastValue = new Map<string, string>();
-
-  trace.forEach((point, step) => {
-    const mem = memoryAt(point);
-    const leafOwners = indexArrayLeaves(mem);
-
-    const writtenByArray = new Map<string, Coord[]>();
-    for (const [id, owner] of leafOwners) {
-      const prevVal = lastValue.get(id);
-      lastValue.set(id, owner.value);
-      if (prevVal === undefined) continue; // first appearance = materialization, not a write
-      if (prevVal === owner.value) continue;
-      // A cell materializing as "<UNINITIALIZED>" is not a real DP write.
-      if (owner.value === "<UNINITIALIZED>") continue;
-      const list = writtenByArray.get(owner.arrayId) ?? [];
-      list.push(owner.coord);
-      writtenByArray.set(owner.arrayId, list);
-    }
-
-    for (const [arrayId, coords] of writtenByArray) {
-      const info = leafOwners.arrays.get(arrayId)!;
-      let t = tracked.get(arrayId);
-      if (!t) {
-        t = { cellId: arrayId, name: info.name, maxDims: [], writes: [],
-              writeSteps: new Set(), selfRefSteps: new Set(),
-              writeDepths: new Set(), writeFuncs: new Set() };
-        tracked.set(arrayId, t);
-      }
-      t.maxDims = maxDims(t.maxDims, info.dims);
-      for (const coord of coords) t.writes.push({ step, coord });
-      t.writeSteps.add(step);
-      // The write is visible at `step`, but the line that PERFORMED it is the
-      // previous point's line (trace records state after each line executes).
-      const writeLine = trace[step - 1]?.line ?? point.line;
-      const lineText = statementAtExecLine(codeLines, statements, writeLine);
-      // Self-reference evidence must come from a single line that actually
-      // EXECUTED — never from summing occurrences across source-adjacent
-      // lines (that would confirm a plain fill loop whose write line happens
-      // to sit under an unrelated read line). Two accepted witnesses:
-      //   (a) the write line itself has >= 2 occurrences (bottom-up:
-      //       "dp[i] = dp[i-1] + dp[i-2];"), or
-      //   (b) a read of the table in a conditional/return statement the same
-      //       frame invocation already executed before the write (see
-      //       selfRefBeforeWrite).
-      let selfRef = countSubscripts(lineText, info.name) >= 2;
-      if (!selfRef) selfRef = selfRefBeforeWrite(trace, step - 1, codeLines, statements, info.name);
-      if (selfRef) t.selfRefSteps.add(step);
-      const prev = trace[step - 1] ?? point;
-      const prevFrames = prev.stack_to_render ?? [];
-      t.writeDepths.add(prevFrames.length);
-      const top = prevFrames.at(-1) as StackFrameLike | undefined;
-      if (top?.func_name) t.writeFuncs.add(top.func_name);
-    }
-  });
+  const tracked = collectWrites(trace, codeLines, statements);
 
   const out: DpCandidate[] = [];
   for (const t of tracked.values()) {
-    if (t.writeSteps.size < MIN_WRITE_STEPS) continue;
-    // Base cases are never self-referential and dominate at small n
-    // (house-robber on {1,2,3}: 4 writes, 2 self-referential), so a strict
-    // majority rejects real tables on the tiny inputs these problems run on.
-    if (t.selfRefSteps.size < MIN_SELF_REF_STEPS) continue;
-    if (t.selfRefSteps.size * 3 < t.writeSteps.size) continue;
-    const mode = classify(t);
-    if (!mode) continue;
-    out.push({ cellId: t.cellId, name: t.name, dims: t.maxDims, mode, writes: t.writes });
+    const c = scoreCandidate(t);
+    if (c) out.push(c);
   }
   return out;
 }
 
-/** True when the table is read (subscripted, and not as an assignment LHS) in
- *  a CONDITIONAL or RETURN statement that this write's own frame invocation
- *  already executed before the write. That is control dependence on the
- *  table's own prior values — the property that actually separates a
- *  recurrence from a fill.
- *
- *  Restricting to conditionals and returns is load-bearing, not cosmetic.
- *  Accepting any earlier read would make a plain fill loop self-referential
- *  whenever an unrelated read happens to precede the write — exactly the
- *  printf-fill false positive that tests/dpDetect.test.ts guards.
- *
- *  Execution adjacency, not source adjacency: the frame's executed lines are
- *  replayed from the trace via frameKey, because the point literally before
- *  the write can be a callee's return artifact. */
-function selfRefBeforeWrite(
-  trace: ExecPoint[], writeIdx: number, codeLines: string[], statements: string[], name: string,
-): boolean {
-  if (writeIdx < 1) return false;
-  const writePoint = trace[writeIdx];
-  const writeFrame = (writePoint.stack_to_render ?? []).at(-1) as StackFrameLike | undefined;
-  if (!writeFrame) return false;
-  const key = frameKey(writeFrame);
-
-  for (let j = writeIdx - 1; j >= 0; j--) {
-    const frames = (trace[j].stack_to_render ?? []) as StackFrameLike[];
-    if (!frames.some((f) => frameKey(f) === key)) break; // before frame entry
-    const top = frames.at(-1);
-    if (!top || frameKey(top) !== key) continue;
-    const text = statementAtExecLine(codeLines, statements, trace[j].line);
-    if (!isControlStatement(text)) continue;
-    if (isAssignmentLhs(text, name)) continue;
-    // A statement containing "return" is narrowed further: a bounds/sentinel
-    // guard (`if (arr[n] < 0 || arr[n] > 100) return -1;`) has the same shape
-    // as a memo short-circuit — a conditional reading the array with "return"
-    // somewhere on the line — but hands back a sentinel, not the array's own
-    // value, so it is not evidence of a recurrence. Only a return that hands
-    // the array's own subscripted value straight back (`return dp[n];`, or
-    // embedded as in a single-line `if (...) return dp[n];`) counts. A
-    // conditional with no "return" at all (`if (dp[n] != -1) {`, or
-    // count-substrings' `if (s[i] == s[j] && dp[i+1][j-1]) {`) is not subject
-    // to this narrowing: reading the table to decide whether to enter the
-    // branch that performs the write IS the recurrence.
-    if (/\breturn\b/.test(text)) {
-      if (returnsOwnSubscript(text, name)) return true;
-      continue;
-    }
-    if (countSubscripts(text, name) >= 1) return true;
-  }
-  return false;
+/** Score one tracked table into a candidate, or null when it is not a DP
+ *  table. Shared by auto-detection and manual promote (which bypasses the
+ *  thresholds but reuses the mode classification). */
+export function scoreCandidate(t: TrackedTable): DpCandidate | null {
+  if (t.writeSteps.size < MIN_WRITE_STEPS) return null;
+  // Base cases are never self-referential and dominate at small n
+  // (house-robber on {1,2,3}: 4 writes, 2 self-referential), so a strict
+  // majority rejects real tables on the tiny inputs these problems run on.
+  if (t.selfRefSteps.size < MIN_SELF_REF_STEPS) return null;
+  if (t.selfRefSteps.size * 3 < t.writeSteps.size) return null;
+  const mode = classify(t);
+  if (!mode) return null;
+  return { cellId: t.cellId, name: t.name, dims: t.maxDims, mode, writes: t.writes };
 }
-
-/** A statement whose subscripts express control dependence: if / while / for /
- *  ternary / return. */
-function isControlStatement(text: string): boolean {
-  return /^(if|while|for|return)\b/.test(text.trimStart()) || text.includes("?");
-}
-
-/** True when `text` contains the literal pattern `return <ws>* name[` — i.e.
- *  the "return" keyword immediately (modulo whitespace) followed by a
- *  subscript of this array. See selfRefBeforeWrite's doc for why this
- *  narrowing exists only for statements that contain "return". */
-function returnsOwnSubscript(text: string, name: string): boolean {
-  const re = new RegExp(`\\breturn\\s*${escapeRe(name)}\\s*\\[`);
-  return re.test(text);
-}
-
-// Frame identity is shared with the call tree so both agree on what "the
-// same frame" means across modules.
 
 /** Bottom-up vs top-down is a question about the SHAPE OF THE STACK at the
  *  writes, not about where the writes sit in the source: one frame depth
@@ -193,65 +54,7 @@ function returnsOwnSubscript(text: string, name: string): boolean {
  *  above the recurrence (edit distance: lines 8, 9 then 12, 13), and any
  *  line-span cutoff rejects exactly those. Requiring a single writing function
  *  is what keeps a global array poked at from unrelated places out. */
-function classify(t: Tracked): DpCandidate["mode"] | null {
+function classify(t: TrackedTable): DpCandidate["mode"] | null {
   if (t.writeFuncs.size !== 1) return null;
   return t.writeDepths.size === 1 ? "bottom-up" : "top-down";
-}
-
-interface LeafOwner { arrayId: string; coord: Coord; value: string; }
-interface ArrayInfo { name: string; dims: number[]; }
-type LeafIndex = Map<string, LeafOwner> & { arrays: Map<string, ArrayInfo> };
-
-/** Map every scalar leaf id inside a 1D/2D array-like cell to its owning
- *  array id + coordinate. Array-like: kind "array", or containerKind "vector"
- *  with scalar or nested vector children. */
-function indexArrayLeaves(mem: NormalizedMemory): LeafIndex {
-  const index = new Map() as LeafIndex;
-  index.arrays = new Map();
-  const allCells = [
-    ...mem.globals,
-    ...mem.frames.flatMap((f) => f.cells),
-    ...mem.heap,
-  ];
-  for (const cell of allCells) visit(cell, index);
-  return index;
-}
-
-function visit(cell: NormalizedCell, index: LeafIndex) {
-  if (isArrayLike(cell)) {
-    const dims = registerLeaves(cell, index);
-    if (dims) index.arrays.set(cell.id, { name: cell.name, dims });
-    return; // don't descend further; leaves already registered
-  }
-  cell.children?.forEach((c) => visit(c, index));
-}
-
-function isArrayLike(cell: NormalizedCell): boolean {
-  return cell.kind === "array" || cell.containerKind === "vector";
-}
-
-/** Returns dims if the cell is a clean 1D scalar array or 2D array-of-arrays. */
-function registerLeaves(cell: NormalizedCell, index: LeafIndex): number[] | null {
-  const kids = cell.children ?? [];
-  if (kids.length === 0) return null;
-  if (kids.every((k) => !k.children?.length)) {
-    kids.forEach((k, i) => index.set(k.id, { arrayId: cell.id, coord: [i], value: k.displayValue }));
-    return [kids.length];
-  }
-  if (kids.every((k) => isArrayLike(k) && (k.children ?? []).every((g) => !g.children?.length))) {
-    let cols = 0;
-    kids.forEach((row, i) =>
-      (row.children ?? []).forEach((k, j) => {
-        index.set(k.id, { arrayId: cell.id, coord: [i, j], value: k.displayValue });
-        cols = Math.max(cols, j + 1);
-      }),
-    );
-    return [kids.length, cols];
-  }
-  return null;
-}
-
-function maxDims(a: number[], b: number[]): number[] {
-  const n = Math.max(a.length, b.length);
-  return Array.from({ length: n }, (_, i) => Math.max(a[i] ?? 0, b[i] ?? 0));
 }
