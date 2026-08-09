@@ -163,4 +163,47 @@ describe("MemoryView DP — manual promote", () => {
     );
     expect(container.querySelector(".dp-panel")).not.toBeNull();
   });
+
+  // Step 8's real concern: `promotedDp` is a `Set<string>` keyed by cell id.
+  // input-fill's `a` never proved this because `main` never recurses — one
+  // frame instance, so its id was trivially stable. climb-topdown's `memo`
+  // DOES recurse (solve calls itself), so this crosses an actual frame
+  // boundary: step 4 (stack depth 2, an early/shallow solve invocation) vs.
+  // step 91 (stack depth 3, a much later invocation reached only after many
+  // pushes and pops of solve's frame — confirmed via a direct memoryAt scan
+  // of this fixture's whole trace, not assumed). `memo` auto-detects here
+  // (it's the fixture DP detection itself exists for), so getting to a
+  // promote-able state requires demoting it first via the raw chip — which
+  // is also what exercises the promoteDp/disabledDp interaction fixed above
+  // (promoting must win over a prior demote of the same id, not stay
+  // dead-clicked).
+  it("keeps a promotion across a recursive frame boundary (climb-topdown's memo, depth 2 -> depth 3)", () => {
+    const t = climbTopdown as Trace;
+    const shallowStep = 4; // stack_to_render depth 2
+    const deepStep = 91; // stack_to_render depth 3, a distinct later invocation
+    expect(t.trace[shallowStep].stack_to_render.length).toBe(2);
+    expect(t.trace[deepStep].stack_to_render.length).toBe(3);
+
+    const { container, rerender } = renderAt(t, shallowStep);
+    // memo auto-detects, so it already renders as a panel; demote it first
+    // so the promote chip becomes clickable.
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+    fireEvent.click(container.querySelector<HTMLButtonElement>(".dp-generic-toggle")!);
+    expect(container.querySelector(".dp-panel")).toBeNull();
+
+    const chip = container.querySelector<HTMLButtonElement>(".dp-promote-toggle");
+    expect(chip).not.toBeNull();
+    fireEvent.click(chip!);
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+
+    rerender(
+      <MemoryView
+        point={t.trace[deepStep]}
+        prevPoint={t.trace[deepStep - 1]}
+        trace={t.trace}
+        code={t.code}
+      />,
+    );
+    expect(container.querySelector(".dp-panel")).not.toBeNull();
+  });
 });

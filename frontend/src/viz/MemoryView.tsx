@@ -50,7 +50,22 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   );
   const [disabledDp, setDisabledDp] = useState<Set<string>>(new Set());
   const [promotedDp, setPromotedDp] = useState<Set<string>>(new Set());
-  const promoteDp = (cellId: string) => setPromotedDp((prev) => toggleInSet(prev, cellId));
+  // Promoting and demoting the same id are meant to be exclusive opposites
+  // (see toggleDp below, which is the mirror image): a chip click always
+  // wins over whatever the OTHER chip last did to this id. Without clearing
+  // disabledDp here, promoting a cell that was previously raw-demoted (e.g.
+  // an auto-detected candidate the user turned off) was a dead click — the
+  // dpViews filter below still excluded it via disabledDp regardless of
+  // promotedDp gaining the id.
+  const promoteDp = (cellId: string) => {
+    setPromotedDp((prev) => toggleInSet(prev, cellId));
+    setDisabledDp((prev) => {
+      if (!prev.has(cellId)) return prev;
+      const next = new Set(prev);
+      next.delete(cellId);
+      return next;
+    });
+  };
   const activeCandidates = useMemo(() => {
     const byId = new Map(dpCandidates.map((c) => [c.cellId, c]));
     for (const id of promotedDp) {
@@ -131,7 +146,12 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
           ))}
           {disabledDp.size > 0 && (
             <button className="internals-toggle" onClick={() => setDisabledDp(new Set())}>
-              ▸ DP view off for {dpCandidates.filter((c) => disabledDp.has(c.cellId)).map((c) => c.name).join(", ")} — restore
+              {/* A demoted id may never have auto-detected (only promoted-then-
+                  demoted), so it won't be in dpCandidates — fall back to the
+                  tracked-table name so the label doesn't silently drop it. */}
+              ▸ DP view off for {[...disabledDp].map((id) =>
+                dpCandidates.find((c) => c.cellId === id)?.name ?? trackedTables.get(id)?.name,
+              ).filter(Boolean).join(", ")} — restore
             </button>
           )}
         </section>
