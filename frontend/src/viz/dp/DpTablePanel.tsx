@@ -41,6 +41,9 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
   const heat = (w: number | null) =>
     w === null || maxWriteStep === 0 ? 0 : Math.max(0.25, w / maxWriteStep);
 
+  const twoD = candidate.dims.length === 2;
+  const headers = twoD && !view.keyed;
+
   return (
     <div className="dp-panel" data-cell-id={candidate.cellId}>
       <div className="dp-header">
@@ -48,39 +51,57 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
         <span className="dp-mode">{candidate.mode}</span>
         <button className="cell-chip dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
       </div>
-      <div className="dp-grid-wrap" style={{ width: cols * CELL, height: rows * CELL }}>
-        <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }}>
-          {cells.map((cell) => {
-            const k = key(cell.coord);
-            const ghost = cell.writeStep === null;
-            const cls = [
-              "dp-cell",
-              ghost && "dp-ghost",
-              k === writeKey && "dp-write",
-              readSet.has(k) && "dp-read",
-              changedIds?.has(cell.id) && "cell-changed",
-            ].filter(Boolean).join(" ");
-            return (
-              <div
-                key={k}
-                className={cls}
-                data-coord={k}
-                title={view.keyed && candidate.dims.length === 2 ? cell.label : undefined}
-                style={ghost ? undefined : { "--dp-heat": heat(cell.writeStep) } as React.CSSProperties}
-                onClick={() => setDetail(cell)}
-              >
-                {cell.value}
-              </div>
-            );
-          })}
-        </div>
-        {currentWrite && reads.length > 0 && (
-          <svg className="dp-arrows" width={cols * CELL} height={rows * CELL}>
-            {reads.map((r) => (
-              <path key={key(r)} d={arrowPath(r, currentWrite)} />
+      <div className={headers ? "dp-headed" : undefined}>
+        {headers && (
+          <div className="dp-col-head" style={{ marginLeft: CELL }}>
+            {Array.from({ length: cols }, (_, c) => (
+              <span key={c} style={{ width: CELL }}>{c}</span>
             ))}
-          </svg>
+          </div>
         )}
+        <div className="dp-headed-row">
+          {headers && (
+            <div className="dp-row-head" style={{ width: CELL }}>
+              {Array.from({ length: rows }, (_, r) => (
+                <span key={r} style={{ height: CELL }}>{r}</span>
+              ))}
+            </div>
+          )}
+          <div className="dp-grid-wrap" style={{ width: cols * CELL, height: rows * CELL }}>
+            <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }}>
+              {cells.map((cell) => {
+                const k = key(cell.coord);
+                const ghost = cell.writeStep === null;
+                const cls = [
+                  "dp-cell",
+                  ghost && "dp-ghost",
+                  k === writeKey && "dp-write",
+                  readSet.has(k) && "dp-read",
+                  changedIds?.has(cell.id) && "cell-changed",
+                ].filter(Boolean).join(" ");
+                return (
+                  <div
+                    key={k}
+                    className={cls}
+                    data-coord={k}
+                    title={view.keyed && candidate.dims.length === 2 ? cell.label : undefined}
+                    style={ghost ? undefined : { "--dp-heat": heat(cell.writeStep) } as React.CSSProperties}
+                    onClick={() => setDetail(cell)}
+                  >
+                    {cell.value}
+                  </div>
+                );
+              })}
+            </div>
+            {currentWrite && reads.length > 0 && (
+              <svg className="dp-arrows" width={cols * CELL} height={rows * CELL}>
+                {reads.map((r) => (
+                  <path key={key(r)} d={arrowPath(r, currentWrite)} />
+                ))}
+              </svg>
+            )}
+          </div>
+        </div>
       </div>
       <div className="dp-indices">
         {candidate.dims.length === 1 && !view.keyed &&

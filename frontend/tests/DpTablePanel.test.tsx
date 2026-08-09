@@ -45,6 +45,35 @@ const keyedView: DpTableView = {
   currentWrite: null, reads: [], maxWriteStep: 9, keyed: true,
 };
 
+const cand2d: DpCandidate = {
+  cellId: "stack:main.dp", name: "dp", dims: [2, 3], mode: "bottom-up",
+  writes: [{ step: 3, coord: [0, 0] }, { step: 5, coord: [1, 2] }],
+};
+
+const view2d: DpTableView = {
+  candidate: cand2d,
+  cells: [
+    { coord: [0, 0], id: "a", value: "1", writeStep: 3 },
+    { coord: [0, 1], id: "b", value: "1", writeStep: 3 },
+    { coord: [0, 2], id: "c", value: "1", writeStep: 3 },
+    { coord: [1, 0], id: "d", value: "1", writeStep: 5 },
+    { coord: [1, 1], id: "e", value: "2", writeStep: 5 },
+    { coord: [1, 2], id: "f", value: "3", writeStep: 5 },
+  ],
+  currentWrite: null, reads: [], maxWriteStep: 5,
+};
+
+const keyed2dProjection = projectKeys(["(0,0)", "(1,1)"]);
+const keyed2dView: DpTableView = {
+  candidate: {
+    cellId: "global-globals-memo", name: "memo", dims: keyed2dProjection.dims,
+    mode: "top-down", writes: [{ step: 4, coord: [0, 0] }],
+    keyed: { projection: keyed2dProjection, keyOrder: ["(0,0)", "(1,1)"] },
+  },
+  cells: [{ coord: [0, 0], id: "k0", value: "1", writeStep: 4 }],
+  currentWrite: null, reads: [], maxWriteStep: 4, keyed: true,
+};
+
 describe("DpTablePanel", () => {
   it("renders one cell per coord with index headers", () => {
     const { container } = render(<DpTablePanel view={view} onToggleGeneric={() => {}} />);
@@ -120,5 +149,27 @@ describe("DpTablePanel", () => {
     expect(container.querySelectorAll(".dp-ghost")).toHaveLength(4);   // 0,1,4,5
     const labels = [...container.querySelectorAll(".dp-key-label")].map((e) => e.textContent);
     expect(labels).toContain("6");
+  });
+
+  it("2D tables get numeric column and row headers", () => {
+    const { container } = render(<DpTablePanel view={view2d} onToggleGeneric={() => {}} />);
+    const cols = [...container.querySelectorAll(".dp-col-head span")].map((e) => e.textContent);
+    const rows = [...container.querySelectorAll(".dp-row-head span")].map((e) => e.textContent);
+    expect(cols).toEqual(["0", "1", "2"]);
+    expect(rows).toEqual(["0", "1"]);
+  });
+
+  it("1D tables keep the single index strip and grow no 2D headers", () => {
+    const { container } = render(<DpTablePanel view={view} onToggleGeneric={() => {}} />);
+    expect(container.querySelector(".dp-col-head")).toBeNull();
+    expect(container.querySelector(".dp-row-head")).toBeNull();
+    expect([...container.querySelectorAll(".dp-indices span")].map((e) => e.textContent))
+      .toEqual(["0", "1", "2", "3", "4"]);
+  });
+
+  it("keyed 2D tables get no numeric headers (coords are a key projection, not keys)", () => {
+    const { container } = render(<DpTablePanel view={keyed2dView} onToggleGeneric={() => {}} />);
+    expect(container.querySelector(".dp-col-head")).toBeNull();
+    expect(container.querySelector(".dp-row-head")).toBeNull();
   });
 });
