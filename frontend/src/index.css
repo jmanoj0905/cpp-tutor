@@ -14,9 +14,16 @@
   --blue-deep: #13276b; /* call-tree: selected node outline */
   --yellow: #f2b100;  /* value changed since previous step */
 
-  --border-dotted: 1px dotted #000;
-  --border-thin: 1px solid var(--ink);
+  /* One width token and one shorthand. Do NOT write `1px dotted var(--border)`
+     (there is no --border) or `<shorthand-token> dotted ...` (that expands to
+     a malformed shorthand) — both forms are dropped by the parser and the
+     border silently disappears. Use var(--border-dotted), or var(--border-w)
+     when only the width is wanted. */
+  --border-w: 1px;
+  --border-dotted: var(--border-w) dotted var(--ink);
   --radius: 0;
+  /* Selection accent: one width everywhere (cells, shape nodes, call-log rows). */
+  --outline-selected: 2px solid var(--blue);
   --graph-max: 560px;
 
   --sans: 'JetBrains Mono', ui-monospace, Consolas, monospace;
@@ -160,7 +167,7 @@ p {
 
 .editor .cm-gutters {
   background: var(--code-bg);
-  border-right: var(--border-thin);
+  border-right: var(--border-dotted);
   color: var(--ink-soft);
 }
 
@@ -260,7 +267,7 @@ p {
   color: #fff;
   background: var(--ink);
   border: none;
-  border-top: var(--border-thin);
+  border-top: var(--border-dotted);
   border-radius: 0;
   padding: 12px 16px;
   margin: 0;
@@ -494,7 +501,7 @@ p {
   font-size: 16px; line-height: 1; cursor: pointer; color: var(--ink);
 }
 .help-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--ink); }
-.help-table td { padding: 5px 10px 5px 0; border-bottom: var(--border-thin); }
+.help-table td { padding: 5px 10px 5px 0; border-bottom: var(--border-dotted); }
 .help-table tr:last-child td { border-bottom: none; }
 .help-keys { font-family: var(--mono); white-space: nowrap; }
 
@@ -532,7 +539,7 @@ p {
   padding: 4px 12px;
   background: none;
   color: var(--ink);
-  border: var(--border-thin);
+  border: var(--border-dotted);
   border-radius: var(--radius);
   cursor: pointer;
   display: inline-flex;
@@ -562,7 +569,7 @@ p {
   cursor: grab;
   touch-action: none;
   background: var(--code-bg);
-  border: var(--border-thin);
+  border: var(--border-dotted);
 }
 .calltree-svg:active {
   cursor: grabbing;
@@ -703,18 +710,18 @@ p {
   font: 16px var(--mono);
   background: var(--panel);
   color: var(--ink);
-  border: var(--border-thin);
+  border: var(--border-dotted);
   cursor: pointer;
 }
 
 /* --- shape panels (ListNode / TreeNode auto-layout) --- */
-.shape-panel { border: 1px dotted var(--border); background: var(--panel); margin-bottom: 8px; }
+.shape-panel { border: var(--border-dotted); background: var(--panel); margin-bottom: 8px; }
 .shape-head {
   display: flex; justify-content: space-between; align-items: center;
-  font: 12px var(--mono); padding: 2px 6px; border-bottom: 1px dotted var(--border);
+  font: 12px var(--mono); padding: 2px 6px; border-bottom: var(--border-dotted);
 }
 .shape-head button {
-  font: 11px var(--mono); background: none; border: 1px dotted var(--border);
+  font: 11px var(--mono); background: none; border: var(--border-dotted);
   cursor: pointer; padding: 0 4px;
 }
 .shape-scroll { overflow: auto; max-height: 340px; padding: 12px; }
@@ -732,7 +739,7 @@ p {
 }
 .shape-node {
   position: absolute; box-sizing: border-box; height: 30px;
-  border: 1px dotted var(--border); background: var(--panel);
+  border: var(--border-dotted); background: var(--panel);
   font: 12px var(--mono); display: flex; align-items: center; justify-content: center;
   cursor: pointer; transition: left 0.2s, top 0.2s;
 }
@@ -744,20 +751,20 @@ p {
   border-color: var(--blue);
   box-shadow: 0 0 0 2px var(--blue);
 }
-.shape-detail { border-top: 1px dotted var(--border); padding: 6px; font: 12px var(--mono); }
+.shape-detail { border-top: var(--border-dotted); padding: 6px; font: 12px var(--mono); }
 .shape-detail-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
 .shape-detail-head button { background: none; border: none; cursor: pointer; font: 14px var(--mono); }
 .shape-detail-steps { margin-top: 4px; color: var(--ink-soft); }
 
 /* DP table panel */
-.dp-panel { border: 1px dotted var(--border); background: var(--panel); padding: 6px; margin: 4px 0; font-family: var(--mono); font-size: 12px; }
+.dp-panel { border: var(--border-dotted); background: var(--panel); padding: 6px; margin: 4px 0; font-family: var(--mono); font-size: 12px; }
 .dp-header { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
 .dp-name { font-weight: 700; }
 .dp-mode { color: var(--ink-soft); }
-.dp-generic-toggle { margin-left: auto; font: inherit; background: none; border: 1px dotted var(--border); cursor: pointer; }
+.dp-generic-toggle { margin-left: auto; font: inherit; background: none; border: var(--border-dotted); cursor: pointer; }
 .dp-grid-wrap { position: relative; }
 .dp-grid { display: grid; }
-.dp-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1px dotted var(--border); cursor: pointer; background: color-mix(in srgb, var(--yellow) calc(var(--dp-heat, 0) * 55%), var(--panel)); }
+.dp-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: var(--border-dotted); cursor: pointer; background: color-mix(in srgb, var(--yellow) calc(var(--dp-heat, 0) * 55%), var(--panel)); }
 .dp-ghost { opacity: 0.3; }
 .dp-write { outline: 2px solid var(--yellow); outline-offset: -2px; font-weight: 700; }
 .dp-read { box-shadow: inset 0 0 0 2px var(--blue); }
@@ -765,7 +772,7 @@ p {
 .dp-arrows path { fill: none; stroke: var(--blue); stroke-width: 1.5; marker-end: none; }
 .dp-indices { display: flex; color: var(--ink-soft); }
 .dp-indices span { display: inline-block; text-align: center; }
-.dp-detail { margin-top: 4px; border: 1px dotted var(--border); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
+.dp-detail { margin-top: 4px; border: var(--border-dotted); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
 .dp-detail button { margin-left: auto; font: inherit; background: none; border: none; cursor: pointer; }
 
 /* Heap tree panel (priority_queue) */
@@ -793,18 +800,18 @@ p {
 .calllog-list { flex: 1; overflow: auto; padding: 12px; font: 12px/1.6 var(--mono); }
 .cl-node {
   display: flex; align-items: baseline; gap: 6px;
-  border: var(--border-thin) dotted var(--ink); padding: 2px 6px; margin-bottom: 2px;
+  border: var(--border-dotted); padding: 2px 6px; margin-bottom: 2px;
   cursor: pointer; white-space: nowrap;
 }
 .cl-fold { border: none; background: none; cursor: pointer; font: inherit; padding: 0; color: var(--ink-soft); }
 .cl-count { color: var(--ink-soft); }
 .cl-future { opacity: 0.35; }
 .cl-current { background: var(--yellow); }
-.cl-selected { outline: var(--border-thin) solid var(--blue); }
+.cl-selected { outline: var(--outline-selected); }
 
 /* --- call tree / call log sub-toggle --- */
 .calltree-region { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-.calltree-mode { display: flex; gap: 0; border-bottom: var(--border-thin) dotted var(--ink); flex: none; }
+.calltree-mode { display: flex; gap: 0; border-bottom: var(--border-dotted); flex: none; }
 .calltree-mode button {
   font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
   background: none; border: none; color: var(--ink-soft);
@@ -835,7 +842,7 @@ p {
   align-items: center; justify-content: center;
   font: 12px var(--mono); color: var(--ink-soft);
 }
-.graph-view-toggle { display: flex; gap: 0; border-bottom: var(--border-thin) dotted var(--ink); margin: -8px -8px 8px; flex: none; }
+.graph-view-toggle { display: flex; gap: 0; border-bottom: var(--border-dotted); margin: -8px -8px 8px; flex: none; }
 .graph-view-toggle button {
   font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
   background: none; border: none; color: var(--ink-soft);
