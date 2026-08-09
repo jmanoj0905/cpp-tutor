@@ -16,6 +16,51 @@ export function buildStatements(codeLines: string[]): string[] {
   return codeLines.map((_, i) => joinFrom(codeLines, i));
 }
 
+/** Resolve a 1-based execution line, as reported by a trace point, to the
+ *  full statement it belongs to.
+ *
+ *  Why this exists: the tracer/GDB attributes a multi-line statement to
+ *  whichever physical line it was stopped at, which for `dp[i] = min(\n ...\n
+ *  );` is the CLOSING line (the one carrying the semicolon), not the line the
+ *  statement started on. `statements[line - 1]` alone answers "the statement
+ *  beginning at this line" — for a closing line, that's just the trailing
+ *  fragment ");" with none of the recurrence's subscripts. This walks
+ *  backward from `line` for the earliest start whose own bracket-balanced
+ *  span reaches exactly through `line`, i.e. the true enclosing statement.
+ *
+ *  Deliberately stricter than `joinFrom`'s own line-count: a candidate start
+ *  only extends into a following line when THIS line leaves brackets
+ *  genuinely unclosed (e.g. the open "(" of "dp[i] = min("). A bodyless
+ *  control header ("if (cond)" with no brace, body on the next line) is
+ *  bracket-balanced by itself, so it is never treated as reaching into the
+ *  next line even though `joinFrom` itself (lacking a ";"/"{" terminator on
+ *  that line) would keep reading past it — that behavior is fine for
+ *  `buildStatements`' own single-line-at-a-time text, but would otherwise
+ *  make an unrelated preceding if-condition's reads leak into a subsequent,
+ *  independent assignment's read set here.
+ *
+ *  Pure: no React, no DOM. */
+export function statementAtExecLine(codeLines: string[], statements: string[], line: number): string {
+  const idx = line - 1;
+  for (let s = Math.max(0, idx - MAX_LINES + 1); s < idx; s++) {
+    if (openEndLine(codeLines, s) === idx) return statements[s] ?? "";
+  }
+  return statements[idx] ?? "";
+}
+
+/** Index of the last physical line a statement starting at `start` (0-based)
+ *  reaches, extending only while brackets opened on a prior line remain
+ *  unclosed — see `statementAtExecLine`'s doc for why this is stricter than
+ *  `joinFrom`'s own ";"/"{"-terminator rule. */
+function openEndLine(codeLines: string[], start: number): number {
+  let depth = 0;
+  for (let i = start; i < codeLines.length && i - start < MAX_LINES; i++) {
+    depth += netDepth(stripComment(codeLines[i]).trim());
+    if (depth <= 0) return i;
+  }
+  return Math.min(start + MAX_LINES, codeLines.length) - 1;
+}
+
 function joinFrom(codeLines: string[], start: number): string {
   let text = "";
   let depth = 0;

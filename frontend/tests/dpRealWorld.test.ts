@@ -47,6 +47,18 @@ describe("real-world DP fixtures", () => {
     expect(detect(realWorld[name])).toEqual([]);
   });
 
+  // Multi-line recurrences: the write statement spans several source lines.
+  it.each([
+    ["frog-jump", "dp", [5], "bottom-up"],
+    ["min-cost-stairs", "dp", [4], "bottom-up"],
+  ] as const)("%s detects %s%p as %s", (name, table, dims, mode) => {
+    const found = detect(realWorld[name]);
+    expect(found).toHaveLength(1);
+    expect(found[0].name).toBe(table);
+    expect(found[0].dims).toEqual(dims);
+    expect(found[0].mode).toBe(mode);
+  });
+
   it("does not throw on a degenerate compile-error trace", () => {
     const t = compileErrorTrace as unknown as { trace: ExecPoint[] };
     expect(() => detectDpTables(t.trace, "")).not.toThrow();

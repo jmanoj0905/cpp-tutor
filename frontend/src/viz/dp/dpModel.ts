@@ -4,6 +4,7 @@ import { allRoots, findCellById } from "../cells";
 import type { DpCandidate } from "./detect";
 import type { ArrayEnv, ArrayValue } from "./exprEval";
 import { isAssignmentLhs, resolveOccurrences, type Coord } from "./readSet";
+import { buildStatements, statementAtExecLine } from "./statements";
 
 export interface DpCellView {
   coord: Coord;
@@ -105,9 +106,10 @@ export function buildDpView(
   // the read-set lines up with the write it's paired with in the UI. When no
   // write landed this step (the already-correct "upcoming reads" case) or no
   // previous point is available, keep resolving against the current point.
+  const statements = buildStatements(codeLines);
   const usePrevPoint = currentWrite !== null && prevPoint !== null;
   const readPoint = usePrevPoint ? prevPoint! : point;
-  const lineText = codeLines[readPoint.line - 1] ?? "";
+  const lineText = statementAtExecLine(codeLines, statements, readPoint.line);
   const readMem = usePrevPoint ? memoryAt(readPoint) : mem;
   const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint), arrayEnv(readMem));
   const reads = [...occ];
@@ -154,8 +156,9 @@ export function collectReadSteps(
   codeLines: string[],
 ): Map<string, number[]> {
   const log = new Map<string, number[]>();
+  const statements = buildStatements(codeLines);
   trace.forEach((point, step) => {
-    const lineText = codeLines[point.line - 1] ?? "";
+    const lineText = statementAtExecLine(codeLines, statements, point.line);
     const occ = resolveOccurrences(lineText, candidate.name, intEnv(point),
                                    arrayEnv(memoryAt(point)));
     const reads = [...occ];

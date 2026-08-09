@@ -3,6 +3,7 @@ import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryM
 import { countSubscripts, type Coord } from "./readSet";
 import { escapeRe } from "../../util";
 import { frameKey, type FrameIdentity } from "../callTree";
+import { buildStatements, statementAtExecLine } from "./statements";
 
 export interface DpWrite { step: number; coord: Coord; }
 
@@ -14,7 +15,7 @@ export interface DpCandidate {
   writes: DpWrite[];
 }
 
-export const MIN_WRITE_STEPS = 3;
+export const MIN_WRITE_STEPS = 2;
 
 interface Tracked {
   cellId: string;
@@ -34,6 +35,7 @@ type StackFrameLike = FrameIdentity;
  *  matching a rule cleanly is simply not returned. Pure, no React/DOM. */
 export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] {
   const codeLines = code.split("\n");
+  const statements = buildStatements(codeLines);
   const tracked = new Map<string, Tracked>();
   // Last known displayValue per leaf id, carried across the WHOLE trace (not
   // just the immediately preceding step). Recursive traces can momentarily
@@ -77,7 +79,7 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       // The write is visible at `step`, but the line that PERFORMED it is the
       // previous point's line (trace records state after each line executes).
       const writeLine = trace[step - 1]?.line ?? point.line;
-      const lineText = codeLines[writeLine - 1] ?? "";
+      const lineText = statementAtExecLine(codeLines, statements, writeLine);
       // Self-reference evidence must come from a single line that actually
       // EXECUTED — never from summing occurrences across source-adjacent
       // lines (that would confirm a plain fill loop whose write line happens
@@ -101,7 +103,7 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       let selfRef = countSubscripts(lineText, info.name) >= 2;
       if (!selfRef) {
         const guardLine = guardLineBeforeWrite(trace, step - 1);
-        const guardText = guardLine !== null ? (codeLines[guardLine - 1] ?? "") : "";
+        const guardText = guardLine !== null ? statementAtExecLine(codeLines, statements, guardLine) : "";
         if (returnsOwnSubscript(guardText, info.name) && countSubscripts(guardText, info.name) >= 2) {
           selfRef = true;
         }
