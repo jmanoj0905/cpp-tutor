@@ -1,5 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import { HeapTreePanel } from "./HeapTreePanel";
+import { CloseButton } from "../CloseButton";
 
 /** Docked host for a priority_queue's heap-tree view. Consistent with the
  *  call-tree .ct-detail inspector: a bottom-right dotted panel with no dimming
@@ -24,7 +25,7 @@ export function HeapTreeOverlay({ cell, step, onClose, highlightedIds, changedId
         <span className="cell-name">{cell.name}</span>
         <span className="heap-badge">{badge}</span>
         <span className="heap-overlay-step">step {step}</span>
-        <button className="help-close heap-overlay-close" aria-label="Close" onClick={onClose}>×</button>
+        <CloseButton onClick={onClose} label="Close heap tree" />
       </div>
       <HeapTreePanel
         cell={cell}

@@ -131,7 +131,7 @@ function Workspace({
           <div className="limit-notice">{player.point.exception_msg}</div>
         )}
         <div className="mem-region">
-          <div className="panel-tabs" role="tablist">
+          <div className="tabs panel-tabs" role="tablist">
             <button
               role="tab"
               aria-selected={tab === "memory"}
@@ -168,7 +168,7 @@ function Workspace({
             <MemoryView point={player.point} prevPoint={player.prevPoint} trace={trace.trace} code={trace.code} activeHeapCell={activeHeapCell} onHeapOpen={onHeapOpen} onHeapClose={onHeapClose} />
           ) : (
             <div className="calltree-region">
-              <div className="calltree-mode" role="tablist">
+              <div className="tabs calltree-mode" role="tablist">
                 <button role="tab" aria-selected={treeMode === "tree"} onClick={() => setTreeMode("tree")}>tree</button>
                 <button role="tab" aria-selected={treeMode === "log"} onClick={() => setTreeMode("log")}>log</button>
               </div>
@@ -291,7 +291,7 @@ export default function App() {
                 />
               </section>
               <Divider onResize={setSplit} />
-              <section className="right-col empty-hint">
+              <section className="right-col empty-state">
                 <p>Click Visualize Execution to trace your code.</p>
               </section>
             </>)}

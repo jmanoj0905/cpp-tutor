@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { CloseButton } from "../CloseButton";
+import { useEscape } from "../useEscape";
 import type { ExecPoint } from "../../types/trace";
 import { memoryAt } from "../memoryModel";
 import { applyShapes, shapeInfoFor } from "../shapes";
@@ -13,6 +15,9 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
 }) {
   const [viewAs, setViewAs] = useState<ViewAs>("auto");
   const [selected, setSelected] = useState<string | null>(null);
+  // Until this existed, clicking a node was a one-way door: the detail line
+  // had no close control and nothing cleared the selection.
+  useEscape(selected !== null, () => setSelected(null));
 
   const scene = useMemo(() => {
     const mem = memoryAt(point);
@@ -33,7 +38,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
   // control left to escape "grid". Always render the toggle; only the canvas
   // beneath it is conditional on having a scene.
   const toggle = (
-    <div className="graph-view-toggle" role="tablist">
+    <div className="tabs graph-view-toggle" role="tablist">
       {(["auto", "graph", "grid"] as ViewAs[]).map((v) => (
         <button key={v} role="tab" aria-selected={viewAs === v}
           onClick={() => setViewAs(v)}>{v}</button>
@@ -45,7 +50,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
     return (
       <div className="graph-panel">
         {toggle}
-        <div className="graph-empty">nothing to show for this view</div>
+        <div className="empty-state">nothing to show for this view</div>
       </div>
     );
   }
@@ -63,12 +68,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
 
   return (
     <div className="graph-panel">
-      <div className="graph-view-toggle" role="tablist">
-        {(["auto", "graph", "grid"] as ViewAs[]).map((v) => (
-          <button key={v} role="tab" aria-selected={viewAs === v}
-            onClick={() => setViewAs(v)}>{v}</button>
-        ))}
-      </div>
+      {toggle}
       <div className="graph-canvas">
       <svg className="graph-svg" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
         <defs>
@@ -117,7 +117,12 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
         })}
       </svg>
       </div>
-      {selected && <div className="graph-detail">node {selected} — inspected at step {step}</div>}
+      {selected && (
+        <div className="graph-detail">
+          <span>node {selected} — inspected at step {step}</span>
+          <CloseButton onClick={() => setSelected(null)} />
+        </div>
+      )}
     </div>
   );
 }

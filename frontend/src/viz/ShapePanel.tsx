@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ShapeEdge, ShapeKind, ShapeModel, ShapeNode } from "./shapes";
 import { CYCLE_ARC_H, layoutShape, shapeNodeWidth, SNODE_H, type SNodePos } from "./shapeLayout";
 import { MemoryCell } from "./MemoryCell";
+import { CloseButton } from "./CloseButton";
+import { useEscape } from "./useEscape";
 
 export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, stepKey }: {
   shape: ShapeModel;
@@ -17,14 +19,10 @@ export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, step
   const [selected, setSelected] = useState<ShapeNode | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Deselect on step change and close on Escape.
+  // A shape node is a heap cell at THIS step, so the selection is dropped when
+  // the step changes; Escape and the × dismiss it within a step.
   useEffect(() => { setSelected(null); }, [stepKey]);
-  useEffect(() => {
-    if (!selected) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
+  useEscape(selected !== null, () => setSelected(null));
 
   // Keep the action visible: scroll the just-changed (else first) node into view.
   useEffect(() => {
@@ -43,7 +41,7 @@ export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, step
     <div className="shape-panel" data-testid={`shape-${shape.typeName}`}>
       <div className="shape-head">
         <span>{shape.typeName} ×{shape.nodes.length}</span>
-        <button onClick={onToggleGeneric} title="Show raw heap cells">raw</button>
+        <button className="cell-chip shape-generic-toggle" onClick={onToggleGeneric} title="Show raw heap cells">raw</button>
       </div>
       <div className="shape-scroll" ref={scrollRef}>
         <div className="shape-canvas" style={{ width: layout.width, height: layout.height }}>
@@ -81,7 +79,7 @@ export function ShapePanel({ shape, changedIds, firstSeen, onToggleGeneric, step
         <div className="shape-detail" data-testid="shape-detail">
           <div className="shape-detail-head">
             <span>{shape.typeName} @ {selected.address}</span>
-            <button aria-label="Close details" onClick={() => setSelected(null)}>×</button>
+            <CloseButton onClick={() => setSelected(null)} />
           </div>
           <MemoryCell cell={selected.cell} noPorts />
           <div className="shape-detail-steps">

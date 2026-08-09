@@ -26,10 +26,12 @@
   --outline-selected: 2px solid var(--blue);
   --graph-max: 560px;
 
-  --sans: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  /* Deliberately a single typeface. There used to be --sans and --mono with
+     identical values, which made "sans for chrome, mono for data" look like a
+     rule the stylesheet enforced when nothing did. */
   --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
 
-  font: 15px/1.5 var(--sans);
+  font: 15px/1.5 var(--mono);
   color-scheme: light;
   color: var(--ink);
   background: var(--bg);
@@ -54,7 +56,7 @@ body { margin: 0; background: var(--bg); }
 
 /* ── Typography ──────────────────────────────────────────────── */
 h1 {
-  font-family: var(--sans);
+  font-family: var(--mono);
   font-weight: 700;
   font-size: 48px;
   letter-spacing: -1.5px;
@@ -63,7 +65,7 @@ h1 {
 }
 
 h3 {
-  font-family: var(--sans);
+  font-family: var(--mono);
   font-weight: 700;
   font-size: 14px;
   letter-spacing: 1.5px;
@@ -80,7 +82,7 @@ p {
 .app { height: 100svh; display: flex; flex-direction: column; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 16px; background: #fff; border-bottom: 1px solid var(--ink);
+  padding: 4px 16px; background: #fff; border-bottom: var(--border-w) solid var(--ink);
 }
 .topbar h1 {
   margin: 0; font-size: 13px; font-weight: 500;
@@ -120,13 +122,19 @@ p {
 .divider-h { flex: 0 0 6px; cursor: row-resize; }
 .limit-notice {
   flex: 0 0 auto; margin: 0; padding: 8px 12px;
-  font-family: var(--sans); font-size: 13px; color: var(--ink);
+  font-family: var(--mono); font-size: 13px; color: var(--ink);
   background: #ffef9f; border-bottom: var(--border-dotted);
 }
 .mem-region { flex: 1 1 auto; min-height: 0; overflow: auto; position: relative; display: flex; flex-direction: column; }
-.empty-hint { display: flex; align-items: center; justify-content: center; color: var(--ink-soft); }
+/* Every "nothing here" surface: the pre-trace hint, the graph view with no
+   scene, the command palette with no matches. */
+.empty-state {
+  flex: 1 1 auto; min-height: 0;
+  display: flex; align-items: center; justify-content: center;
+  font: 12px var(--mono); color: var(--ink-soft);
+}
 
-.codepanel { border: none; border-radius: 0; height: 100%; }
+.codepanel { border: none; border-radius: var(--radius); height: 100%; }
 .codepanel .cm-editor { height: 100%; }
 
 /* exec gutter arrows + breakpoint/current line */
@@ -193,7 +201,7 @@ p {
 .editor .cm-foldPlaceholder {
   background: var(--panel);
   border: var(--border-dotted);
-  border-radius: 0;
+  border-radius: var(--radius);
   color: var(--ink-soft);
   font-family: var(--mono);
   padding: 0 4px;
@@ -203,7 +211,7 @@ p {
 .cm-tooltip.cm-tooltip-autocomplete {
   background: var(--panel);
   border: var(--border-dotted);
-  border-radius: 0;
+  border-radius: var(--radius);
   font-family: var(--mono);
 }
 .cm-tooltip.cm-tooltip-autocomplete > ul { font-family: var(--mono); font-size: 12px; }
@@ -217,14 +225,14 @@ p {
 /* ── Run button ──────────────────────────────────────────────── */
 .run {
   align-self: center;
-  font-family: var(--sans);
+  font-family: var(--mono);
   font-weight: 500;
   font-size: 13px;
   letter-spacing: 1px;
   text-transform: uppercase;
   color: var(--ink);
   background: #fff;
-  border: 1px solid var(--ink);
+  border: var(--border-w) solid var(--ink);
   border-radius: var(--radius);
   padding: 8px 18px;
   cursor: pointer;
@@ -268,7 +276,7 @@ p {
   background: var(--ink);
   border: none;
   border-top: var(--border-dotted);
-  border-radius: 0;
+  border-radius: var(--radius);
   padding: 12px 16px;
   margin: 0;
   max-height: 25%;
@@ -289,13 +297,13 @@ p {
 /* ── VCR controls ───────────────────────────────────────────── */
 .vcr { display: flex; flex-direction: column; gap: 8px; }
 .bp-dead-notice {
-  margin: 6px 0 0; font-family: var(--sans); font-size: 12px;
+  margin: 6px 0 0; font-family: var(--mono); font-size: 12px;
   color: var(--ink); background: #ffef9f; padding: 4px 8px;
 }
 .vcr-buttons { display: flex; gap: 6px; justify-content: center; }
 .vcr button {
-  font-family: var(--sans); font-size: 13px; color: var(--ink);
-  background: var(--panel); border: var(--border-dotted); border-radius: 0;
+  font-family: var(--mono); font-size: 13px; color: var(--ink);
+  background: var(--panel); border: var(--border-dotted); border-radius: var(--radius);
   padding: 5px 10px; cursor: pointer;
 }
 .vcr button:hover:not(:disabled) { background: var(--ink); color: #fff; }
@@ -315,14 +323,14 @@ p {
 .track input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; appearance: none;
   width: 11px; height: 11px; margin-top: -6px;
-  background: var(--ink); border: none; border-radius: 0;
+  background: var(--ink); border: none; border-radius: var(--radius);
 }
 .track input[type="range"]::-moz-range-track {
   height: 0; border-top: 1px dotted var(--ink);
 }
 .track input[type="range"]::-moz-range-thumb {
   width: 11px; height: 11px;
-  background: var(--ink); border: none; border-radius: 0;
+  background: var(--ink); border: none; border-radius: var(--radius);
 }
 .step-marks { position: absolute; inset: 0; pointer-events: none; }
 .step-mark {
@@ -412,10 +420,20 @@ p {
 .matrix-slices { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
 .matrix-slices > .cell { border: var(--border-dotted); padding: 4px 6px; }
 
-.more-toggle {
-  font-family: var(--sans); font-size: 11px; color: var(--ink);
-  background: var(--panel); border: var(--border-dotted); padding: 1px 8px; cursor: pointer;
+/* The one small in-panel control: "show N more", the string/char-array and
+   heap-tree view flips, and the "raw" escape hatches on the shape and DP
+   panels. These were five separate rules at 10px/11px/13px with three
+   different borders and inconsistent hover. `.is-on` marks an active flip. */
+.cell-chip {
+  margin-left: 6px;
+  font: 11px var(--mono); line-height: 1.4;
+  color: var(--ink-soft); background: var(--panel);
+  border: var(--border-dotted); padding: 0 6px; cursor: pointer;
 }
+.cell-chip:hover { color: var(--ink); }
+.cell-chip.is-on { color: var(--blue); border-color: var(--blue); }
+/* A chip that ends a header row pushes itself to the trailing edge. */
+.cell-head .cell-chip:last-child, .shape-generic-toggle, .dp-generic-toggle { margin-left: auto; }
 
 /* connectors */
 .connectors { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
@@ -430,12 +448,13 @@ p {
 .cell-head.cell-changed,
 .dp-cell.cell-changed { background: rgba(242, 177, 0, 0.22); box-shadow: inset 2px 0 0 var(--yellow); }
 
+/* Disclosure row rather than a chip: full-width, borderless, left-aligned.
+   Shares the chip's type scale and hover so the two read as one family. */
 .internals-toggle {
   background: none;
   border: none;
   color: var(--ink-soft);
-  font-family: var(--mono);
-  font-size: 11px;
+  font: 11px var(--mono);
   text-align: left;
   padding: 2px 0;
   cursor: pointer;
@@ -443,18 +462,7 @@ p {
 .internals-toggle:hover { color: var(--ink); }
 .cell-internal { opacity: 0.55; }
 
-/* string <-> char-array view toggle: a small dotted chip at the trailing edge
-   of a string / vector<string> header. Blue when active (selection accent). */
-.char-view-toggle {
-  margin-left: auto;
-  font-family: var(--mono); font-size: 10px; line-height: 1.4;
-  color: var(--ink-soft); background: var(--panel);
-  border: var(--border-dotted); padding: 0 4px; cursor: pointer;
-}
-.char-view-toggle:hover { color: var(--ink); }
-.char-view-toggle.char-view-on { color: var(--blue); border-color: var(--blue); }
-
-/* priority_queue header badge (min/max/heap) + array <-> tree view toggle. */
+/* priority_queue header badge (min/max/heap). */
 .heap-badge {
   font: 12px var(--mono);
   border: 1px dotted var(--ink);
@@ -462,18 +470,9 @@ p {
   margin-left: 6px;
   color: var(--ink-soft);
 }
-.heap-view-toggle {
-  margin-left: 6px;
-  font-family: var(--mono); font-size: 10px; line-height: 1.4;
-  color: var(--ink-soft); background: var(--panel);
-  border: var(--border-dotted); padding: 0 4px; cursor: pointer;
-}
-.heap-view-toggle:hover { color: var(--ink); }
-.heap-view-toggle.heap-view-on { color: var(--blue); border-color: var(--blue); }
-
 .trace-hint {
   margin-left: 0.75rem;
-  font: 400 0.8rem var(--sans);
+  font: 400 0.8rem var(--mono);
   color: var(--ink-soft);
 }
 
@@ -496,10 +495,13 @@ p {
   margin: 0; font-size: 12px; font-weight: 500;
   letter-spacing: 1px; text-transform: uppercase; color: var(--ink);
 }
-.help-close {
-  background: none; border: none; padding: 0 2px;
-  font-size: 16px; line-height: 1; cursor: pointer; color: var(--ink);
+.close-btn {
+  margin-left: auto;
+  background: var(--panel); border: var(--border-dotted);
+  font: 12px var(--mono); line-height: 1.4;
+  color: var(--ink-soft); padding: 0 6px; cursor: pointer;
 }
+.close-btn:hover { color: var(--ink); }
 .help-table { width: 100%; border-collapse: collapse; font-size: 12px; color: var(--ink); }
 .help-table td { padding: 5px 10px 5px 0; border-bottom: var(--border-dotted); }
 .help-table tr:last-child td { border-bottom: none; }
@@ -523,33 +525,42 @@ p {
   padding-bottom: 4px; margin-bottom: 6px;
 }
 .heap-overlay-step { color: var(--ink-soft); }
-.heap-overlay-close { margin-left: auto; }
 
 .topbar-actions { display: flex; align-items: center; gap: 12px; }
 
 /* --- memory / call-tree tabs --- */
-.panel-tabs {
+/* One tab bar for all three tablists (top-level Memory/Call Tree/Graph, the
+   tree/log sub-toggle, and the graph auto/graph/grid toggle). They used to be
+   three unrelated rules: 13px sans with a solid box and inverted selection,
+   versus 12px mono flat tabs with a --yellow selection. --yellow means
+   "current" everywhere else in the theme, so selection reads as --blue here,
+   matching the selection accent used by cells and shape nodes. */
+.tabs {
   display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 0;
   flex: 0 0 auto;
+  border-bottom: var(--border-dotted);
 }
-.panel-tabs [role="tab"] {
-  font: 13px var(--sans);
+.tabs [role="tab"] {
+  font: 12px var(--mono);
   padding: 4px 12px;
   background: none;
-  color: var(--ink);
-  border: var(--border-dotted);
+  color: var(--ink-soft);
+  border: none;
+  border-bottom: 2px solid transparent;
   border-radius: var(--radius);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
 }
-.panel-tabs [role="tab"][aria-selected="true"] {
-  background: var(--ink);
-  color: var(--bg);
+.tabs [role="tab"]:hover { color: var(--ink); }
+.tabs [role="tab"][aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--blue);
 }
+/* Only the top-level bar is separated from the panel below it. */
+.panel-tabs { margin-bottom: 8px; }
 .tab-dot {
   width: 8px;
   height: 8px;
@@ -646,14 +657,6 @@ p {
   font-weight: 600;
   overflow-wrap: anywhere;
 }
-.ct-detail-head button {
-  margin-left: auto;
-  background: var(--panel);
-  border: var(--border-dotted);
-  font: 12px var(--mono);
-  cursor: pointer;
-  padding: 0 6px;
-}
 .ct-detail-rows {
   margin: 0;
 }
@@ -709,20 +712,17 @@ p {
   height: 28px;
   font: 16px var(--mono);
   background: var(--panel);
-  color: var(--ink);
+  color: var(--ink-soft);
   border: var(--border-dotted);
   cursor: pointer;
 }
+.calltree-zoom button:hover { color: var(--ink); }
 
 /* --- shape panels (ListNode / TreeNode auto-layout) --- */
 .shape-panel { border: var(--border-dotted); background: var(--panel); margin-bottom: 8px; }
 .shape-head {
   display: flex; justify-content: space-between; align-items: center;
   font: 12px var(--mono); padding: 2px 6px; border-bottom: var(--border-dotted);
-}
-.shape-head button {
-  font: 11px var(--mono); background: none; border: var(--border-dotted);
-  cursor: pointer; padding: 0 4px;
 }
 .shape-scroll { overflow: auto; max-height: 340px; padding: 12px; }
 .shape-canvas { position: relative; }
@@ -753,7 +753,6 @@ p {
 }
 .shape-detail { border-top: var(--border-dotted); padding: 6px; font: 12px var(--mono); }
 .shape-detail-head { display: flex; justify-content: space-between; margin-bottom: 4px; }
-.shape-detail-head button { background: none; border: none; cursor: pointer; font: 14px var(--mono); }
 .shape-detail-steps { margin-top: 4px; color: var(--ink-soft); }
 
 /* DP table panel */
@@ -761,7 +760,6 @@ p {
 .dp-header { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; }
 .dp-name { font-weight: 700; }
 .dp-mode { color: var(--ink-soft); }
-.dp-generic-toggle { margin-left: auto; font: inherit; background: none; border: var(--border-dotted); cursor: pointer; }
 .dp-grid-wrap { position: relative; }
 .dp-grid { display: grid; }
 .dp-cell { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: var(--border-dotted); cursor: pointer; background: color-mix(in srgb, var(--yellow) calc(var(--dp-heat, 0) * 55%), var(--panel)); }
@@ -773,7 +771,6 @@ p {
 .dp-indices { display: flex; color: var(--ink-soft); }
 .dp-indices span { display: inline-block; text-align: center; }
 .dp-detail { margin-top: 4px; border: var(--border-dotted); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
-.dp-detail button { margin-left: auto; font: inherit; background: none; border: none; cursor: pointer; }
 
 /* Heap tree panel (priority_queue) */
 .heap-tree-scroll { overflow-x: auto; padding: 4px 0; }
@@ -804,6 +801,7 @@ p {
   cursor: pointer; white-space: nowrap;
 }
 .cl-fold { border: none; background: none; cursor: pointer; font: inherit; padding: 0; color: var(--ink-soft); }
+.cl-fold:hover { color: var(--ink); }
 .cl-count { color: var(--ink-soft); }
 .cl-future { opacity: 0.35; }
 .cl-current { background: var(--yellow); }
@@ -811,12 +809,6 @@ p {
 
 /* --- call tree / call log sub-toggle --- */
 .calltree-region { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-.calltree-mode { display: flex; gap: 0; border-bottom: var(--border-dotted); flex: none; }
-.calltree-mode button {
-  font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
-  background: none; border: none; color: var(--ink-soft);
-}
-.calltree-mode button[aria-selected="true"] { color: var(--ink); background: var(--yellow); }
 
 /* --- graph/grid visualizer panel --- */
 .graph-panel {
@@ -837,17 +829,8 @@ p {
 /* Shown instead of the canvas when the current view/step has nothing to draw
    (e.g. "grid" on a pure pointer-tree program) — the toggle above it stays
    live so the user always has a way back to "auto"/"graph". */
-.graph-empty {
-  flex: 1 1 auto; min-height: 0; display: flex;
-  align-items: center; justify-content: center;
-  font: 12px var(--mono); color: var(--ink-soft);
-}
-.graph-view-toggle { display: flex; gap: 0; border-bottom: var(--border-dotted); margin: -8px -8px 8px; flex: none; }
-.graph-view-toggle button {
-  font: 12px var(--mono); padding: 4px 12px; cursor: pointer;
-  background: none; border: none; color: var(--ink-soft);
-}
-.graph-view-toggle button[aria-selected="true"] { color: var(--ink); background: var(--yellow); }
+/* Sits flush with the panel edges, hence the negative margin. */
+.graph-view-toggle { margin: -8px -8px 8px; }
 .graph-svg text { font: 12px var(--mono); fill: var(--ink); }
 .graph-node circle, .graph-node rect { fill: var(--panel); stroke: var(--ink); stroke-dasharray: 1 1; opacity: 0.4; }
 .graph-node.is-visited circle, .graph-node.is-visited rect { opacity: 1; }

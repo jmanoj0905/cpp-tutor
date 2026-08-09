@@ -4,6 +4,7 @@ import { finalLabel, nodeState, type CallTree, type CallTreeNode } from "./callT
 import { NodeDetail } from "./NodeDetail";
 import { layoutTree, nodeWidth, NODE_H, type NodePos } from "./treeLayout";
 import { followIfOffscreen, pan, zoomAt, type Camera } from "./treeCamera";
+import { useEscape } from "./useEscape";
 
 export function CallTreePanel({ tree, step, trace }: {
   tree: CallTree;
@@ -37,15 +38,10 @@ export function CallTreePanel({ tree, step, trace }: {
     );
   }, [step, tree, pos]);
 
-  // Esc-to-deselect — listener only while something is selected.
-  useEffect(() => {
-    if (!selected) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") select(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [selected]);
+  // Selection deliberately survives a step change here: a call-tree node is
+  // an invocation, not a per-step object, and NodeDetail reports its own step
+  // numbers. Escape and the × are the ways out.
+  useEscape(selected !== null, () => select(null));
 
   const zoomCenter = (factor: number) => {
     const el = svgRef.current;

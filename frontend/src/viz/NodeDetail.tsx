@@ -4,6 +4,7 @@ import { finalLabel, type CallTreeNode } from "./callTree";
 import { inspectVariable } from "./frameInspector";
 import { MemoryCell } from "./MemoryCell";
 import { toggleInSet } from "../util";
+import { CloseButton } from "./CloseButton";
 
 export function NodeDetail({ node, trace, onClose }: {
   node: CallTreeNode;
@@ -16,7 +17,7 @@ export function NodeDetail({ node, trace, onClose }: {
     <div className="ct-detail" data-testid="ct-detail">
       <div className="ct-detail-head">
         <span className="ct-detail-title">{finalLabel(node)}</span>
-        <button aria-label="Close details" onClick={onClose}>×</button>
+        <CloseButton onClick={onClose} />
       </div>
       <dl className="ct-detail-rows">
         {node.args.map((a) => (

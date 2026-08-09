@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { CloseButton } from "../CloseButton";
+import { useEscape } from "../useEscape";
 import type { DpTableView, DpCellView } from "./dpModel";
 import type { Coord } from "./readSet";
 
@@ -28,6 +30,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
   readSteps?: Map<string, number[]>;
 }) {
   const [detail, setDetail] = useState<DpCellView | null>(null);
+  useEscape(detail !== null, () => setDetail(null));
   const { candidate, cells, currentWrite, reads, maxWriteStep } = view;
   const [rows, cols] = candidate.dims.length === 2 ? candidate.dims : [1, candidate.dims[0]];
   const key = (c: Coord) => c.join(",");
@@ -43,7 +46,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
       <div className="dp-header">
         <span className="dp-name">{candidate.name}</span>
         <span className="dp-mode">{candidate.mode}</span>
-        <button className="dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
+        <button className="cell-chip dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
       </div>
       <div className="dp-grid-wrap" style={{ width: cols * CELL, height: rows * CELL }}>
         <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }}>
@@ -93,7 +96,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
             const more = steps.length > READ_STEPS_DISPLAY_CAP;
             return <span>read at steps {shown.join(", ")}{more ? ", …" : ""}</span>;
           })()}
-          <button onClick={() => setDetail(null)}>×</button>
+          <CloseButton onClick={() => setDetail(null)} />
         </div>
       )}
     </div>

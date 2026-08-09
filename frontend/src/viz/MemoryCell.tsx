@@ -58,7 +58,7 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
         <CellValue cell={cell} noPorts={noPorts} />
         {cell.charViewToggle && onCharViewToggle && (
           <button
-            className={`char-view-toggle${cell.charViewToggle === "on" ? " char-view-on" : ""}`}
+            className={`cell-chip char-view-toggle${cell.charViewToggle === "on" ? " is-on" : ""}`}
             title={cell.charViewToggle === "on" ? "Show as string" : "Show as char array"}
             onClick={(e) => { e.stopPropagation(); onCharViewToggle(cell.id); }}
           >
@@ -72,7 +72,7 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
         )}
         {cell.containerKind === "priority_queue" && onHeapOpen && (
           <button
-            className="heap-view-toggle"
+            className="cell-chip heap-view-toggle"
             title="Show as heap tree"
             onClick={(e) => { e.stopPropagation(); onHeapOpen(cell.id); }}
           >
@@ -160,7 +160,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
   if (isString && all.length > 0 && !expanded && !hasMarkedChild) {
     return (
       <div className="cell-children string-collapsed">
-        <button className="more-toggle" onClick={() => setExpanded(true)}>show {all.length} chars</button>
+        <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>show {all.length} chars</button>
       </div>
     );
   }
@@ -178,7 +178,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
           />
         ))}
         {hidden > 0 && (
-          <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
+          <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
         )}
       </div>
     );
@@ -203,7 +203,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
         />
       ))}
       {hidden > 0 && (
-        <button className="more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
+        <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
       )}
     </div>
   );
