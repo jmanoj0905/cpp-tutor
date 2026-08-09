@@ -3,6 +3,7 @@ import { CloseButton } from "../CloseButton";
 import { useEscape } from "../useEscape";
 import type { DpTableView, DpCellView } from "./dpModel";
 import type { Coord } from "./readSet";
+import type { Provenance } from "./provenance";
 
 const CELL = 36; // px, uniform grid pitch for arrow geometry
 
@@ -18,9 +19,21 @@ function arrowPath(from: Coord, to: Coord): string {
   return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
 }
 
+const val = (o: { value: number | null }) => (o.value === null ? "?" : String(o.value));
+
+/** The "= max(6, 7) → 7" line, or null when nothing evaluated. */
+function valuesLine(p: Provenance): string | null {
+  if (p.operands.every((o) => o.value === null)) return null;
+  const vals = p.operands.map(val);
+  const arrow = p.winner === null ? "" : ` → ${val(p.operands[p.winner])}`;
+  if (p.op === "max" || p.op === "min") return `${p.op}(${vals.join(", ")})${arrow}`;
+  if (p.op === "ternary") return `? ${vals[0]} : ${vals[1]}${arrow}`;
+  return `= ${vals[0]}`;
+}
+
 const READ_STEPS_DISPLAY_CAP = 8;
 
-export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
+export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, explain }: {
   view: DpTableView;
   changedIds?: Set<string>;
   onToggleGeneric: () => void;
@@ -28,6 +41,10 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
    *  `collectReadSteps`. When provided, the detail box lists the steps at
    *  which the selected cell was read, capped for display. */
   readSteps?: Map<string, number[]>;
+  /** Why the selected cell holds its value (see `explainWrite`). Called only
+   *  for a cell that was actually written, and only while its detail box is
+   *  open — provenance is lazy by design. */
+  explain?: (cell: DpCellView) => Provenance | null;
 }) {
   const [detail, setDetail] = useState<DpCellView | null>(null);
   useEscape(detail !== null, () => setDetail(null));
@@ -117,6 +134,23 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
         <div className="dp-detail">
           <span>{candidate.name}[{detail.coord.join("][")}] = {detail.value}</span>
           <span>{detail.writeStep === null ? "not yet written" : `written at step ${detail.writeStep}`}</span>
+          {detail.writeStep !== null && (() => {
+            const p = explain?.(detail) ?? null;
+            if (!p) return null;
+            const values = valuesLine(p);
+            return (
+              <>
+                <span className="dp-stmt">
+                  {p.lhs} {p.assign} {p.rhs}
+                  {p.baseCase && <span className="dp-base-case">base case</span>}
+                </span>
+                {values && <span className="dp-values">{values}</span>}
+                {p.winner !== null && (
+                  <span className="dp-won">won: {p.operands[p.winner].text}</span>
+                )}
+              </>
+            );
+          })()}
           {(() => {
             const steps = readSteps?.get(key(detail.coord));
             if (!steps || steps.length === 0) return null;

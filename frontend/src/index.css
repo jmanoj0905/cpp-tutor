@@ -782,7 +782,11 @@ p {
 .dp-col-head span { display: inline-block; text-align: center; }
 .dp-row-head { display: flex; flex-direction: column; color: var(--ink-soft); }
 .dp-row-head span { display: flex; align-items: center; justify-content: center; }
-.dp-detail { margin-top: 4px; border: var(--border-dotted); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
+.dp-detail { margin-top: 4px; border: var(--border-dotted); padding: 4px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.dp-stmt { font-weight: 700; }
+.dp-values { color: var(--ink-soft); }
+.dp-won { color: var(--blue); }
+.dp-base-case { margin-left: 6px; color: var(--ink-soft); font-weight: 400; }
 
 /* Heap tree panel (priority_queue) */
 .heap-tree-scroll { overflow-x: auto; padding: 4px 0; }

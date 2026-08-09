@@ -4,6 +4,7 @@ import { DpTablePanel } from "../src/viz/dp/DpTablePanel";
 import type { DpTableView } from "../src/viz/dp/dpModel";
 import type { DpCandidate } from "../src/viz/dp/detect";
 import { projectKeys } from "../src/viz/dp/keyedTable";
+import type { Provenance } from "../src/viz/dp/provenance";
 
 const cand: DpCandidate = {
   cellId: "stack:main.dp", name: "dp", dims: [5], mode: "bottom-up",
@@ -171,5 +172,57 @@ describe("DpTablePanel", () => {
     const { container } = render(<DpTablePanel view={keyed2dView} onToggleGeneric={() => {}} />);
     expect(container.querySelector(".dp-col-head")).toBeNull();
     expect(container.querySelector(".dp-row-head")).toBeNull();
+  });
+
+  const prov = (over: Partial<Provenance> = {}): Provenance => ({
+    lhs: "dp[2]", assign: "=", rhs: "max(dp[1], dp[0] + 1)", op: "max",
+    operands: [{ text: "dp[1]", value: 6 }, { text: "dp[0] + 1", value: 7 }],
+    written: "7", winner: 1, baseCase: false, ...over,
+  });
+
+  it("detail box shows the statement, the branch values, and the winner", () => {
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} explain={() => prov()} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("dp[2] = max(dp[1], dp[0] + 1)");
+    expect(detail.textContent).toContain("max(6, 7)");
+    expect(detail.textContent).toContain("→ 7");
+    expect(detail.textContent).toContain("won: dp[0] + 1");
+  });
+
+  it("renders an unevaluable operand as ? and omits the winner line", () => {
+    const p = prov({
+      rhs: "fib(1) + fib(0)", op: null, winner: null,
+      operands: [{ text: "fib(1) + fib(0)", value: null }],
+    });
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} explain={() => p} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("fib(1) + fib(0)");
+    expect(detail.textContent).not.toContain("won:");
+    expect(detail.querySelector(".dp-values")).toBeNull();
+  });
+
+  it("tags a base case", () => {
+    const p = prov({ rhs: "1", op: null, winner: null, baseCase: true,
+                     operands: [{ text: "1", value: 1 }] });
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} explain={() => p} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    expect(container.querySelector(".dp-detail")!.textContent).toContain("base case");
+  });
+
+  it("asks for no explanation of a never-written cell", () => {
+    const explain = vi.fn(() => prov());
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} explain={explain} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="3"]')!);   // writeStep null
+    expect(explain).not.toHaveBeenCalled();
   });
 });
