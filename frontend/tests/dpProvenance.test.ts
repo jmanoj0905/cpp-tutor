@@ -4,6 +4,7 @@ import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import memoFib from "./fixtures/dp/memo-fib-vector.json";
 import minCost from "./fixtures/dp/min-cost-stairs.json";
 import editDistance from "./fixtures/dp/edit-distance.json";
+import mapMemo from "./fixtures/dp/map-memo.json";
 import type { Trace } from "../src/types/trace";
 import { detectDpTables } from "../src/viz/dp/detect";
 import { explainWrite, splitAssignment, splitOperands, pickWinner } from "../src/viz/dp/provenance";
@@ -187,5 +188,20 @@ describe("pickWinner", () => {
   it("null op and single-evaluated cases yield null", () => {
     expect(pickWinner(null, ops(1, 2), "1")).toBeNull();
     expect(pickWinner("max", ops(3, null), "3")).toBeNull();
+  });
+});
+
+describe("explainWrite — keyed memos", () => {
+  it("renders the key, not the grid coord, and reads the value by key", () => {
+    // map-memo line 8: memo[n] = fib(n-1) + fib(n-2);  with fib(4)
+    const t = mapMemo as Trace;
+    const lines = t.code.split("\n");
+    const cand = detectDpTables(t.trace, t.code).find((c) => c.keyed)!;
+    const w = cand.writes.find((x) => x.coord[0] === 4)!;
+    const p = explainWrite(cand, [4], w.step, t.trace, lines)!;
+    expect(p.lhs).toBe("memo[4]");
+    expect(p.written).toBe("3");            // fib(4) === 3
+    expect(p.operands[0].value).toBeNull(); // operands hide behind calls
+    expect(p.baseCase).toBe(false);
   });
 });

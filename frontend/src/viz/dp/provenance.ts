@@ -6,6 +6,7 @@ import { arrayEnv, findTableCell, intEnv, leafAt } from "./dpModel";
 import { evalIndexExpr, type ArrayEnv } from "./exprEval";
 import { matchBracket, subscriptOccurrences, type Coord } from "./readSet";
 import { buildStatements, statementAtExecLine } from "./statements";
+import { projectPairs } from "./keyedWrites";
 
 export interface Operand {
   /** Source text with the table's own subscripts resolved: "dp[3][3] + 1". */
@@ -69,7 +70,7 @@ export function explainWrite(
   const rhs = resolveSubscripts(split.rhs, candidate.name, env, arrays);
 
   return {
-    lhs: `${candidate.name}[${coord.join("][")}]`,
+    lhs: keyedLhs(candidate, coord),
     assign: split.assign,
     rhs,
     op,
@@ -185,9 +186,32 @@ export function pickWinner(
   return null;
 }
 
+/** Grid coord -> the map key it projects from, for keyed tables. */
+function keyOfCoord(candidate: DpCandidate, coord: Coord): string | null {
+  if (!candidate.keyed) return null;
+  const want = coord.join(",");
+  for (const [key, c] of candidate.keyed.projection.coordOfKey) {
+    if (c.join(",") === want) return key;
+  }
+  return null;
+}
+
+/** "memo[7]" for a keyed table (the KEY, which is what the source subscripted),
+ *  "dp[3][4]" otherwise. */
+function keyedLhs(candidate: DpCandidate, coord: Coord): string {
+  const key = keyOfCoord(candidate, coord);
+  return key !== null
+    ? `${candidate.name}[${key}]`
+    : `${candidate.name}[${coord.join("][")}]`;
+}
+
 /** The table's value at `coord` as of `point`. */
 function writtenValue(candidate: DpCandidate, coord: Coord, point: ExecPoint): string {
   const table = findTableCell(memoryAt(point), candidate.cellId);
+  if (candidate.keyed) {
+    const key = keyOfCoord(candidate, coord);
+    return (key !== null && table ? projectPairs(table).get(key) : "") ?? "";
+  }
   return leafAt(table, coord)?.displayValue ?? "";
 }
 
