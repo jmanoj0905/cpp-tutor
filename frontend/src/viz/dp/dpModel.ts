@@ -23,7 +23,7 @@ export interface DpTableView {
 /** Integer locals of the innermost frame, for index-expression evaluation. */
 export function intEnv(point: ExecPoint): Map<string, number> {
   const env = new Map<string, number>();
-  const top = point.stack_to_render.at(-1) as
+  const top = (point.stack_to_render ?? []).at(-1) as
     | { encoded_locals?: Record<string, unknown> } | undefined;
   for (const [name, raw] of Object.entries(top?.encoded_locals ?? {})) {
     if (Array.isArray(raw) && raw[0] === "C_DATA" && typeof raw[3] === "number"

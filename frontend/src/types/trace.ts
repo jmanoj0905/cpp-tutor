@@ -2,10 +2,10 @@ export interface ExecPoint {
   line: number;
   event: string;
   func_name: string;
-  stack_to_render: unknown[];
-  heap: Record<string, unknown>;
-  globals: Record<string, unknown>;
-  ordered_globals: string[];
+  stack_to_render?: unknown[];
+  heap?: Record<string, unknown>;
+  globals?: Record<string, unknown>;
+  ordered_globals?: string[];
   stdout: string;
   exception_msg?: string;
 }

@@ -485,3 +485,16 @@ describe("findCellById", () => {
     expect(findCellById([leaf("a")], "missing")).toBeNull();
   });
 });
+
+it("returns empty memory for a compile-error-shaped point with no state", () => {
+  const point = {
+    line: 10,
+    event: "uncaught_exception",
+    exception_msg: "error: 'INT_MAX' was not declared in this scope",
+  } as unknown as ExecPoint;
+  const mem = normalizeMemory(point);
+  expect(mem.globals).toEqual([]);
+  expect(mem.frames).toEqual([]);
+  expect(mem.heap).toEqual([]);
+  expect(mem.links).toEqual([]);
+});

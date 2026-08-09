@@ -108,8 +108,9 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       }
       if (selfRef) t.selfRefSteps.add(step);
       const prev = trace[step - 1] ?? point;
-      t.writeDepths.add(prev.stack_to_render.length);
-      const top = prev.stack_to_render.at(-1) as StackFrameLike | undefined;
+      const prevFrames = prev.stack_to_render ?? [];
+      t.writeDepths.add(prevFrames.length);
+      const top = prevFrames.at(-1) as StackFrameLike | undefined;
       if (top?.func_name) t.writeFuncs.add(top.func_name);
     }
   });
@@ -137,7 +138,7 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
 function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | null {
   if (writeIdx < 1) return null;
   const writePoint = trace[writeIdx];
-  const writeFrame = writePoint.stack_to_render.at(-1) as StackFrameLike | undefined;
+  const writeFrame = (writePoint.stack_to_render ?? []).at(-1) as StackFrameLike | undefined;
   if (!writeFrame) return null;
   const key = frameKey(writeFrame);
   const writeLine = writePoint.line;
@@ -146,7 +147,7 @@ function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | nu
   // stopping (backward) where the invocation no longer exists on the stack.
   const history: number[] = [];
   for (let j = writeIdx - 1; j >= 0; j--) {
-    const frames = trace[j].stack_to_render as StackFrameLike[];
+    const frames = (trace[j].stack_to_render ?? []) as StackFrameLike[];
     if (!frames.some((f) => frameKey(f) === key)) break; // before frame entry
     const top = frames.at(-1);
     if (top && frameKey(top) === key) history.push(trace[j].line);

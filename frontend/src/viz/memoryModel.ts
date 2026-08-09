@@ -333,7 +333,7 @@ export function memoryAt(point: ExecPoint): NormalizedMemory {
 export function normalizeMemory(point: ExecPoint): NormalizedMemory {
   const rawGlobals = normalizeGlobals(point);
   const rawFrames = normalizeFrames(point);
-  const heapRaw = normalizeHeap(point.heap);
+  const heapRaw = normalizeHeap(point.heap ?? {});
 
   const heapByAddress = new Map(heapRaw.flatMap((cell) => (cell.address ? [[cell.address, cell]] : [])));
 
@@ -402,12 +402,13 @@ export function normalizeMemory(point: ExecPoint): NormalizedMemory {
 }
 
 function normalizeGlobals(point: ExecPoint): NormalizedCell[] {
-  const names = orderNames(point.globals, point.ordered_globals);
-  return names.map((name) => decodeMemoryValue(point.globals[name], name, "global", "globals"));
+  const globals = point.globals ?? {};
+  const names = orderNames(globals, point.ordered_globals ?? []);
+  return names.map((name) => decodeMemoryValue(globals[name], name, "global", "globals"));
 }
 
 function normalizeFrames(point: ExecPoint): NormalizedFrame[] {
-  return (point.stack_to_render as OptFrame[]).map((frame, index) => {
+  return ((point.stack_to_render ?? []) as OptFrame[]).map((frame, index) => {
     const locals = frame.encoded_locals ?? {};
     const frameId = frame.unique_hash ?? frame.frame_id ?? `frame-${index}`;
     const names = orderNames(locals, frame.ordered_varnames ?? []);
