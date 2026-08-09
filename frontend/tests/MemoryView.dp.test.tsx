@@ -73,6 +73,16 @@ describe("MemoryView DP integration", () => {
     const { container } = renderAt(t, t.trace.length - 1);
     expect(container.querySelector(".dp-panel")).toBeNull();
   });
+
+  it("clicking a written DP cell explains the recurrence that produced it", () => {
+    const t = climbBottomup as Trace;
+    const step = lastStepInScope(t, "dp");
+    const { container } = renderAt(t, step);
+    fireEvent.click(container.querySelector('.dp-cell[data-coord="2"]')!);
+    const detail = container.querySelector(".dp-detail")!;
+    expect(detail.textContent).toContain("dp[2] = dp[1] + dp[0]");
+    expect(detail.textContent).toContain("= 2");
+  });
 });
 
 describe("MemoryView DP — top-down and 2D", () => {

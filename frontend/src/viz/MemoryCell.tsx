@@ -1,8 +1,9 @@
 import { useState } from "react";
 import type { NormalizedCell } from "./memoryModel";
 import { collectionDepth, gridShape, isBentoCell } from "./memoryModel";
-import type { DpTableView } from "./dp/dpModel";
+import type { DpTableView, DpCellView } from "./dp/dpModel";
 import { DpTablePanel } from "./dp/DpTablePanel";
+import type { Provenance } from "./dp/provenance";
 
 const COLLAPSE_AT = 8;
 
@@ -41,6 +42,10 @@ export interface CellView {
   /** Cell ids that were written during the trace and so are eligible for
    *  manual promotion (see `collectTables`/`promoteToDp` in detect.ts). */
   promotableDpIds?: Set<string>;
+  /** Per-candidate lazy provenance lookups, keyed the same as `dpViews` (by
+   *  the DP table's own cell id). Called only when a cell's detail box is
+   *  open — nothing is computed for a table the user never inspects. */
+  dpExplain?: Map<string, (cell: DpCellView) => Provenance | null>;
 }
 
 interface MemoryCellProps {
@@ -55,7 +60,7 @@ interface MemoryCellProps {
 }
 
 export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = false }: MemoryCellProps) {
-  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen, onDpPromote, promotableDpIds } = view;
+  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen, onDpPromote, promotableDpIds, dpExplain } = view;
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -64,6 +69,7 @@ export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = fal
         changedIds={changedIds}
         onToggleGeneric={() => onDpToggle(cell.id)}
         readSteps={dpReadSteps?.get(cell.id)}
+        explain={dpExplain?.get(cell.id)}
       />
     );
   }

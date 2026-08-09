@@ -11,7 +11,8 @@ import { applyShapes, shapeInfoFor } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
 import { HeapTreeOverlay } from "./stl/HeapTreeOverlay";
 import { collectTables, promoteToDp, scoreCandidate, type DpCandidate } from "./dp/detect";
-import { buildDpView, collectReadSteps, type DpTableView } from "./dp/dpModel";
+import { buildDpView, collectReadSteps, type DpTableView, type DpCellView } from "./dp/dpModel";
+import { explainWrite, type Provenance } from "./dp/provenance";
 
 export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = null, onHeapOpen, onHeapClose }: {
   point: ExecPoint;
@@ -104,6 +105,18 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     for (const c of activeCandidates) m.set(c.cellId, collectReadSteps(trace, c, codeLines));
     return m;
   }, [activeCandidates, trace, codeLines]);
+  // Lazy by design: this memo builds closures, not results. Provenance for a
+  // cell is computed on the click that opens its detail box, so a trace with
+  // several tables costs nothing for the ones nobody inspects.
+  const dpExplain = useMemo(() => {
+    const m = new Map<string, (cell: DpCellView) => Provenance | null>();
+    for (const c of activeCandidates) {
+      m.set(c.cellId, (cell) =>
+        cell.writeStep === null ? null
+          : explainWrite(c, cell.coord, cell.writeStep, trace, codeLines));
+    }
+    return m;
+  }, [activeCandidates, trace, codeLines]);
 
   const cellView: CellView = {
     highlightedIds: selected ? new Set([selected.fromId, selected.toId]) : undefined,
@@ -113,6 +126,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     onCharViewToggle: toggleCharView,
     onHeapOpen,
     dpReadSteps,
+    dpExplain,
     onDpPromote: promoteDp,
     promotableDpIds: new Set(trackedTables.keys()),
   };
