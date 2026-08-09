@@ -20,7 +20,7 @@ describe("explainWrite — statement and single operand", () => {
     expect(p).not.toBeNull();
     expect(p.lhs).toBe("dp[1][1]");
     expect(p.assign).toBe("=");
-    expect(p.rhs).toBe("dp[0][1]+ dp[1][0]");
+    expect(p.rhs).toBe("dp[0][1] + dp[1][0]");
     expect(p.operands).toHaveLength(1);
     expect(p.operands[0].value).toBe(2);
     expect(p.written).toBe("2");
@@ -62,7 +62,7 @@ describe("explainWrite — statement and single operand", () => {
     const w = cand.writes.find((x) => x.coord[0] === 2)!;
     const p = explainWrite(cand, [2], w.step, t.trace, lines)!;
     expect(p.lhs).toBe("dp[2]");
-    expect(p.rhs).toBe("dp[1]+ dp[0]");
+    expect(p.rhs).toBe("dp[1] + dp[0]");
     expect(p.operands[0].value).toBe(2);
   });
 

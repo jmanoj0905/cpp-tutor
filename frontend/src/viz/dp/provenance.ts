@@ -135,7 +135,6 @@ function resolveSubscripts(
       const v = evalIndexExpr(src, env, arrays);
       chain += `[${v === null ? src : v}]`;
       pos = close + 1;
-      while (text[pos] === " ") pos++;
     }
     if (!ok) break;
     out += text.slice(last, m.index) + name + chain;
