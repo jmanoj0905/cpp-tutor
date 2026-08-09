@@ -81,7 +81,8 @@ export function collectKeyedWrites(
       if (!t) {
         t = { cellId: cell.id, name: cell.name, maxDims: [], writes: [],
               writeSteps: new Set(), selfRefSteps: new Set(), writeDepths: new Set(),
-              writeFuncs: new Set(), keyed: true, keyOrder: [] };
+              writeFuncs: new Set(), selfRefFuncs: new Set(),
+              keyed: true, keyOrder: [] };
         tracked.set(cell.id, t);
       }
       for (const key of written) {
@@ -106,15 +107,17 @@ export function collectKeyedWrites(
       // `freq[v[i]]++` frequency counter rendered as a DP table — see the
       // map-counter fixture). `keyedRead` still belongs on the PRIOR-
       // statement replay below, where `.count(`/`.find(` memo guards live.
-      if (countSubscripts(writeText, cell.name) >= 2
-          || selfRefBeforeWrite(trace, writeIdx, codeLines, statements, cell.name, keyedRead)) {
-        t.selfRefSteps.add(step);
-      }
+      const selfRef = countSubscripts(writeText, cell.name) >= 2
+          || selfRefBeforeWrite(trace, writeIdx, codeLines, statements, cell.name, keyedRead);
+      if (selfRef) t.selfRefSteps.add(step);
       const prev = trace[writeIdx] ?? point;
       const frames = (prev.stack_to_render ?? []) as FrameIdentity[];
       t.writeDepths.add(frames.length);
       const top = frames.at(-1);
-      if (top?.func_name) t.writeFuncs.add(top.func_name);
+      if (top?.func_name) {
+        t.writeFuncs.add(top.func_name);
+        if (selfRef) t.selfRefFuncs.add(top.func_name);
+      }
     }
   });
   return tracked;

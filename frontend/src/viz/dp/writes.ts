@@ -17,6 +17,11 @@ export interface TrackedTable {
   selfRefSteps: Set<number>;
   writeDepths: Set<number>;
   writeFuncs: Set<string>;
+  /** Functions that performed a SELF-REFERENTIAL write — the recurrence's own
+   *  home, as opposed to `writeFuncs`, which also contains drivers that merely
+   *  seed base cases (`dp[m-1][n-1] = 0;` in uniquePaths before calling the
+   *  memoized dfs). Detection requires one recurrence site, not one writer. */
+  selfRefFuncs: Set<string>;
   /** true for map/unordered_map memos (Task 8) */
   keyed: boolean;
 }
@@ -89,7 +94,8 @@ export function collectWrites(trace: ExecPoint[], codeLines: string[], statement
       if (!t) {
         t = { cellId: arrayId, name: info.name, maxDims: [], writes: [],
               writeSteps: new Set(), selfRefSteps: new Set(),
-              writeDepths: new Set(), writeFuncs: new Set(), keyed: false };
+              writeDepths: new Set(), writeFuncs: new Set(),
+              selfRefFuncs: new Set(), keyed: false };
         tracked.set(arrayId, t);
       }
       t.maxDims = maxDims(t.maxDims, info.dims);
@@ -115,7 +121,10 @@ export function collectWrites(trace: ExecPoint[], codeLines: string[], statement
       const prevFrames = prev.stack_to_render ?? [];
       t.writeDepths.add(prevFrames.length);
       const top = prevFrames.at(-1) as StackFrameLike | undefined;
-      if (top?.func_name) t.writeFuncs.add(top.func_name);
+      if (top?.func_name) {
+        t.writeFuncs.add(top.func_name);
+        if (selfRef) t.selfRefFuncs.add(top.func_name);
+      }
     }
   });
 

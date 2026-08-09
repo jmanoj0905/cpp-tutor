@@ -119,6 +119,16 @@ function keyedCandidate(t: KeyedTrack, mode: DpCandidate["mode"]): DpCandidate {
  *  line-span cutoff rejects exactly those. Requiring a single writing function
  *  is what keeps a global array poked at from unrelated places out. */
 function classify(t: TrackedTable): DpCandidate["mode"] | null {
-  if (t.writeFuncs.size !== 1) return null;
+  // ONE RECURRENCE SITE, not one writer. Requiring `writeFuncs.size === 1`
+  // rejected the dominant top-down shape in Striver's sheet, where the driver
+  // seeds base cases and the memoized helper holds the recurrence:
+  //   uniquePaths: `dp[m-1][n-1] = 0;` in uniquePaths, `dp[i][j] = dfs(...)`
+  //     in dfs — 18 writes, 17 of them self-referential, still rejected.
+  //   tribonacci: `dp[0..2]` seeded in tribonacci, recurrence in helper.
+  // Base-case seeding may come from anywhere; the recurrence may not. The
+  // guard this replaces was meant to keep a global poked at from unrelated
+  // functions out, and that case is still rejected — such a global has no
+  // self-referential writes at all, so it never clears MIN_SELF_REF_STEPS.
+  if (t.selfRefFuncs.size !== 1) return null;
   return t.writeDepths.size === 1 ? "bottom-up" : "top-down";
 }
