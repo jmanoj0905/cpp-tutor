@@ -59,6 +59,19 @@ describe("real-world DP fixtures", () => {
     expect(found[0].mode).toBe(mode);
   });
 
+  // Memo guards and guard-condition self-reference.
+  it.each([
+    ["memo-fib-vector", "dp", "top-down"],
+    ["count-substrings", "dp", "bottom-up"],
+    ["longest-palindrome-substr", "dp", "bottom-up"],
+    ["house-robber", "dp", "bottom-up"],
+  ] as const)("%s detects %s as %s", (name, table, mode) => {
+    const found = detect(realWorld[name]);
+    expect(found).toHaveLength(1);
+    expect(found[0].name).toBe(table);
+    expect(found[0].mode).toBe(mode);
+  });
+
   it("does not throw on a degenerate compile-error trace", () => {
     const t = compileErrorTrace as unknown as { trace: ExecPoint[] };
     expect(() => detectDpTables(t.trace, "")).not.toThrow();

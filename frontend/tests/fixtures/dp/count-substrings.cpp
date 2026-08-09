@@ -39,7 +39,7 @@ int countSubstrings(string s){
 }
 
 int main(){
-    string s = "aaa";
-    cout << countSubstrings(s); //expected 6
+    string s = "aaaaa";
+    cout << countSubstrings(s); //expected 15
     return 0;
 }

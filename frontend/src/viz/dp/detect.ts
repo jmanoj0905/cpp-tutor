@@ -1,6 +1,6 @@
 import type { ExecPoint } from "../../types/trace";
 import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
-import { countSubscripts, type Coord } from "./readSet";
+import { countSubscripts, isAssignmentLhs, type Coord } from "./readSet";
 import { escapeRe } from "../../util";
 import { frameKey, type FrameIdentity } from "../callTree";
 import { buildStatements, statementAtExecLine } from "./statements";
@@ -16,6 +16,7 @@ export interface DpCandidate {
 }
 
 export const MIN_WRITE_STEPS = 3;
+export const MIN_SELF_REF_STEPS = 2;
 
 interface Tracked {
   cellId: string;
@@ -86,28 +87,11 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
       // to sit under an unrelated read line). Two accepted witnesses:
       //   (a) the write line itself has >= 2 occurrences (bottom-up:
       //       "dp[i] = dp[i-1] + dp[i-2];"), or
-      //   (b) the guard line — the line the write's own frame executed
-      //       immediately before the write line first began, recovered from
-      //       the trace, not from source position — has >= 2 occurrences on
-      //       that one line AND hands the array's own value back early: the
-      //       token "return" is immediately followed (only whitespace
-      //       between) by a subscript of this array
-      //       (top-down: "if (memo[n] != -1) return memo[n];" — "return" is
-      //       directly followed by "memo[n]"). A plain `.includes("return")`
-      //       is not enough: `if (arr[n] < 0 || arr[n] > 100) return -1;` also
-      //       has "return" and 2 occurrences on one line, but returns -1, not
-      //       arr[n] — ordinary bounds validation, not a memo short-circuit.
-      //       Requiring the returned expression to literally be the array's
-      //       own subscript is what actually distinguishes "handing back a
-      //       previously-computed value" from any other early-return guard.
+      //   (b) a read of the table in a conditional/return statement the same
+      //       frame invocation already executed before the write (see
+      //       selfRefBeforeWrite).
       let selfRef = countSubscripts(lineText, info.name) >= 2;
-      if (!selfRef) {
-        const guardLine = guardLineBeforeWrite(trace, step - 1);
-        const guardText = guardLine !== null ? statementAtExecLine(codeLines, statements, guardLine) : "";
-        if (returnsOwnSubscript(guardText, info.name) && countSubscripts(guardText, info.name) >= 2) {
-          selfRef = true;
-        }
-      }
+      if (!selfRef) selfRef = selfRefBeforeWrite(trace, step - 1, codeLines, statements, info.name);
       if (selfRef) t.selfRefSteps.add(step);
       const prev = trace[step - 1] ?? point;
       const prevFrames = prev.stack_to_render ?? [];
@@ -120,7 +104,11 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
   const out: DpCandidate[] = [];
   for (const t of tracked.values()) {
     if (t.writeSteps.size < MIN_WRITE_STEPS) continue;
-    if (t.selfRefSteps.size * 2 <= t.writeSteps.size) continue; // majority self-ref
+    // Base cases are never self-referential and dominate at small n
+    // (house-robber on {1,2,3}: 4 writes, 2 self-referential), so a strict
+    // majority rejects real tables on the tiny inputs these problems run on.
+    if (t.selfRefSteps.size < MIN_SELF_REF_STEPS) continue;
+    if (t.selfRefSteps.size * 3 < t.writeSteps.size) continue;
     const mode = classify(t);
     if (!mode) continue;
     out.push({ cellId: t.cellId, name: t.name, dims: t.maxDims, mode, writes: t.writes });
@@ -128,55 +116,74 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
   return out;
 }
 
-/** Line executed by the write's own frame invocation immediately before the
- *  write line FIRST began executing — the "guard" in the memoization idiom.
- *  Execution adjacency, not source adjacency: replay the frame's step_line
- *  history from the trace (identified by unique_hash/frame_id) and take the
- *  line preceding the first occurrence of the write line. The point literally
- *  before the write can be a callee's return artifact (observed in
- *  climb-topdown: a step at the callee's closing brace attributed to the
- *  caller frame mid-unwind), so trace[writeIdx - 1] alone is not usable.
- *  Returns null when there is no unambiguous guard line — never guesses. */
-function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | null {
-  if (writeIdx < 1) return null;
+/** True when the table is read (subscripted, and not as an assignment LHS) in
+ *  a CONDITIONAL or RETURN statement that this write's own frame invocation
+ *  already executed before the write. That is control dependence on the
+ *  table's own prior values — the property that actually separates a
+ *  recurrence from a fill.
+ *
+ *  Restricting to conditionals and returns is load-bearing, not cosmetic.
+ *  Accepting any earlier read would make a plain fill loop self-referential
+ *  whenever an unrelated read happens to precede the write — exactly the
+ *  printf-fill false positive that tests/dpDetect.test.ts guards.
+ *
+ *  Execution adjacency, not source adjacency: the frame's executed lines are
+ *  replayed from the trace via frameKey, because the point literally before
+ *  the write can be a callee's return artifact. */
+function selfRefBeforeWrite(
+  trace: ExecPoint[], writeIdx: number, codeLines: string[], statements: string[], name: string,
+): boolean {
+  if (writeIdx < 1) return false;
   const writePoint = trace[writeIdx];
   const writeFrame = (writePoint.stack_to_render ?? []).at(-1) as StackFrameLike | undefined;
-  if (!writeFrame) return null;
+  if (!writeFrame) return false;
   const key = frameKey(writeFrame);
-  const writeLine = writePoint.line;
 
-  // Lines executed with this exact frame invocation on top, oldest-first,
-  // stopping (backward) where the invocation no longer exists on the stack.
-  const history: number[] = [];
   for (let j = writeIdx - 1; j >= 0; j--) {
     const frames = (trace[j].stack_to_render ?? []) as StackFrameLike[];
     if (!frames.some((f) => frameKey(f) === key)) break; // before frame entry
     const top = frames.at(-1);
-    if (top && frameKey(top) === key) history.push(trace[j].line);
+    if (!top || frameKey(top) !== key) continue;
+    const text = statementAtExecLine(codeLines, statements, trace[j].line);
+    if (!isControlStatement(text)) continue;
+    if (isAssignmentLhs(text, name)) continue;
+    // A statement containing "return" is narrowed further: a bounds/sentinel
+    // guard (`if (arr[n] < 0 || arr[n] > 100) return -1;`) has the same shape
+    // as a memo short-circuit — a conditional reading the array with "return"
+    // somewhere on the line — but hands back a sentinel, not the array's own
+    // value, so it is not evidence of a recurrence. Only a return that hands
+    // the array's own subscripted value straight back (`return dp[n];`, or
+    // embedded as in a single-line `if (...) return dp[n];`) counts. A
+    // conditional with no "return" at all (`if (dp[n] != -1) {`, or
+    // count-substrings' `if (s[i] == s[j] && dp[i+1][j-1]) {`) is not subject
+    // to this narrowing: reading the table to decide whether to enter the
+    // branch that performs the write IS the recurrence.
+    if (/\breturn\b/.test(text)) {
+      if (returnsOwnSubscript(text, name)) return true;
+      continue;
+    }
+    if (countSubscripts(text, name) >= 1) return true;
   }
-  history.reverse();
+  return false;
+}
 
-  const first = history.indexOf(writeLine);
-  if (first > 0) return history[first - 1];
-  if (first === -1) return history.at(-1) ?? null; // writeIdx is the first time at writeLine
-  return null; // write line is the first thing the frame executed — no guard
+/** A statement whose subscripts express control dependence: if / while / for /
+ *  ternary / return. */
+function isControlStatement(text: string): boolean {
+  return /^(if|while|for|return)\b/.test(text.trimStart()) || text.includes("?");
+}
+
+/** True when `text` contains the literal pattern `return <ws>* name[` — i.e.
+ *  the "return" keyword immediately (modulo whitespace) followed by a
+ *  subscript of this array. See selfRefBeforeWrite's doc for why this
+ *  narrowing exists only for statements that contain "return". */
+function returnsOwnSubscript(text: string, name: string): boolean {
+  const re = new RegExp(`\\breturn\\s*${escapeRe(name)}\\s*\\[`);
+  return re.test(text);
 }
 
 // Frame identity is shared with the call tree so both agree on what "the
 // same frame" means across modules.
-
-/** True when `lineText` contains the literal pattern `return <ws>* name[` —
- *  i.e. the "return" keyword immediately (modulo whitespace) followed by a
- *  subscript of this array. This is the actual signature of a memoization
- *  short-circuit ("hand back the array's own previously-computed value"),
- *  as opposed to any other early return that merely happens to read the
- *  array elsewhere on the same line (e.g. a bounds-check guard returning a
- *  sentinel: `if (arr[n] < 0 || arr[n] > 100) return -1;`). */
-function returnsOwnSubscript(lineText: string, name: string): boolean {
-  const re = new RegExp(`\\breturn\\s*${escapeRe(name)}\\s*\\[`);
-  return re.test(lineText);
-}
-
 
 /** Bottom-up vs top-down is a question about the SHAPE OF THE STACK at the
  *  writes, not about where the writes sit in the source: one frame depth
