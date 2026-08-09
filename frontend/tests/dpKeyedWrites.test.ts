@@ -28,6 +28,6 @@ describe("collectKeyedWrites", () => {
 
   it("marks the memo writes self-referential via the count guard", () => {
     const memo = [...collect().values()].find((k) => k.name === "memo")!;
-    expect(memo.selfRefSteps.size).toBeGreaterThanOrEqual(2);
+    expect(memo.selfRefSteps.size).toBe(3);
   });
 });

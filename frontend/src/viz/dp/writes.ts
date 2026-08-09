@@ -2,6 +2,7 @@ import type { ExecPoint } from "../../types/trace";
 import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
 import { countSubscripts, isAssignmentLhs, type Coord } from "./readSet";
 import { escapeRe } from "../../util";
+import { allRoots } from "../cells";
 import { frameKey, type FrameIdentity } from "../callTree";
 import { statementAtExecLine } from "./statements";
 
@@ -206,12 +207,7 @@ type LeafIndex = Map<string, LeafOwner> & { arrays: Map<string, ArrayInfo> };
 function indexArrayLeaves(mem: NormalizedMemory): LeafIndex {
   const index = new Map() as LeafIndex;
   index.arrays = new Map();
-  const allCells = [
-    ...mem.globals,
-    ...mem.frames.flatMap((f) => f.cells),
-    ...mem.heap,
-  ];
-  for (const cell of allCells) visit(cell, index);
+  for (const cell of allRoots(mem)) visit(cell, index);
   return index;
 }
 

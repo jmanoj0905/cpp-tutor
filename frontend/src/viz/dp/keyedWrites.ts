@@ -1,5 +1,6 @@
 import type { ExecPoint } from "../../types/trace";
 import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
+import { allRoots } from "../cells";
 import type { FrameIdentity } from "../callTree";
 import { statementAtExecLine } from "./statements";
 import { keyedRead, selfRefBeforeWrite, type TrackedTable } from "./writes";
@@ -114,6 +115,6 @@ function mapCells(mem: NormalizedMemory): NormalizedCell[] {
     if (isMemoMap(c)) { out.push(c); return; }
     c.children?.forEach(visit);
   };
-  [...mem.globals, ...mem.frames.flatMap((f) => f.cells), ...mem.heap].forEach(visit);
+  allRoots(mem).forEach(visit);
   return out;
 }
