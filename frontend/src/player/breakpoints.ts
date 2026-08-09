@@ -1,11 +1,9 @@
 import type { Trace } from "../types/trace";
+import { toggleInSet } from "../util";
 
-export function toggleBreakpoint(set: Set<number>, line: number): Set<number> {
-  const next = new Set(set);
-  if (next.has(line)) next.delete(line);
-  else next.add(line);
-  return next;
-}
+/** Breakpoint-typed alias of the shared set toggle. */
+export const toggleBreakpoint = (set: Set<number>, line: number): Set<number> =>
+  toggleInSet(set, line);
 
 // Breakpoint lines the trace never steps on — e.g. lines the tracer cannot
 // see or code the program never reaches. Sorted for stable display.

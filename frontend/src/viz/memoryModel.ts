@@ -1,6 +1,7 @@
 import type { ExecPoint } from "../types/trace";
 import { decodeContainer } from "./stl/registry";
 import type { DecodeCtx } from "./stl/types";
+import { flattenCells } from "./cells";
 
 export type MemorySource = "stack" | "global" | "heap";
 export type MemoryCellKind = "scalar" | "reference" | "struct" | "array" | "summary" | "container";
@@ -278,10 +279,6 @@ function isIndexedCollection(cell: NormalizedCell): boolean {
   return cell.kind === "array" || cell.kind === "container";
 }
 
-function flattenCells(cells: NormalizedCell[]): NormalizedCell[] {
-  return cells.flatMap((cell) => [cell, ...flattenCells(cell.children ?? [])]);
-}
-
 /** Ids of every cell in a non-active stack frame. A pointer link whose `fromId`
  *  is in this set originates in a suspended frame and should render dimmed. The
  *  active frame is the last one; globals/heap are excluded by construction. */
@@ -308,6 +305,29 @@ function resolveContainers(cells: NormalizedCell[], ctx: DecodeCtx): NormalizedC
     }
     return withKids;
   });
+}
+
+// One cache for the whole app. Whole-trace scans (shape confirmation, DP
+// detection, graph-tab availability, traversal-order binding) each walk every
+// point, and the per-step panels then re-read the same points; without sharing
+// this, a single trace was normalized by five independent passes, two of which
+// kept private WeakMaps that could not see each other's work.
+//
+// Keyed by ExecPoint identity, so entries die with the trace. Callers that
+// need a FRESH object identity every call (MemoryView relies on `links` being
+// a new array to retrigger its connector measurement) must use
+// `normalizeMemory` directly instead.
+const memoryCache = new WeakMap<ExecPoint, NormalizedMemory>();
+
+/** Memoized `normalizeMemory`. Prefer this everywhere except where a new
+ *  object identity per call is load-bearing. */
+export function memoryAt(point: ExecPoint): NormalizedMemory {
+  let m = memoryCache.get(point);
+  if (!m) {
+    m = normalizeMemory(point);
+    memoryCache.set(point, m);
+  }
+  return m;
 }
 
 export function normalizeMemory(point: ExecPoint): NormalizedMemory {
@@ -515,13 +535,7 @@ function childElementType(children: NormalizedCell[]): string {
 
 /** Depth-first search for a cell by id, walking each cell's children.
  *  Pure — used to resolve a stable cell id against a fresh step's memory. */
-export function findCellById(cells: NormalizedCell[], id: string): NormalizedCell | null {
-  for (const c of cells) {
-    if (c.id === id) return c;
-    if (c.children) {
-      const hit = findCellById(c.children, id);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
+// Re-exported so existing importers (and tests) keep a single obvious home
+// for "find a cell in this step's memory"; the implementation lives in
+// viz/cells.ts alongside the other traversals.
+export { findCellById } from "./cells";

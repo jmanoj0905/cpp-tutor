@@ -6,6 +6,7 @@ import { changedCellIds } from "./memoryDiff";
 import { MemoryCell } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
 import { Divider } from "../Divider.tsx";
+import { toggleInSet } from "../util";
 import { applyShapes, shapeInfoFor } from "./shapes";
 import { ShapePanel } from "./ShapePanel";
 import { HeapTreeOverlay } from "./stl/HeapTreeOverlay";
@@ -30,12 +31,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   // still resolve. The char-view transform runs every render to annotate
   // togglable cells (even when nothing is switched on).
   const [charView, setCharView] = useState<Set<string>>(new Set());
-  const toggleCharView = (cellId: string) =>
-    setCharView((prev) => {
-      const n = new Set(prev);
-      if (n.has(cellId)) n.delete(cellId); else n.add(cellId);
-      return n;
-    });
+  const toggleCharView = (cellId: string) => setCharView((prev) => toggleInSet(prev, cellId));
   const viewMemory = applyCharView(memory, charView);
   const changedIds = changedCellIds(prevPoint ? normalizeMemory(prevPoint) : null, memory);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,12 +41,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   const shapeInfo = useMemo(() => shapeInfoFor(trace), [trace]);
   const [disabledShapes, setDisabledShapes] = useState<Set<string>>(new Set());
   const { memory: shaped, shapes } = applyShapes(viewMemory, shapeInfo.confirmed, disabledShapes, shapeInfo.selfNames);
-  const toggleShape = (typeName: string) =>
-    setDisabledShapes((prev) => {
-      const next = new Set(prev);
-      if (next.has(typeName)) next.delete(typeName); else next.add(typeName);
-      return next;
-    });
+  const toggleShape = (typeName: string) => setDisabledShapes((prev) => toggleInSet(prev, typeName));
 
   const dpCandidates = useMemo(() => detectDpTables(trace, code), [trace, code]);
   const [disabledDp, setDisabledDp] = useState<Set<string>>(new Set());
@@ -73,12 +64,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     // memory identity changes every render; safe: views derive from point
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dpCandidates, disabledDp, step, point, codeLines, trace]);
-  const toggleDp = (cellId: string) =>
-    setDisabledDp((prev) => {
-      const n = new Set(prev);
-      if (n.has(cellId)) n.delete(cellId); else n.add(cellId);
-      return n;
-    });
+  const toggleDp = (cellId: string) => setDisabledDp((prev) => toggleInSet(prev, cellId));
   // Whole-trace, so computed once per candidate set (not per step).
   const dpReadSteps = useMemo(() => {
     const m = new Map<string, Map<string, number[]>>();
@@ -89,12 +75,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   useEffect(() => { setSelected(null); }, [point]);
   const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
 
-  const toggleFrame = (id: string) =>
-    setExpandedFrames((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
+  const toggleFrame = (id: string) => setExpandedFrames((prev) => toggleInSet(prev, id));
 
   return (
     <div className="memory" ref={containerRef} onClick={() => setSelected(null)}>

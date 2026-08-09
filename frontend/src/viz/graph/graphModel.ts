@@ -1,35 +1,16 @@
-import { normalizeMemory, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
+import { memoryAt, type NormalizedMemory, type NormalizedCell } from "../memoryModel";
 import type { ExecPoint } from "../../types/trace";
 import { findContainers } from "./containers";
+import { emptyOverlays } from "./scene";
+import type {
+  GraphKind, GraphNode, GraphEdge, GraphScene, ViewAs,
+} from "./scene";
 import type { ShapeModel } from "../shapes";
 import { treeSceneFrom } from "./treeScene";
 
-export type GraphKind = "adjlist" | "matrix" | "grid" | "tree";
-export type ViewAs = "auto" | "graph" | "grid";
-export interface GraphNode { id: string; label: string; row?: number; col?: number; }
-export interface GraphEdge {
-  from: string; to: string; directed: boolean; dangling?: boolean; weight?: number;
-  /** Pointer trees only: index of the self-pointer member — 0 = left, 1 = right.
-   *  Drives slot-aware placement in treeLayout. Absent on heap trees (A3) and
-   *  on every array-family scene, which keep the even level spread. */
-  slot?: number;
-  /** Pointer trees only: this edge lies on the live recursion path. */
-  onPath?: boolean;
-}
-export interface GraphOverlays {
-  visited: Set<string>; current: string[]; frontier: Set<string>;
-  order: Map<string, number>; flashed: Set<string>;
-}
-export interface GraphScene {
-  kind: GraphKind; nodes: GraphNode[]; edges: GraphEdge[];
-  overlays: GraphOverlays; rows?: number; cols?: number;
-  dist?: Map<string, string>;
-}
-
-const emptyOverlays = (): GraphOverlays => ({
-  visited: new Set(), current: [], frontier: new Set(),
-  order: new Map(), flashed: new Set(),
-});
+export type {
+  GraphKind, ViewAs, GraphNode, GraphEdge, GraphOverlays, GraphScene,
+} from "./scene";
 
 /** A vector<vector<scalar>> reads as rows of scalar displayValues. Null otherwise. */
 export function readMatrix(cell: NormalizedCell): string[][] | null {
@@ -240,17 +221,9 @@ export function heapScene(nodes: HeapNode[]): GraphScene {
 
 function isIntLabel(s: string): boolean { return /^-?\d+$/.test(s); }
 
-// normalizeMemory is pure per ExecPoint; bindOrder re-derives the visited set
-// for trace[0..index] on every scene build, so without memoization a full-trace
-// scan re-normalizes each point O(n) times (O(n^2) overall). Cache by point
-// identity — a behavioural no-op that keeps the seek-safe order affordable.
-const normCache = new WeakMap<ExecPoint, NormalizedMemory>();
-function norm(point: ExecPoint): NormalizedMemory {
-  let m = normCache.get(point);
-  if (!m) { m = normalizeMemory(point); normCache.set(point, m); }
-  return m;
-}
-
+// bindOrder re-derives the visited set for trace[0..index] on every scene
+// build, so it leans on memoryAt's memoization to stay O(n) overall rather
+// than re-normalizing each point on every seek.
 function frameNodeId(frame: { cells: NormalizedCell[] }, kind: GraphKind): string | null {
   const ints = frame.cells.filter((c) => c.kind === "scalar" && isIntLabel(c.displayValue));
   if (kind === "grid") {
@@ -386,7 +359,7 @@ function truthyScalar(v: string): boolean {
 
 function visitedIdsAt(point: ExecPoint, kindHint: GraphScene, trace: ExecPoint[]): Set<string> {
   // reuse detection on a point's memory to read its visited set
-  const mem = norm(point);
+  const mem = memoryAt(point);
   const scene = { ...kindHint, overlays: {
     visited: new Set<string>(), current: [], frontier: new Set<string>(),
     order: new Map<string, number>(), flashed: new Set<string>() } };
@@ -419,7 +392,7 @@ function bindFlash(prevMem: NormalizedMemory | null, mem: NormalizedMemory, scen
  *  early; it is not necessarily present at trace[0].) */
 function gridBaseline(trace: ExecPoint[], scene: GraphScene): string[][] | null {
   for (let s = 0; s < trace.length; s++) {
-    const m = readGridMatrix(norm(trace[s]), scene);
+    const m = readGridMatrix(memoryAt(trace[s]), scene);
     if (m) return m;
   }
   return null;
@@ -597,7 +570,7 @@ function bindDist(mem: NormalizedMemory, scene: GraphScene, trace: ExecPoint[], 
   const direct = identifyDistContainer(mem, n);
   if (direct) { scene.dist = distToMap(direct.children!); return; }
   for (let s = index - 1; s >= 0; s--) {
-    const past = identifyDistContainer(norm(trace[s]), n);
+    const past = identifyDistContainer(memoryAt(trace[s]), n);
     if (!past || !past.address) continue;
     const here = findContainerByAddress(mem, past.address);
     if (here && isFlatDistCandidate(here, n)) { scene.dist = distToMap(here.children!); return; }

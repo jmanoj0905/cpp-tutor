@@ -3,8 +3,9 @@
 // exactly 2 is a binary-tree candidate. Detection is by member TYPE, not kind:
 // a null `next` decodes as a scalar but keeps its `ListNode *` type.
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "./memoryModel";
-import { normalizeMemory } from "./memoryModel";
+import { memoryAt } from "./memoryModel";
 import type { ExecPoint } from "../types/trace";
+import { escapeRe } from "../util";
 
 export type ShapeKind = "list" | "tree" | "trie";
 
@@ -20,8 +21,6 @@ export interface ShapeEdge {
 
 const baseType = (t: string | null): string =>
   (t ?? "").replace(/^(struct|class)\s+/, "").trim();
-
-const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export function selfPtrMembers(cell: NormalizedCell): NormalizedCell[] {
   const own = baseType(cell.type);
@@ -432,7 +431,7 @@ export function confirmShapeTypes(trace: ExecPoint[]): ShapeInfo {
   trace.forEach((point, step) => {
     const heapKeys = Object.keys(point.heap ?? {});
     for (const addr of heapKeys) if (!firstSeen.has(addr)) firstSeen.set(addr, step);
-    const memory = normalizeMemory(point);
+    const memory = memoryAt(point);
     perStepMemory.push(memory);
     bucketStructCells(memory, cellsByType);
   });

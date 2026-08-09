@@ -1,5 +1,6 @@
 import type { ExecPoint } from "../../types/trace";
-import { normalizeMemory, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
+import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
+import { allRoots, findCellById } from "../cells";
 import type { DpCandidate } from "./detect";
 import type { ArrayEnv, ArrayValue } from "./exprEval";
 import { isAssignmentLhs, resolveOccurrences, type Coord } from "./readSet";
@@ -107,7 +108,7 @@ export function buildDpView(
   const usePrevPoint = currentWrite !== null && prevPoint !== null;
   const readPoint = usePrevPoint ? prevPoint! : point;
   const lineText = codeLines[readPoint.line - 1] ?? "";
-  const readMem = usePrevPoint ? normalizeMemory(readPoint) : mem;
+  const readMem = usePrevPoint ? memoryAt(readPoint) : mem;
   const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint), arrayEnv(readMem));
   const reads = [...occ];
   // Structural primary defense: on an assignment line `name[...] = expr;`,
@@ -156,7 +157,7 @@ export function collectReadSteps(
   trace.forEach((point, step) => {
     const lineText = codeLines[point.line - 1] ?? "";
     const occ = resolveOccurrences(lineText, candidate.name, intEnv(point),
-                                   arrayEnv(normalizeMemory(point)));
+                                   arrayEnv(memoryAt(point)));
     const reads = [...occ];
     if (isAssignmentLhs(lineText, candidate.name) && occ.length > 0) {
       const i = reads.findIndex((c) => c.join(",") === occ[0].join(","));
@@ -172,17 +173,8 @@ export function collectReadSteps(
   return log;
 }
 
-function findCell(mem: NormalizedMemory, id: string): NormalizedCell | null {
-  const stack: NormalizedCell[] = [
-    ...mem.globals, ...mem.frames.flatMap((f) => f.cells), ...mem.heap,
-  ];
-  while (stack.length) {
-    const cell = stack.pop()!;
-    if (cell.id === id) return cell;
-    if (cell.children) stack.push(...cell.children);
-  }
-  return null;
-}
+const findCell = (mem: NormalizedMemory, id: string): NormalizedCell | null =>
+  findCellById(allRoots(mem), id);
 
 function leafAt(table: NormalizedCell | null, coord: Coord): NormalizedCell | null {
   let cell = table;

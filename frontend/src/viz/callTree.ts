@@ -74,10 +74,15 @@ export interface CallTree {
   hasRecursion: boolean;
 }
 
-interface OptFrame {
+/** The subset of a trace frame that identifies it. Consumers that only need
+ *  identity (dp/detect) depend on this, not on the full frame shape. */
+export interface FrameIdentity {
   func_name?: string;
   frame_id?: string;
   unique_hash?: string;
+}
+
+interface OptFrame extends FrameIdentity {
   ordered_varnames?: string[];
   encoded_locals?: Record<string, unknown>;
   is_zombie?: boolean;
@@ -86,14 +91,19 @@ interface OptFrame {
 const liveFrames = (p: ExecPoint): OptFrame[] =>
   (p.stack_to_render as OptFrame[]).filter((f) => !f.is_zombie);
 
-const frameHash = (f: OptFrame, index: number): string =>
-  f.unique_hash ?? f.frame_id ?? `${f.func_name}-${index}`;
+/** Stable identity for one stack frame. `index` disambiguates the legacy
+ *  traces that carry neither unique_hash nor frame_id; callers that have no
+ *  index (dp/detect) omit it and fall back to the function name. */
+export const frameKey = (f: FrameIdentity, index?: number): string =>
+  f.unique_hash ?? f.frame_id ?? (index === undefined ? f.func_name ?? "?" : `${f.func_name}-${index}`);
+
+const frameHash = (f: OptFrame, index: number): string => frameKey(f, index);
 
 const frameAddr = (f: OptFrame, index: number): string => f.frame_id ?? frameHash(f, index);
 
 // Real traces report func_name as a full signature ("fib(int)"); strip the
 // parameter list for the funcName clients group/count/label by.
-const baseName = (raw: string | undefined): string => (raw ?? "?").replace(/\(.*\)$/, "");
+export const baseName = (raw: string | undefined): string => (raw ?? "?").replace(/\(.*\)$/, "");
 
 export function buildCallTree(trace: ExecPoint[]): CallTree {
   const roots: CallTreeNode[] = [];

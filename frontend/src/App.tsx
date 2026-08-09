@@ -8,13 +8,14 @@ import { buildCallTree } from "./viz/callTree";
 import { CallTreePanel } from "./viz/CallTreePanel";
 import { CallLogPanel } from "./viz/CallLogPanel";
 import { GraphPanel } from "./viz/graph/GraphPanel";
-import { normalizeMemory } from "./viz/memoryModel";
+import { memoryAt } from "./viz/memoryModel";
 import { hasGraphContent } from "./viz/graph/graphModel";
 import { shapeInfoFor } from "./viz/shapes";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
 import { useElapsed } from "./player/useElapsed";
-import { toggleBreakpoint as toggleInSet, deadBreakpointLines } from "./player/breakpoints";
+import { deadBreakpointLines } from "./player/breakpoints";
+import { toggleInSet } from "./util";
 import { fetchTrace } from "./api/client";
 import { isCompileError, type Trace } from "./types/trace";
 
@@ -69,7 +70,7 @@ function Workspace({
       if (kind === "tree") return true;
     }
     for (let s = 0; s < trace.trace.length; s++) {
-      if (hasGraphContent(normalizeMemory(trace.trace[s]))) return true;
+      if (hasGraphContent(memoryAt(trace.trace[s]))) return true;
     }
     return false;
   }, [trace]);

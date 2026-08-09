@@ -5,8 +5,9 @@
 // cell for one variable, following reference/pointer params to their target
 // so `const vector<int>& nums` shows the caller's actual elements.
 import type { ExecPoint } from "../types/trace";
-import type { CallTreeNode } from "./callTree";
-import { isCompilerInternal, normalizeMemory, type NormalizedCell } from "./memoryModel";
+import { baseName, type CallTreeNode } from "./callTree";
+import { isCompilerInternal, memoryAt, type NormalizedCell } from "./memoryModel";
+import { findCellById, mapCellIds } from "./cells";
 
 export interface InspectedVariable {
   cell: NormalizedCell;
@@ -22,8 +23,6 @@ interface OptFrame {
   encoded_locals?: Record<string, unknown>;
   is_zombie?: boolean;
 }
-
-const baseName = (raw: string | undefined): string => (raw ?? "?").replace(/\(.*\)$/, "");
 
 /** The node's frame within a point's full stack_to_render (zombies included),
  *  located by live depth; null when the shape doesn't match the node. */
@@ -84,7 +83,7 @@ export function inspectVariable(
   const frameIdx = frameIndexAt(point, node);
   if (frameIdx === null) return null;
 
-  const mem = normalizeMemory(point);
+  const mem = memoryAt(point);
   const frame = mem.frames[frameIdx];
   if (!frame) return null;
 
@@ -93,7 +92,7 @@ export function inspectVariable(
 
   let deref = false;
   if (cell.kind === "reference" && cell.targetId) {
-    const target = findById(
+    const target = findCellById(
       [...mem.globals, ...mem.frames.flatMap((f) => f.cells), ...mem.heap],
       cell.targetId,
     );
@@ -105,26 +104,9 @@ export function inspectVariable(
     }
   }
 
-  return { cell: rekey(cell, `ct-inspect-${node.id}-`), step, deref };
+  // Namespace ids so expansion cells can never collide with the Memory
+  // panel's live cells (data-cell-id is queried document-wide by tests/tools).
+  const prefix = `ct-inspect-${node.id}-`;
+  return { cell: mapCellIds(cell, (id) => `${prefix}${id}`), step, deref };
 }
 
-function findById(cells: NormalizedCell[], id: string): NormalizedCell | null {
-  for (const cell of cells) {
-    if (cell.id === id) return cell;
-    if (cell.children) {
-      const hit = findById(cell.children, id);
-      if (hit) return hit;
-    }
-  }
-  return null;
-}
-
-/** Namespace ids so expansion cells can never collide with the Memory panel's
- *  live cells (data-cell-id is queried document-wide by tests/tools). */
-function rekey(cell: NormalizedCell, prefix: string): NormalizedCell {
-  return {
-    ...cell,
-    id: `${prefix}${cell.id}`,
-    children: cell.children?.map((c) => rekey(c, prefix)),
-  };
-}

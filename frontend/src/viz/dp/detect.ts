@@ -1,6 +1,8 @@
 import type { ExecPoint } from "../../types/trace";
-import { normalizeMemory, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
+import { memoryAt, type NormalizedCell, type NormalizedMemory } from "../memoryModel";
 import { countSubscripts, type Coord } from "./readSet";
+import { escapeRe } from "../../util";
+import { frameKey, type FrameIdentity } from "../callTree";
 
 export interface DpWrite { step: number; coord: Coord; }
 
@@ -25,11 +27,7 @@ interface Tracked {
   writeFuncs: Set<string>;
 }
 
-interface StackFrameLike {
-  func_name?: string;
-  frame_id?: string;
-  unique_hash?: string;
-}
+type StackFrameLike = FrameIdentity;
 
 /** Whole-trace DP table detection. Sticky: run once per trace (memoize at the
  *  call site) and apply the result at every step. Never lies — anything not
@@ -48,7 +46,7 @@ export function detectDpTables(trace: ExecPoint[], code: string): DpCandidate[] 
   const lastValue = new Map<string, string>();
 
   trace.forEach((point, step) => {
-    const mem = normalizeMemory(point);
+    const mem = memoryAt(point);
     const leafOwners = indexArrayLeaves(mem);
 
     const writtenByArray = new Map<string, Coord[]>();
@@ -161,9 +159,8 @@ function guardLineBeforeWrite(trace: ExecPoint[], writeIdx: number): number | nu
   return null; // write line is the first thing the frame executed — no guard
 }
 
-function frameKey(frame: StackFrameLike): string {
-  return frame.unique_hash ?? frame.frame_id ?? frame.func_name ?? "?";
-}
+// Frame identity is shared with the call tree so both agree on what "the
+// same frame" means across modules.
 
 /** True when `lineText` contains the literal pattern `return <ws>* name[` —
  *  i.e. the "return" keyword immediately (modulo whitespace) followed by a
@@ -177,9 +174,6 @@ function returnsOwnSubscript(lineText: string, name: string): boolean {
   return re.test(lineText);
 }
 
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 /** Bottom-up vs top-down is a question about the SHAPE OF THE STACK at the
  *  writes, not about where the writes sit in the source: one frame depth

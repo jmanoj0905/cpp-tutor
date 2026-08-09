@@ -1,21 +1,13 @@
 // Pointer-tree (Family B) source for the Graph tab. Converts the ShapeModel
 // that `shapes.ts` already detects into a GraphScene and binds traversal
 // overlays. Pure — no React, no DOM.
-//
-// IMPORTANT: this module imports only TYPES from graphModel.ts (erased at build
-// time). Importing a value from there would create a runtime import cycle,
-// because graphModel.ts imports this module's entry point.
-import { normalizeMemory } from "../memoryModel";
+import { memoryAt } from "../memoryModel";
 import type { MemoryLink, NormalizedCell, NormalizedMemory } from "../memoryModel";
 import type { ShapeModel } from "../shapes";
-import type { GraphEdge, GraphNode, GraphOverlays, GraphScene } from "./graphModel";
+import { emptyOverlays } from "./scene";
+import type { GraphEdge, GraphNode, GraphScene } from "./scene";
 import type { ExecPoint } from "../../types/trace";
 import { findContainers } from "./containers";
-
-const emptyOverlays = (): GraphOverlays => ({
-  visited: new Set(), current: [], frontier: new Set(),
-  order: new Map(), flashed: new Set(),
-});
 
 /** Every `kind: "tree"` shape with nodes, merged into one scene. Node ids are
  *  heap cell ids; `slot` (0 = left, 1 = right) rides along on each edge. */
@@ -113,17 +105,6 @@ export function bindTreeCurrent(
   }
 }
 
-// Local memo: normalizeMemory is pure per ExecPoint, and the order scan visits
-// every point in trace[0..index]. graphModel keeps an identical cache, but
-// importing it here would create a runtime import cycle (see the file header),
-// so this module keeps its own.
-const normCache = new WeakMap<ExecPoint, NormalizedMemory>();
-function norm(point: ExecPoint): NormalizedMemory {
-  let m = normCache.get(point);
-  if (!m) { m = normalizeMemory(point); normCache.set(point, m); }
-  return m;
-}
-
 /** `visited` = every node a pointer local has ever stood on up to `index`;
  *  `order` = 1-based first-visit sequence, the traversal trail. Addresses that
  *  no longer resolve to a live node (freed nodes) are dropped. */
@@ -134,7 +115,7 @@ export function bindTreeOrder(
   let counter = 0;
   const seen = new Set<string>();
   for (let s = 0; s <= index && s < trace.length; s++) {
-    for (const addr of fingerAddresses(norm(trace[s]))) {
+    for (const addr of fingerAddresses(memoryAt(trace[s]))) {
       if (seen.has(addr)) continue;
       seen.add(addr);
       const id = idByAddr.get(addr);

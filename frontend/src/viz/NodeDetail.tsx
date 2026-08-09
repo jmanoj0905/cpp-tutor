@@ -3,6 +3,7 @@ import type { ExecPoint } from "../types/trace";
 import { finalLabel, type CallTreeNode } from "./callTree";
 import { inspectVariable } from "./frameInspector";
 import { MemoryCell } from "./MemoryCell";
+import { toggleInSet } from "../util";
 
 export function NodeDetail({ node, trace, onClose }: {
   node: CallTreeNode;
@@ -10,13 +11,7 @@ export function NodeDetail({ node, trace, onClose }: {
   onClose: () => void;
 }) {
   const [expandedVars, setExpandedVars] = useState<Set<string>>(new Set());
-  const toggleVar = (name: string) =>
-    setExpandedVars((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+  const toggleVar = (name: string) => setExpandedVars((prev) => toggleInSet(prev, name));
   return (
     <div className="ct-detail" data-testid="ct-detail">
       <div className="ct-detail-head">

@@ -1,4 +1,5 @@
 import { evalIndexExpr, type ArrayEnv } from "./exprEval";
+import { escapeRe } from "../../util";
 
 export type Coord = readonly number[];
 
@@ -77,6 +78,3 @@ function matchBracket(s: string, open: number): number {
   return -1;
 }
 
-function escapeRe(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}

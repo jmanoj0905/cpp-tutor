@@ -1,25 +1,6 @@
 import type { NormalizedCell } from "../memoryModel";
 import type { ContainerDecoder } from "./types";
-import { containerChild, findMember, findPointer } from "./helpers";
-
-/**
- * Count the number of top-level template arguments in a type string.
- * E.g. "tuple<int, pair<int,int>, float>" → 3.
- * Depth-aware: commas inside nested angle-brackets are ignored.
- */
-function countTopLevelArgs(type: string): number {
-  const lt = type.indexOf("<");
-  const gt = type.lastIndexOf(">");
-  if (lt < 0 || gt <= lt) return 0;
-  const inner = type.slice(lt + 1, gt);
-  let depth = 0, commas = 0;
-  for (const ch of inner) {
-    if (ch === "<") depth++;
-    else if (ch === ">") depth--;
-    else if (ch === "," && depth === 0) commas++;
-  }
-  return commas + 1;
-}
+import { containerChild, findMember, findPointer, topLevelTemplateArgs } from "./helpers";
 
 /**
  * Collect all scalar LEAVES under a cell (DFS, left to right).
@@ -84,7 +65,7 @@ export const tupleDecoder: ContainerDecoder = {
     if (items.length === 0) return null;
     // If the trace omits elements (old tracer), fall back to struct so we don't
     // display a misleading partial container.
-    const declaredN = countTopLevelArgs(cell.type ?? "");
+    const declaredN = topLevelTemplateArgs(cell.type ?? "").length;
     if (declaredN > 0 && items.length < declaredN) return null;
     const children = items.map((c, i) => containerChild(cell, c, `[${i}]`, i));
     return {
