@@ -69,7 +69,8 @@ export function isAssignmentLhs(lineText: string, tableName: string): boolean {
   return trimmed[pos] === "=" && trimmed[pos + 1] !== "=";
 }
 
-function matchBracket(s: string, open: number): number {
+/** Index of the `]` closing the `[` at `open`, or -1 when unbalanced. */
+export function matchBracket(s: string, open: number): number {
   let depth = 0;
   for (let i = open; i < s.length; i++) {
     if (s[i] === "[") depth++;

@@ -86,7 +86,7 @@ export function buildDpView(
     if (w.step === step) currentWrite = w.coord;
   }
 
-  const table = findCell(mem, candidate.cellId);
+  const table = findTableCell(mem, candidate.cellId);
   // For keyed (map/unordered_map) tables, values come from the decoded
   // map's key -> value projection, not from a positional array leaf — a
   // map's decoded children shift index on insert/rehash, so leaf lookups by
@@ -209,10 +209,10 @@ export function collectReadSteps(
   return log;
 }
 
-const findCell = (mem: NormalizedMemory, id: string): NormalizedCell | null =>
+export const findTableCell = (mem: NormalizedMemory, id: string): NormalizedCell | null =>
   findCellById(allRoots(mem), id);
 
-function leafAt(table: NormalizedCell | null, coord: Coord): NormalizedCell | null {
+export function leafAt(table: NormalizedCell | null, coord: Coord): NormalizedCell | null {
   let cell = table;
   for (const i of coord) cell = cell?.children?.[i] ?? null;
   return cell;
