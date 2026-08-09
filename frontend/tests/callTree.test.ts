@@ -83,6 +83,17 @@ describe("buildCallTree", () => {
     expect(tree.nodes.map((n) => n.funcName)).toEqual(["main"]);
   });
 
+  it("returns an empty tree for a compile-error-shaped point with no stack", () => {
+    const point = {
+      line: 10,
+      event: "uncaught_exception",
+      exception_msg: "error: 'INT_MAX' was not declared in this scope",
+    } as unknown as ExecPoint;
+    const tree = buildCallTree([point]);
+    expect(tree.roots).toEqual([]);
+    expect(tree.nodes).toEqual([]);
+  });
+
   it("assigns unique ids in pre-order", () => {
     const tree = buildCallTree([
       pt([["main", "0x1"]]),

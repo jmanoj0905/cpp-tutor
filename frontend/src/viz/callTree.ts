@@ -89,7 +89,7 @@ interface OptFrame extends FrameIdentity {
 }
 
 const liveFrames = (p: ExecPoint): OptFrame[] =>
-  (p.stack_to_render as OptFrame[]).filter((f) => !f.is_zombie);
+  ((p.stack_to_render ?? []) as OptFrame[]).filter((f) => !f.is_zombie);
 
 /** Stable identity for one stack frame. `index` disambiguates the legacy
  *  traces that carry neither unique_hash nor frame_id; callers that have no

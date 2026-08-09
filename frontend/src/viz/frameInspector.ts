@@ -27,7 +27,7 @@ interface OptFrame {
 /** The node's frame within a point's full stack_to_render (zombies included),
  *  located by live depth; null when the shape doesn't match the node. */
 function frameIndexAt(point: ExecPoint, node: CallTreeNode): number | null {
-  const fs = point.stack_to_render as OptFrame[];
+  const fs = (point.stack_to_render ?? []) as OptFrame[];
   let liveDepth = -1;
   for (let i = 0; i < fs.length; i++) {
     if (fs[i].is_zombie) continue;
@@ -61,13 +61,13 @@ export function settledEntryStep(trace: ExecPoint[], node: CallTreeNode): number
   // Parameter list snapshotted at entry, before any later-scoped local exists.
   const entryIdx = frameIndexAt(trace[node.enterStep], node);
   const entryFrame =
-    entryIdx === null ? null : (trace[node.enterStep].stack_to_render as OptFrame[])[entryIdx];
+    entryIdx === null ? null : ((trace[node.enterStep].stack_to_render ?? []) as OptFrame[])[entryIdx];
   const paramNames = (entryFrame?.ordered_varnames ?? []).filter((n) => !isCompilerInternal(n));
 
   for (let s = node.enterStep; s <= upper; s++) {
     const i = frameIndexAt(trace[s], node);
     if (i === null) continue;
-    const locals = (trace[s].stack_to_render as OptFrame[])[i].encoded_locals ?? {};
+    const locals = ((trace[s].stack_to_render ?? []) as OptFrame[])[i].encoded_locals ?? {};
     if (paramNames.every((n) => isInitialized(locals[n]))) return s;
   }
   return upper;
