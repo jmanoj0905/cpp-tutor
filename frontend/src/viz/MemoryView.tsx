@@ -3,7 +3,7 @@ import type { ExecPoint } from "../types/trace";
 import { normalizeMemory, findCellById, dimmedLinkSources, type NormalizedFrame } from "./memoryModel";
 import { applyCharView } from "./charView";
 import { changedCellIds } from "./memoryDiff";
-import { MemoryCell } from "./MemoryCell";
+import { MemoryCell, type CellView } from "./MemoryCell";
 import { Connectors, type ConnectorSelection } from "./Connectors";
 import { Divider } from "../Divider.tsx";
 import { toggleInSet } from "../util";
@@ -72,8 +72,17 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     return m;
   }, [dpCandidates, trace, codeLines]);
 
+  const cellView: CellView = {
+    highlightedIds: selected ? new Set([selected.fromId, selected.toId]) : undefined,
+    changedIds,
+    dpViews,
+    onDpToggle: toggleDp,
+    onCharViewToggle: toggleCharView,
+    onHeapOpen,
+    dpReadSteps,
+  };
+
   useEffect(() => { setSelected(null); }, [point]);
-  const highlightedIds = selected ? new Set([selected.fromId, selected.toId]) : undefined;
 
   const toggleFrame = (id: string) => setExpandedFrames((prev) => toggleInSet(prev, id));
 
@@ -86,7 +95,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
             <div className="frame">
               <div className="frame-name">Globals</div>
               <div className="frame-cells">
-                {viewMemory.globals.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} onCharViewToggle={toggleCharView} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />)}
+                {viewMemory.globals.map((c) => <MemoryCell key={c.id} cell={c} view={cellView} />)}
               </div>
             </div>
           )}
@@ -97,13 +106,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
               current={i === viewMemory.frames.length - 1}
               expanded={expandedFrames.has(frame.id)}
               onToggle={() => toggleFrame(frame.id)}
-              highlightedIds={highlightedIds}
-              changedIds={changedIds}
-              dpViews={dpViews}
-              onDpToggle={toggleDp}
-              onCharViewToggle={toggleCharView}
-              onHeapOpen={onHeapOpen}
-              dpReadSteps={dpReadSteps}
+              view={cellView}
             />
           ))}
           {disabledDp.size > 0 && (
@@ -131,7 +134,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
             </button>
           )}
           <div className="frame-cells">
-            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={toggleDp} onCharViewToggle={toggleCharView} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />)}
+            {shaped.heap.map((c) => <MemoryCell key={c.id} cell={c} view={cellView} />)}
           </div>
         </section>
       </div>
@@ -148,29 +151,19 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
           cell={heapCell}
           step={step}
           onClose={() => onHeapClose?.()}
-          highlightedIds={highlightedIds}
-          changedIds={changedIds}
-          onCharViewToggle={toggleCharView}
+          view={cellView}
         />
       )}
     </div>
   );
 }
 
-function FrameView({
-  frame, current, expanded, onToggle, highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, onHeapOpen, dpReadSteps,
-}: {
+function FrameView({ frame, current, expanded, onToggle, view }: {
   frame: NormalizedFrame;
   current: boolean;
   expanded: boolean;
   onToggle: () => void;
-  highlightedIds?: Set<string>;
-  changedIds?: Set<string>;
-  dpViews?: Map<string, DpTableView>;
-  onDpToggle?: (cellId: string) => void;
-  onCharViewToggle?: (cellId: string) => void;
-  onHeapOpen?: (cellId: string) => void;
-  dpReadSteps?: Map<string, Map<string, number[]>>;
+  view: CellView;
 }) {
   const visible = frame.cells.filter((c) => !c.internal);
   const internal = frame.cells.filter((c) => c.internal);
@@ -178,14 +171,14 @@ function FrameView({
     <div className={`frame${current ? " frame-current" : ""}`}>
       <div className="frame-name">{frame.name}</div>
       <div className="frame-cells">
-        {visible.map((c) => <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />)}
+        {visible.map((c) => <MemoryCell key={c.id} cell={c} view={view} />)}
         {internal.length > 0 && (
           <>
             <button className="internals-toggle" onClick={onToggle}>
               {expanded ? "▾" : "▸"} {internal.length} internal{internal.length > 1 ? "s" : ""}
             </button>
             {expanded && internal.map((c) => (
-              <MemoryCell key={c.id} cell={c} highlightedIds={highlightedIds} changedIds={changedIds} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />
+              <MemoryCell key={c.id} cell={c} view={view} />
             ))}
           </>
         )}

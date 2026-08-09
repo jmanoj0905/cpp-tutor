@@ -1,14 +1,12 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { NormalizedCell } from "../memoryModel";
-import { MemoryCell } from "../MemoryCell";
+import { MemoryCell, type CellView } from "../MemoryCell";
 import { buildHeapLayout } from "./heapTree";
 import { layoutHeapTree, type NodeSize } from "./heapTreeGeometry";
 
-export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewToggle }: {
+export function HeapTreePanel({ cell, view = {} }: {
   cell: NormalizedCell;
-  highlightedIds?: Set<string>;
-  changedIds?: Set<string>;
-  onCharViewToggle?: (cellId: string) => void;
+  view?: CellView;
 }) {
   const { nodes, edges } = buildHeapLayout(cell.children ?? []);
   const nodeRefs = useRef(new Map<number, HTMLDivElement>());
@@ -74,12 +72,7 @@ export function HeapTreePanel({ cell, highlightedIds, changedIds, onCharViewTogg
                 transform: "translateX(-50%)",
               }}
             >
-              <MemoryCell
-                cell={n.cell}
-                highlightedIds={highlightedIds}
-                changedIds={changedIds}
-                onCharViewToggle={onCharViewToggle}
-              />
+              <MemoryCell cell={n.cell} view={view} />
             </div>
           );
         })}

@@ -21,19 +21,19 @@ function stringCell(toggle?: "on" | "off"): NormalizedCell {
 describe("char-view toggle button rendering", () => {
   it("renders a '⇄ chars' button on an off, togglable string cell", () => {
     const onToggle = vi.fn();
-    render(createElement(MemoryCell, { cell: stringCell("off"), onCharViewToggle: onToggle }));
+    render(createElement(MemoryCell, { cell: stringCell("off"), view: { onCharViewToggle: onToggle } }));
     const btn = screen.getByRole("button", { name: /⇄ chars/ });
     fireEvent.click(btn);
     expect(onToggle).toHaveBeenCalledWith("s");
   });
 
   it("renders a '⇄ string' button when the toggle is on", () => {
-    render(createElement(MemoryCell, { cell: stringCell("on"), onCharViewToggle: vi.fn() }));
+    render(createElement(MemoryCell, { cell: stringCell("on"), view: { onCharViewToggle: vi.fn() } }));
     expect(screen.getByRole("button", { name: /⇄ string/ })).toBeTruthy();
   });
 
   it("renders no toggle button when the cell has no charViewToggle affordance", () => {
-    render(createElement(MemoryCell, { cell: stringCell(undefined), onCharViewToggle: vi.fn() }));
+    render(createElement(MemoryCell, { cell: stringCell(undefined), view: { onCharViewToggle: vi.fn() } }));
     expect(screen.queryByRole("button", { name: /⇄/ })).toBeNull();
   });
 

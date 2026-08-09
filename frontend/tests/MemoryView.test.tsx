@@ -57,7 +57,7 @@ describe("MemoryCell", () => {
     const { container } = render(<MemoryCell
       cell={cell({ id: "s", name: "s", kind: "container", containerKind: "string",
         displayValue: "\"ax\"", children: chars })}
-      changedIds={new Set(["s1"])}
+      view={{ changedIds: new Set(["s1"]) }}
     />);
     expect(container.querySelector('[data-cell-id="s1"]')).not.toBeNull();
     expect(container.querySelector('[data-cell-id="s1"]')?.className).toContain("cell-changed");
@@ -67,7 +67,7 @@ describe("MemoryCell", () => {
     const { container } = render(<MemoryCell
       cell={cell({ id: "v", name: "v", kind: "container", containerKind: "vector", displayValue: "vector<int> · 2",
         children: [cell({ id: "v0", name: "[0]", displayValue: "10" })] })}
-      changedIds={new Set(["v"])}
+      view={{ changedIds: new Set(["v"]) }}
     />);
     expect(container.querySelector('[data-cell-id="v"]')?.className).not.toContain("cell-changed");
     expect(container.querySelector(".cell-head")?.className).toContain("cell-changed");

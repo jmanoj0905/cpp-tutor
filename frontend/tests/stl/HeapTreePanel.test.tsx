@@ -79,7 +79,7 @@ describe("priority_queue header badge + tree toggle", () => {
 
   it("shows a '⇄ tree' button that fires onHeapOpen with the cell id", () => {
     const onHeapOpen = vi.fn();
-    render(createElement(MemoryCell, { cell: pqCell(["1", "2"]), onHeapOpen }));
+    render(createElement(MemoryCell, { cell: pqCell(["1", "2"]), view: { onHeapOpen } }));
     fireEvent.click(screen.getByRole("button", { name: /⇄ tree/ }));
     expect(onHeapOpen).toHaveBeenCalledWith("pq");
   });

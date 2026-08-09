@@ -60,7 +60,7 @@ describe("bento render branch", () => {
   it("marks a changed leaf tile with cell-changed", () => {
     const changed = new Set(["p.second.second"]);
     const { container } = render(
-      createElement(MemoryCell, { cell: nestedPair(), changedIds: changed }),
+      createElement(MemoryCell, { cell: nestedPair(), view: { changedIds: changed } }),
     );
     const tile = container.querySelector('[data-cell-id="p.second.second"]');
     expect(tile?.className).toContain("cell-changed");

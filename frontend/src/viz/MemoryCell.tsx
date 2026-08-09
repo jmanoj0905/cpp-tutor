@@ -6,14 +6,16 @@ import { DpTablePanel } from "./dp/DpTablePanel";
 
 const COLLAPSE_AT = 8;
 
-interface MemoryCellProps {
-  cell: NormalizedCell;
+/**
+ * Everything a cell subtree needs that is the same for every cell in it.
+ * MemoryCell recurses, so these have to reach the leaves; passing them
+ * individually meant retyping the same nine names at every recursion site and
+ * at every call site in MemoryView (eleven places in total), where forgetting
+ * one silently disabled a feature for that branch of the tree.
+ */
+export interface CellView {
   highlightedIds?: Set<string>;
   changedIds?: Set<string>;
-  forceLinear?: boolean;
-  /** Skip data-port-id ports on reference cells — for read-only inspection
-   *  contexts (call-tree detail expansions) that draw no connector lines. */
-  noPorts?: boolean;
   /** Detected DP tables keyed by cell id, and the toggle to escape to the raw
    *  array view for a given cell. When `dpViews` has this cell's id, render a
    *  DpTablePanel instead of the plain array cell. */
@@ -28,12 +30,23 @@ interface MemoryCellProps {
    *  `collectReadSteps`. Passed straight through to the matching
    *  DpTablePanel's detail box. */
   dpReadSteps?: Map<string, Map<string, number[]>>;
-  /** Open the binary-tree popup for a priority_queue cell (see HeapTreeOverlay).
-   *  Threaded through every recursive cell like onCharViewToggle. */
+  /** Open the binary-tree popup for a priority_queue cell (see HeapTreeOverlay). */
   onHeapOpen?: (cellId: string) => void;
 }
 
-export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = false, noPorts = false, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen }: MemoryCellProps) {
+interface MemoryCellProps {
+  cell: NormalizedCell;
+  /** Shared across the whole subtree; see CellView. */
+  view?: CellView;
+  /** Layout-only, and recomputed per level, so NOT part of CellView. */
+  forceLinear?: boolean;
+  /** Skip data-port-id ports on reference cells — for read-only inspection
+   *  contexts (call-tree detail expansions) that draw no connector lines. */
+  noPorts?: boolean;
+}
+
+export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = false }: MemoryCellProps) {
+  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen } = view;
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -80,7 +93,7 @@ export function MemoryCell({ cell, highlightedIds, changedIds, forceLinear = fal
           </button>
         )}
       </div>
-      {hasKids && <Children cell={cell} highlightedIds={highlightedIds} changedIds={changedIds} forceLinear={forceLinear} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />}
+      {hasKids && <Children cell={cell} view={view} forceLinear={forceLinear} noPorts={noPorts} />}
     </div>
   );
 }
@@ -109,7 +122,8 @@ function hasChildren(cell: NormalizedCell): boolean {
   return Array.isArray(cell.children) && cell.children.length > 0;
 }
 
-function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen }: MemoryCellProps) {
+function Children({ cell, view = {}, forceLinear, noPorts }: MemoryCellProps) {
+  const { highlightedIds, changedIds } = view;
   const all = cell.children ?? [];
   const [expanded, setExpanded] = useState(false);
 
@@ -119,18 +133,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
     return (
       <div className="cell-children bento">
         {all.map((child) => (
-          <MemoryCell
-            key={child.id}
-            cell={child}
-            highlightedIds={highlightedIds}
-            changedIds={changedIds}
-            noPorts={noPorts}
-            dpViews={dpViews}
-            onDpToggle={onDpToggle}
-            onCharViewToggle={onCharViewToggle}
-            onHeapOpen={onHeapOpen}
-            dpReadSteps={dpReadSteps}
-          />
+          <MemoryCell key={child.id} cell={child} view={view} noPorts={noPorts} />
         ))}
       </div>
     );
@@ -146,7 +149,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
         {all.map((rowCell) => (
           <div className="matrix-row" key={rowCell.id} style={{ display: "contents" }}>
             {(rowCell.children ?? []).map((el) => (
-              <MemoryCell key={el.id} cell={el} highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts} dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle} onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps} />
+              <MemoryCell key={el.id} cell={el} view={view} noPorts={noPorts} />
             ))}
           </div>
         ))}
@@ -169,13 +172,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
     return (
       <div className="matrix-slices">
         {shown.map((slice) => (
-          <MemoryCell
-            key={slice.id}
-            cell={slice}
-            highlightedIds={highlightedIds} changedIds={changedIds} noPorts={noPorts}
-            dpViews={dpViews} onDpToggle={onDpToggle} onCharViewToggle={onCharViewToggle}
-            onHeapOpen={onHeapOpen} dpReadSteps={dpReadSteps}
-          />
+          <MemoryCell key={slice.id} cell={slice} view={view} noPorts={noPorts} />
         ))}
         {hidden > 0 && (
           <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
@@ -188,19 +185,7 @@ function Children({ cell, highlightedIds, changedIds, forceLinear, noPorts, dpVi
   return (
     <div className={`cell-children ${kv ? "kv" : grid ? "grid" : linear ? "linear" : ""}`}>
       {shown.map((child) => (
-        <MemoryCell
-          key={child.id}
-          cell={child}
-          highlightedIds={highlightedIds}
-          changedIds={changedIds}
-          forceLinear={linear}
-          noPorts={noPorts}
-          dpViews={dpViews}
-          onDpToggle={onDpToggle}
-          onCharViewToggle={onCharViewToggle}
-          onHeapOpen={onHeapOpen}
-          dpReadSteps={dpReadSteps}
-        />
+        <MemoryCell key={child.id} cell={child} view={view} forceLinear={linear} noPorts={noPorts} />
       ))}
       {hidden > 0 && (
         <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>… {hidden} more</button>
