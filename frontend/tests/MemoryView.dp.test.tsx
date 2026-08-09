@@ -4,9 +4,10 @@ import climbBottomup from "./fixtures/dp/climb-bottomup.json";
 import inputFill from "./fixtures/dp/input-fill.json";
 import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
-import type { Trace } from "../src/types/trace";
+import type { ExecPoint, Trace } from "../src/types/trace";
 import { MemoryView } from "../src/viz/MemoryView";
-import { detectDpTables } from "../src/viz/dp/detect";
+import { detectDpTables, collectTables, promoteToDp } from "../src/viz/dp/detect";
+import { memoryAt } from "../src/viz/memoryModel";
 
 const renderAt = (t: Trace, step: number) =>
   render(
@@ -166,44 +167,60 @@ describe("MemoryView DP — manual promote", () => {
 
   // Step 8's real concern: `promotedDp` is a `Set<string>` keyed by cell id.
   // input-fill's `a` never proved this because `main` never recurses — one
-  // frame instance, so its id was trivially stable. climb-topdown's `memo`
-  // DOES recurse (solve calls itself), so this crosses an actual frame
-  // boundary: step 4 (stack depth 2, an early/shallow solve invocation) vs.
-  // step 91 (stack depth 3, a much later invocation reached only after many
-  // pushes and pops of solve's frame — confirmed via a direct memoryAt scan
-  // of this fixture's whole trace, not assumed). `memo` auto-detects here
-  // (it's the fixture DP detection itself exists for), so getting to a
-  // promote-able state requires demoting it first via the raw chip — which
-  // is also what exercises the promoteDp/disabledDp interaction fixed above
-  // (promoting must win over a prior demote of the same id, not stay
-  // dead-clicked).
-  it("keeps a promotion across a recursive frame boundary (climb-topdown's memo, depth 2 -> depth 3)", () => {
+  // frame instance, so its id was trivially stable. This test targets a
+  // genuinely recursive fixture instead — but NOT through MemoryView/the UI:
+  // climb-topdown's `memo` auto-detects at every step it's in scope
+  // (`dpCandidates` is whole-trace, independent of the current step), so
+  // `activeCandidates`'s `if (byId.has(id)) continue;` guard means
+  // `promoteToDp` is never actually invoked for it when driven through a
+  // click sequence — any panel reappearing after a demote+promote round trip
+  // in the UI is explained by `disabledDp` being cleared, not by the
+  // manual-promotion union branch surviving a frame crossing. (No fixture in
+  // the repo has a tracked-but-undetected array/map cell inside a recursive
+  // frame — climb-topdown, memo-fib-vector, and map-memo are the only
+  // recursive fixtures, and all three auto-detect their table, which is the
+  // point of the detection plan. map-memo's `memo` isn't even trackable:
+  // it's an unordered_map, and collectWrites/indexArrayLeaves only indexes
+  // `kind === "array"` or `containerKind === "vector"` today — map support
+  // is explicitly deferred, see TrackedTable.keyed's doc comment.)
+  //
+  // So this asserts the mechanism directly instead of routing it through the
+  // UI: (1) the same underlying cell resolves to the same id across two
+  // steps in DIFFERENT invocations of the recursive frame — the property
+  // `promotedDp`'s `Set<string>` keying actually depends on — and (2)
+  // `promoteToDp` returns a real candidate for that id, so the manual-
+  // promotion branch is exercised for a recursive-frame cell, not skipped.
+  //
+  // Note on realism: a DP table can never be a local declared *inside* a
+  // recursive frame — memoization requires the table to outlive a single
+  // invocation, so real DP code always makes it a global, a by-reference
+  // parameter, or something owned by a non-recursive caller. climb-topdown's
+  // `memo` is exactly that shape (`vector<int>&` aliasing the vector `main`
+  // owns), which is why its id is anchored to `main`'s storage rather than
+  // to any one `solve` invocation. That's also the only shape a DP table can
+  // legally have, so it's the only shape worth testing here.
+  it("a recursive-frame table cell resolves to the same id across two different invocations, and promoteToDp accepts it (climb-topdown's memo, depth 2 -> depth 3)", () => {
     const t = climbTopdown as Trace;
-    const shallowStep = 4; // stack_to_render depth 2
-    const deepStep = 91; // stack_to_render depth 3, a distinct later invocation
+    const shallowStep = 4; // stack_to_render depth 2 (main -> solve)
+    const deepStep = 91; // stack_to_render depth 3 (main -> solve -> solve),
+    // reached only after dozens of pushes/pops of solve's frame since step 4
+    // — a genuinely different invocation, not the same one revisited.
     expect(t.trace[shallowStep].stack_to_render.length).toBe(2);
     expect(t.trace[deepStep].stack_to_render.length).toBe(3);
 
-    const { container, rerender } = renderAt(t, shallowStep);
-    // memo auto-detects, so it already renders as a panel; demote it first
-    // so the promote chip becomes clickable.
-    expect(container.querySelector(".dp-panel")).not.toBeNull();
-    fireEvent.click(container.querySelector<HTMLButtonElement>(".dp-generic-toggle")!);
-    expect(container.querySelector(".dp-panel")).toBeNull();
+    const findMemo = (point: ExecPoint) =>
+      memoryAt(point).frames.flatMap((f) => f.cells).find((c) => c.name === "memo");
+    const shallowCell = findMemo(t.trace[shallowStep]);
+    const deepCell = findMemo(t.trace[deepStep]);
+    expect(shallowCell).toBeDefined();
+    expect(deepCell).toBeDefined();
+    // Load-bearing: this equality is exactly what makes a Set<string> of
+    // promoted ids sound across a recursive trace.
+    expect(deepCell!.id).toBe(shallowCell!.id);
 
-    const chip = container.querySelector<HTMLButtonElement>(".dp-promote-toggle");
-    expect(chip).not.toBeNull();
-    fireEvent.click(chip!);
-    expect(container.querySelector(".dp-panel")).not.toBeNull();
-
-    rerender(
-      <MemoryView
-        point={t.trace[deepStep]}
-        prevPoint={t.trace[deepStep - 1]}
-        trace={t.trace}
-        code={t.code}
-      />,
-    );
-    expect(container.querySelector(".dp-panel")).not.toBeNull();
+    const tracked = collectTables(t.trace, t.code);
+    const promoted = promoteToDp(tracked, shallowCell!.id);
+    expect(promoted).not.toBeNull();
+    expect(promoted!.cellId).toBe(shallowCell!.id);
   });
 });
