@@ -4,15 +4,13 @@
 // The FULL tree is always laid out (future nodes included) so positions are
 // static across steps and the tree never reflows while stepping.
 import type { CallTreeNode } from "./callTree";
+import { boxWidth } from "./textMetrics";
 
 export const NODE_W = 132; // minimum box width
 export const NODE_H = 34;
 export const H_GAP = 14;
 export const V_GAP = 30;
 
-// 12px mono glyph advance (~0.6em) plus a safety margin; exact-enough because
-// labels are pure mono text.
-const CHAR_W = 7.5;
 const PAD_X = 10;
 
 export interface NodePos {
@@ -23,7 +21,7 @@ export interface NodePos {
 
 /** Content-sized box width with NODE_W as the floor. */
 export function nodeWidth(label: string): number {
-  return Math.max(NODE_W, Math.ceil(label.length * CHAR_W + 2 * PAD_X));
+  return boxWidth(label, NODE_W, PAD_X);
 }
 
 export function layoutTree(

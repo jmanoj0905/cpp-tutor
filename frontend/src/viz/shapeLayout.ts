@@ -1,6 +1,7 @@
 // Pure shape geometry — no React, no DOM. Positions are box top-left corners
 // in canvas coordinates; the panel renders boxes absolutely at these points.
 import type { ShapeModel } from "./shapes";
+import { boxWidth } from "./textMetrics";
 
 export const SNODE_H = 30;
 export const SNODE_MIN_W = 44;
@@ -8,14 +9,13 @@ export const S_H_GAP = 28; // room for the arrow between list nodes
 export const S_V_GAP = 26;
 export const CYCLE_ARC_H = 22;
 
-const CHAR_W = 7.5; // 12px mono advance, same estimate as treeLayout.ts
 const PAD_X = 8;
 
 export interface SNodePos { x: number; y: number; w: number }
 export interface ShapeLayoutResult { pos: Map<string, SNodePos>; width: number; height: number }
 
 export function shapeNodeWidth(label: string): number {
-  return Math.max(SNODE_MIN_W, Math.ceil(label.length * CHAR_W + 2 * PAD_X));
+  return boxWidth(label, SNODE_MIN_W, PAD_X);
 }
 
 export function layoutShape(shape: ShapeModel, widthOf: (id: string) => number): ShapeLayoutResult {
