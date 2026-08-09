@@ -6,7 +6,7 @@ import climbTopdown from "./fixtures/dp/climb-topdown.json";
 import gridPaths from "./fixtures/dp/grid-paths.json";
 import type { ExecPoint, Trace } from "../src/types/trace";
 import { MemoryView } from "../src/viz/MemoryView";
-import { detectDpTables, collectTables, promoteToDp } from "../src/viz/dp/detect";
+import { detectDpTables, collectTables } from "../src/viz/dp/detect";
 import { memoryAt } from "../src/viz/memoryModel";
 
 const renderAt = (t: Trace, step: number) =>
@@ -166,61 +166,92 @@ describe("MemoryView DP — manual promote", () => {
   });
 
   // Step 8's real concern: `promotedDp` is a `Set<string>` keyed by cell id.
-  // input-fill's `a` never proved this because `main` never recurses — one
-  // frame instance, so its id was trivially stable. This test targets a
-  // genuinely recursive fixture instead — but NOT through MemoryView/the UI:
-  // climb-topdown's `memo` auto-detects at every step it's in scope
-  // (`dpCandidates` is whole-trace, independent of the current step), so
-  // `activeCandidates`'s `if (byId.has(id)) continue;` guard means
-  // `promoteToDp` is never actually invoked for it when driven through a
-  // click sequence — any panel reappearing after a demote+promote round trip
-  // in the UI is explained by `disabledDp` being cleared, not by the
-  // manual-promotion union branch surviving a frame crossing. (No fixture in
-  // the repo has a tracked-but-undetected array/map cell inside a recursive
-  // frame — climb-topdown, memo-fib-vector, and map-memo are the only
-  // recursive fixtures, and all three auto-detect their table, which is the
-  // point of the detection plan. map-memo's `memo` isn't even trackable:
-  // it's an unordered_map, and collectWrites/indexArrayLeaves only indexes
-  // `kind === "array"` or `containerKind === "vector"` today — map support
-  // is explicitly deferred, see TrackedTable.keyed's doc comment.)
+  // The prior two attempts at this test were both vacuous:
+  //   - input-fill's `a` never recurses (one `main` frame), so its id was
+  //     trivially stable — no frame boundary was ever crossed.
+  //   - A version that drove climb-topdown's `memo` through the UI never
+  //     exercised `promoteToDp`: `memo` auto-detects at every step it's in
+  //     scope, so `activeCandidates`'s `if (byId.has(id)) continue;` guard
+  //     skips the manual-promotion branch for it entirely — any panel
+  //     reappearing after demote+promote was explained by the `disabledDp`
+  //     clear alone.
+  //   - A version using `.find(c => c.name === "memo")` over the flattened
+  //     frame list always resolved `main`'s own `memo` (frame index 0, which
+  //     never pops), never `solve`'s own per-invocation local — so it
+  //     "proved" stability of a cell that was never at risk.
   //
-  // So this asserts the mechanism directly instead of routing it through the
-  // UI: (1) the same underlying cell resolves to the same id across two
-  // steps in DIFFERENT invocations of the recursive frame — the property
-  // `promotedDp`'s `Set<string>` keying actually depends on — and (2)
-  // `promoteToDp` returns a real candidate for that id, so the manual-
-  // promotion branch is exercised for a recursive-frame cell, not skipped.
+  // What's actually true, checked directly with `memoryAt` against every
+  // frame by index rather than by first name match: `solve`'s OWN `memo`
+  // local (its own stack slot holding the reference, not the vector it
+  // points at) genuinely IS per-invocation — a fresh, different cell id at
+  // every call depth. That is the exact failure mode Step 8 exists to catch.
   //
-  // Note on realism: a DP table can never be a local declared *inside* a
-  // recursive frame — memoization requires the table to outlive a single
-  // invocation, so real DP code always makes it a global, a by-reference
-  // parameter, or something owned by a non-recursive caller. climb-topdown's
-  // `memo` is exactly that shape (`vector<int>&` aliasing the vector `main`
-  // owns), which is why its id is anchored to `main`'s storage rather than
-  // to any one `solve` invocation. That's also the only shape a DP table can
-  // legally have, so it's the only shape worth testing here.
-  it("a recursive-frame table cell resolves to the same id across two different invocations, and promoteToDp accepts it (climb-topdown's memo, depth 2 -> depth 3)", () => {
+  // The question that decides whether it's a real bug: can a cell with an
+  // unstable, per-invocation id ever end up in `trackedTables` (and
+  // therefore ever be promotable)? No. `solve`'s own `memo` local decodes to
+  // `kind: "scalar"` with no children (it's just the reference/address
+  // value, not a materialized array) — `collectWrites`'s `isArrayLike` check
+  // (`cell.kind === "array" || cell.containerKind === "vector"`) rejects it
+  // outright, so `indexArrayLeaves` never descends into it and it can never
+  // become an `arrayId` in `tracked`. Only `main`'s ORIGINAL declaration
+  // decodes as the full `container`/`vector` with real children, and that's
+  // the only id `collectWrites` (and therefore `promoteToDp`/the `dp` chip,
+  // since `MemoryCell`'s `isDpPromotable` also requires an array/map shape)
+  // can ever see. So instability exists, but it's confined to a cell shape
+  // the promotion mechanism structurally cannot reach.
+  it("solve's own per-invocation memo alias has an unstable id, but is never a key in the tracked-table map", () => {
     const t = climbTopdown as Trace;
     const shallowStep = 4; // stack_to_render depth 2 (main -> solve)
     const deepStep = 91; // stack_to_render depth 3 (main -> solve -> solve),
     // reached only after dozens of pushes/pops of solve's frame since step 4
-    // — a genuinely different invocation, not the same one revisited.
+    // — genuinely different invocations, not the same one revisited.
     expect(t.trace[shallowStep].stack_to_render.length).toBe(2);
     expect(t.trace[deepStep].stack_to_render.length).toBe(3);
 
-    const findMemo = (point: ExecPoint) =>
-      memoryAt(point).frames.flatMap((f) => f.cells).find((c) => c.name === "memo");
-    const shallowCell = findMemo(t.trace[shallowStep]);
-    const deepCell = findMemo(t.trace[deepStep]);
-    expect(shallowCell).toBeDefined();
-    expect(deepCell).toBeDefined();
-    // Load-bearing: this equality is exactly what makes a Set<string> of
-    // promoted ids sound across a recursive trace.
-    expect(deepCell!.id).toBe(shallowCell!.id);
+    // Locate `solve`'s OWN memo local at a given frame depth (not main's,
+    // and not just the first "memo" match) by requiring the owning function
+    // to be `solve`.
+    const solveMemoAt = (point: ExecPoint, frameIndex: number) => {
+      const mem = memoryAt(point);
+      const frame = mem.frames[frameIndex];
+      const func = point.stack_to_render[frameIndex]?.func_name ?? "";
+      if (!func.startsWith("solve")) throw new Error(`frame ${frameIndex} is not solve (got ${func})`);
+      return frame?.cells.find((c) => c.name === "memo");
+    };
 
+    const shallowSolveMemo = solveMemoAt(t.trace[shallowStep], 1);
+    const deepSolveMemoOuter = solveMemoAt(t.trace[deepStep], 1);
+    const deepSolveMemoInner = solveMemoAt(t.trace[deepStep], 2);
+    expect(shallowSolveMemo).toBeDefined();
+    expect(deepSolveMemoOuter).toBeDefined();
+    expect(deepSolveMemoInner).toBeDefined();
+
+    // Pin the instability: three different invocations, three different ids.
+    expect(shallowSolveMemo!.id).not.toBe(deepSolveMemoOuter!.id);
+    expect(deepSolveMemoOuter!.id).not.toBe(deepSolveMemoInner!.id);
+    expect(shallowSolveMemo!.id).not.toBe(deepSolveMemoInner!.id);
+
+    // solve's own local is a bare reference/scalar, not an array-like cell —
+    // this is WHY it can never be tracked, not just an incidental fact.
+    expect(shallowSolveMemo!.kind).toBe("scalar");
+
+    // The actual gate: none of the unstable ids are keys in the tracked-
+    // table map, so no promotable cell ever carries one of them.
     const tracked = collectTables(t.trace, t.code);
-    const promoted = promoteToDp(tracked, shallowCell!.id);
-    expect(promoted).not.toBeNull();
-    expect(promoted!.cellId).toBe(shallowCell!.id);
+    expect(tracked.has(shallowSolveMemo!.id)).toBe(false);
+    expect(tracked.has(deepSolveMemoOuter!.id)).toBe(false);
+    expect(tracked.has(deepSolveMemoInner!.id)).toBe(false);
+
+    // The one id that IS tracked is main's own declaration, and it's stable
+    // for a structural reason, not a coincidence: a DP table can never be a
+    // local declared *inside* the recursive frame itself (memoization
+    // requires the table to outlive a single invocation), so real DP code
+    // always makes it a global, a by-reference parameter's ORIGIN, or
+    // something a non-recursive caller owns — all of which anchor the id to
+    // storage that outlives any one invocation.
+    const mainMemoShallow = memoryAt(t.trace[shallowStep]).frames[0].cells.find((c) => c.name === "memo");
+    const mainMemoDeep = memoryAt(t.trace[deepStep]).frames[0].cells.find((c) => c.name === "memo");
+    expect(mainMemoShallow!.id).toBe(mainMemoDeep!.id);
+    expect(tracked.has(mainMemoShallow!.id)).toBe(true);
   });
 });
