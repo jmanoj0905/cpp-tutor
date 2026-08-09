@@ -57,22 +57,132 @@ export function explainWrite(
 
   const env = intEnv(prev);
   const arrays = arrayEnv(memoryAt(prev));
-  const rhs = resolveSubscripts(split.rhs, candidate.name, env, arrays);
-  const operands: Operand[] = [
-    { text: rhs, value: evalIndexExpr(split.rhs, env, arrays) },
-  ];
+  const written = writtenValue(candidate, coord, at);
+
+  const { op, parts } = splitOperands(split.rhs);
+  const operands: Operand[] = parts.map((part) => ({
+    text: resolveSubscripts(part, candidate.name, env, arrays),
+    value: evalIndexExpr(part, env, arrays),
+  }));
+
   const selfRef = subscriptOccurrences(split.rhs, candidate.name).length > 0;
+  const rhs = resolveSubscripts(split.rhs, candidate.name, env, arrays);
 
   return {
     lhs: `${candidate.name}[${coord.join("][")}]`,
     assign: split.assign,
     rhs,
-    op: null,
+    op,
     operands,
-    written: writtenValue(candidate, coord, at),
-    winner: null,
+    written,
+    winner: pickWinner(op, operands, written),
     baseCase: !selfRef && operands.every((o) => o.value !== null),
   };
+}
+
+/** The RHS's branch structure. See the shape rules in the S2 spec. Exported
+ *  for unit test; the only production caller is `explainWrite`. */
+export function splitOperands(rhs: string): { op: Provenance["op"]; parts: string[] } {
+  const call = findCall(rhs);
+  if (call) return { op: call.name, parts: splitTop(call.inner, ",") };
+  const arms = splitTernary(rhs);
+  if (arms) return { op: "ternary", parts: arms };
+  return { op: null, parts: [rhs] };
+}
+
+/** The first depth-0 `max(`/`min(` call and its argument text. */
+function findCall(src: string): { name: "max" | "min"; inner: string } | null {
+  const re = /(?<![\w.])(?:std::)?(max|min)\s*\(/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src))) {
+    if (depthAt(src, m.index) !== 0) continue;
+    const open = m.index + m[0].length - 1;
+    const close = matchParen(src, open);
+    if (close === -1) continue;
+    return { name: m[1] as "max" | "min", inner: src.slice(open + 1, close) };
+  }
+  return null;
+}
+
+/** Two arms of a depth-0 ternary, or null. `::` is skipped so `std::max` in an
+ *  arm is not mistaken for the `:` separator. */
+function splitTernary(src: string): [string, string] | null {
+  const q = indexAtTop(src, "?", 0);
+  if (q === -1) return null;
+  for (let i = q + 1; i < src.length; i++) {
+    if (src[i] === ":" && depthAt(src, i) === 0) {
+      if (src[i + 1] === ":") { i++; continue; }
+      if (src[i - 1] === ":") continue;
+      return [src.slice(q + 1, i).trim(), src.slice(i + 1).trim()];
+    }
+  }
+  return null;
+}
+
+/** Split at depth-0 occurrences of a single-character separator. */
+function splitTop(src: string, sep: string): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  for (let i = 0; i < src.length; i++) {
+    if (src[i] === sep && depthAt(src, i) === 0) {
+      parts.push(src.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+  parts.push(src.slice(start).trim());
+  return parts;
+}
+
+function indexAtTop(src: string, ch: string, from: number): number {
+  for (let i = from; i < src.length; i++) {
+    if (src[i] === ch && depthAt(src, i) === 0) return i;
+  }
+  return -1;
+}
+
+/** Paren + bracket nesting depth at `i`. O(i), which is fine on statements. */
+function depthAt(src: string, i: number): number {
+  let depth = 0;
+  for (let k = 0; k < i; k++) {
+    const c = src[k];
+    if (c === "(" || c === "[") depth++;
+    else if (c === ")" || c === "]") depth--;
+  }
+  return depth;
+}
+
+function matchParen(s: string, open: number): number {
+  let depth = 0;
+  for (let i = open; i < s.length; i++) {
+    if (s[i] === "(") depth++;
+    else if (s[i] === ")" && --depth === 0) return i;
+  }
+  return -1;
+}
+
+/** Which branch produced the value. Exported for unit test. */
+export function pickWinner(
+  op: Provenance["op"], operands: readonly Operand[], written: string,
+): number | null {
+  const live = operands
+    .map((o, i) => [i, o.value] as const)
+    .filter((e): e is readonly [number, number] => e[1] !== null);
+  if (live.length < 2) return null;
+  if (op === "max" || op === "min") {
+    // The extremum, NOT the arm equal to `written`: the call may be a
+    // sub-expression of the RHS (`1 + min(a, b)`), so no arm equals the value
+    // that landed in the cell. The extremum is what the call returned either
+    // way. Strict comparison keeps a tie on the first arm, which is what
+    // max/min themselves return.
+    return live.reduce((best, cur) =>
+      (op === "max" ? cur[1] > best[1] : cur[1] < best[1]) ? cur : best)[0];
+  }
+  if (op === "ternary") {
+    const w = Number(written);
+    if (!Number.isFinite(w) || written.trim() === "") return null;
+    return live.find(([, v]) => v === w)?.[0] ?? null;
+  }
+  return null;
 }
 
 /** The table's value at `coord` as of `point`. */
