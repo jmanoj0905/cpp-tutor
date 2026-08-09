@@ -776,6 +776,7 @@ p {
 .dp-arrows path { fill: none; stroke: var(--blue); stroke-width: 1.5; marker-end: none; }
 .dp-indices { display: flex; color: var(--ink-soft); }
 .dp-indices span { display: inline-block; text-align: center; }
+.dp-key-label { font: 12px var(--mono); color: var(--ink-soft); }
 .dp-detail { margin-top: 4px; border: var(--border-dotted); padding: 4px; display: flex; gap: 10px; align-items: baseline; }
 
 /* Heap tree panel (priority_queue) */

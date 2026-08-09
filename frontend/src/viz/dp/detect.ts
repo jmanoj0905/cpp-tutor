@@ -1,6 +1,8 @@
 import type { ExecPoint } from "../../types/trace";
 import { buildStatements } from "./statements";
 import { collectWrites, type TrackedTable, type DpWrite } from "./writes";
+import { collectKeyedWrites, type KeyedTrack } from "./keyedWrites";
+import { projectKeys, type KeyedProjection } from "./keyedTable";
 
 export type { DpWrite };
 
@@ -10,17 +12,23 @@ export interface DpCandidate {
   dims: number[];
   mode: "bottom-up" | "top-down";
   writes: DpWrite[];
+  /** Present only for map/unordered_map memo tables. */
+  keyed?: { projection: KeyedProjection; keyOrder: string[] };
 }
 
 export const MIN_WRITE_STEPS = 3;
 export const MIN_SELF_REF_STEPS = 2;
 
 /** The whole-trace tracked-table map, for callers that need both auto-detected
- *  candidates and manual promotion from one scan. Memoize at the call site. */
+ *  candidates and manual promotion from one scan. Memoize at the call site.
+ *  Merges array/vector writes (`writes.ts`) with map/unordered_map keyed
+ *  writes (`keyedWrites.ts`) into one id -> table map. */
 export function collectTables(trace: ExecPoint[], code: string): Map<string, TrackedTable> {
   const codeLines = code.split("\n");
   const statements = buildStatements(codeLines);
-  return collectWrites(trace, codeLines, statements);
+  const tables = collectWrites(trace, codeLines, statements);
+  for (const [id, keyed] of collectKeyedWrites(trace, codeLines, statements)) tables.set(id, keyed);
+  return tables;
 }
 
 /** Whole-trace DP table detection. Sticky: run once per trace (memoize at the
@@ -46,9 +54,11 @@ export function promoteToDp(
 ): DpCandidate | null {
   const t = tracked.get(cellId);
   if (!t || t.writes.length === 0) return null;
+  const mode = classify(t) ?? "bottom-up";
+  if (isKeyedTrack(t)) return keyedCandidate(t, mode);
   return {
     cellId: t.cellId, name: t.name, dims: t.maxDims,
-    mode: classify(t) ?? "bottom-up", writes: t.writes,
+    mode, writes: t.writes,
   };
 }
 
@@ -64,7 +74,26 @@ export function scoreCandidate(t: TrackedTable): DpCandidate | null {
   if (t.selfRefSteps.size * 3 < t.writeSteps.size) return null;
   const mode = classify(t);
   if (!mode) return null;
+  if (isKeyedTrack(t)) return keyedCandidate(t, mode);
   return { cellId: t.cellId, name: t.name, dims: t.maxDims, mode, writes: t.writes };
+}
+
+function isKeyedTrack(t: TrackedTable): t is KeyedTrack {
+  return t.keyed === true;
+}
+
+/** Project a keyed (map/unordered_map) track's key set onto a grid, and
+ *  remap every write's coord (an insertion-order index into `keyOrder`) to
+ *  the projection's coord for that key, so the rest of the DP pipeline
+ *  (buildDpView etc.) never has to know a table came from a map. */
+function keyedCandidate(t: KeyedTrack, mode: DpCandidate["mode"]): DpCandidate {
+  const projection = projectKeys(t.keyOrder);
+  const writes = t.writes.map((w) => ({
+    step: w.step,
+    coord: projection.coordOfKey.get(t.keyOrder[w.coord[0]]) ?? w.coord,
+  }));
+  return { cellId: t.cellId, name: t.name, dims: projection.dims, mode, writes,
+           keyed: { projection, keyOrder: t.keyOrder } };
 }
 
 /** Bottom-up vs top-down is a question about the SHAPE OF THE STACK at the

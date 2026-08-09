@@ -5,12 +5,14 @@ import type { DpCandidate } from "./detect";
 import type { ArrayEnv, ArrayValue } from "./exprEval";
 import { isAssignmentLhs, resolveOccurrences, type Coord } from "./readSet";
 import { buildStatements, statementAtExecLine } from "./statements";
+import { projectPairs } from "./keyedWrites";
 
 export interface DpCellView {
   coord: Coord;
   id: string;
   value: string;
   writeStep: number | null;
+  label?: string;
 }
 
 export interface DpTableView {
@@ -19,6 +21,7 @@ export interface DpTableView {
   currentWrite: Coord | null;
   reads: Coord[];
   maxWriteStep: number;
+  keyed?: boolean;
 }
 
 /** Integer locals of the innermost frame, for index-expression evaluation. */
@@ -84,17 +87,43 @@ export function buildDpView(
   }
 
   const table = findCell(mem, candidate.cellId);
+  // For keyed (map/unordered_map) tables, values come from the decoded
+  // map's key -> value projection, not from a positional array leaf — a
+  // map's decoded children shift index on insert/rehash, so leaf lookups by
+  // coord would be wrong (and unstable). `keyOfCoord` inverts the
+  // candidate's coordOfKey once so the cell loop below can go grid-coord ->
+  // key -> value in O(1).
+  const pairs = candidate.keyed && table ? projectPairs(table) : null;
+  const keyOfCoord = candidate.keyed
+    ? new Map([...candidate.keyed.projection.coordOfKey].map(([k, c]) => [c.join(","), k]))
+    : null;
+
   const cells: DpCellView[] = [];
   const [rows, cols] = candidate.dims.length === 2 ? candidate.dims : [1, candidate.dims[0]];
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
       const coord: Coord = candidate.dims.length === 2 ? [r, c] : [c];
+      const coordKey = coord.join(",");
+      if (candidate.keyed) {
+        const key = keyOfCoord?.get(coordKey);
+        cells.push({
+          coord,
+          // Keyed by the KEY (falling back to the grid coord for slots that
+          // have never held a key), so highlight/cell ids stay stable
+          // across rehashes — never the map's positional child index.
+          id: `${candidate.cellId}#${key ?? coordKey}`,
+          value: key !== undefined ? (pairs?.get(key) ?? "") : "",
+          writeStep: writeStepAt.get(coordKey) ?? null,
+          label: candidate.keyed.projection.labelAt.get(coordKey),
+        });
+        continue;
+      }
       const leaf = leafAt(table, coord);
       cells.push({
         coord,
-        id: leaf?.id ?? `${candidate.cellId}[${coord.join(",")}]`,
+        id: leaf?.id ?? `${candidate.cellId}[${coordKey}]`,
         value: leaf?.displayValue ?? "?",
-        writeStep: writeStepAt.get(coord.join(",")) ?? null,
+        writeStep: writeStepAt.get(coordKey) ?? null,
       });
     }
   }
@@ -112,7 +141,11 @@ export function buildDpView(
   const lineText = statementAtExecLine(codeLines, statements, readPoint.line);
   const readMem = usePrevPoint ? memoryAt(readPoint) : mem;
   const occ = resolveOccurrences(lineText, candidate.name, intEnv(readPoint), arrayEnv(readMem));
-  const reads = [...occ];
+  // Read arrows only make sense when a resolved subscript value IS a grid
+  // coordinate, which is only true for the integer-key projection (a pair
+  // or fallback key's coord is derived from the KEY, not from any value an
+  // expression in the source could evaluate to).
+  const reads = candidate.keyed && !candidate.keyed.projection.numeric ? [] : [...occ];
   // Structural primary defense: on an assignment line `name[...] = expr;`,
   // the LHS subscript occurrence is always the write target, independent of
   // when (or whether, within this step) the trace records the write as
@@ -145,7 +178,7 @@ export function buildDpView(
     }
   }
 
-  return { candidate, cells, currentWrite, reads, maxWriteStep };
+  return { candidate, cells, currentWrite, reads, maxWriteStep, keyed: candidate.keyed !== undefined };
 }
 
 /** Whole-trace read log: coord key "r,c" → steps whose executing line resolved

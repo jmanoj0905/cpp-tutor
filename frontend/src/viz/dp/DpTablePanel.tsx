@@ -65,6 +65,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
                 key={k}
                 className={cls}
                 data-coord={k}
+                title={view.keyed && candidate.dims.length === 2 ? cell.label : undefined}
                 style={ghost ? undefined : { "--dp-heat": heat(cell.writeStep) } as React.CSSProperties}
                 onClick={() => setDetail(cell)}
               >
@@ -82,8 +83,14 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps }: {
         )}
       </div>
       <div className="dp-indices">
-        {candidate.dims.length === 1 &&
+        {candidate.dims.length === 1 && !view.keyed &&
           cells.map((c) => <span key={key(c.coord)} style={{ width: CELL }}>{c.coord[0]}</span>)}
+        {candidate.dims.length === 1 && view.keyed &&
+          cells.map((c) => (
+            <span key={key(c.coord)} className="dp-key-label" style={{ width: CELL }}>
+              {c.label ?? ""}
+            </span>
+          ))}
       </div>
       {detail && (
         <div className="dp-detail">

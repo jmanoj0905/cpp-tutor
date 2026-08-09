@@ -72,6 +72,15 @@ describe("real-world DP fixtures", () => {
     expect(found[0].mode).toBe(mode);
   });
 
+  it("map-memo detects the unordered_map memo as a top-down table", () => {
+    const found = detect(realWorld["map-memo"]);
+    expect(found).toHaveLength(1);
+    expect(found[0].name).toBe("memo");
+    expect(found[0].mode).toBe("top-down");
+    expect(found[0].dims).toEqual([5]);          // keys 2..4 → 0..4
+    expect(found[0].keyed?.projection.numeric).toBe(true);
+  });
+
   it("does not throw on a degenerate compile-error trace", () => {
     const t = compileErrorTrace as unknown as { trace: ExecPoint[] };
     expect(() => detectDpTables(t.trace, "")).not.toThrow();

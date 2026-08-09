@@ -3,6 +3,7 @@ import { fireEvent, render } from "@testing-library/react";
 import { DpTablePanel } from "../src/viz/dp/DpTablePanel";
 import type { DpTableView } from "../src/viz/dp/dpModel";
 import type { DpCandidate } from "../src/viz/dp/detect";
+import { projectKeys } from "../src/viz/dp/keyedTable";
 
 const cand: DpCandidate = {
   cellId: "stack:main.dp", name: "dp", dims: [5], mode: "bottom-up",
@@ -21,6 +22,27 @@ const view: DpTableView = {
   currentWrite: [2],
   reads: [[1], [0]],
   maxWriteStep: 8,
+};
+
+const keyedProjection = projectKeys(["2", "3", "6"]);
+
+const keyedCand: DpCandidate = {
+  cellId: "global-globals-memo", name: "memo", dims: keyedProjection.dims,
+  mode: "top-down",
+  writes: [{ step: 4, coord: [2] }, { step: 7, coord: [3] }, { step: 9, coord: [6] }],
+  keyed: { projection: keyedProjection, keyOrder: ["2", "3", "6"] },
+};
+
+const keyedView: DpTableView = {
+  candidate: keyedCand,
+  cells: [0, 1, 2, 3, 4, 5, 6].map((i) => ({
+    coord: [i],
+    id: `global-globals-memo#${i}`,
+    value: i >= 2 ? String(i) : "",
+    writeStep: i === 2 ? 4 : i === 3 ? 7 : i === 6 ? 9 : null,
+    label: keyedProjection.labelAt.get(String(i)),
+  })),
+  currentWrite: null, reads: [], maxWriteStep: 9, keyed: true,
 };
 
 describe("DpTablePanel", () => {
@@ -90,5 +112,13 @@ describe("DpTablePanel", () => {
     expect(detail.textContent).toContain("1, 2, 3, 4, 5, 6, 7, 8");
     expect(detail.textContent).toContain("…");
     expect(detail.textContent).not.toContain("9");
+  });
+
+  it("labels keyed cells with their key and ghosts the unwritten slots", () => {
+    const { container } = render(<DpTablePanel view={keyedView} onToggleGeneric={() => {}} />);
+    expect(container.querySelectorAll(".dp-cell")).toHaveLength(7);
+    expect(container.querySelectorAll(".dp-ghost")).toHaveLength(4);   // 0,1,4,5
+    const labels = [...container.querySelectorAll(".dp-key-label")].map((e) => e.textContent);
+    expect(labels).toContain("6");
   });
 });
