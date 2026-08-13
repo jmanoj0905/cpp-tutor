@@ -6,7 +6,7 @@ import coinChange from "./fixtures/dp/coin-change.json";
 import type { Trace } from "../src/types/trace";
 import { normalizeMemory } from "../src/viz/memoryModel";
 import { detectDpTables } from "../src/viz/dp/detect";
-import { buildDpView, collectReadSteps, intEnv, readCounts } from "../src/viz/dp/dpModel";
+import { buildDpView, collectReadSteps, fillOrder, intEnv, readCounts } from "../src/viz/dp/dpModel";
 
 const t = climbBottomup as Trace;
 const codeLines = t.code.split("\n");
@@ -209,6 +209,21 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     const v = gViewAt(last);
     expect(v.cells.filter((c) => c.writeStep !== null).length).toBeGreaterThanOrEqual(10);
     expect(v.cells[11].value).not.toBe("?");
+  });
+});
+
+describe("fillOrder", () => {
+  const cell = (coord: number[], writeStep: number | null) =>
+    ({ coord, id: coord.join(","), value: "1", writeStep });
+
+  it("ranks written cells by write step, 1-based, ignoring the unwritten ones", () => {
+    const cells = [cell([0], 8), cell([1], 3), cell([2], null)];
+    expect(fillOrder(cells)).toEqual(new Map([["1", 1], ["0", 2]]));
+  });
+
+  it("gives cells written on the same step the same rank", () => {
+    const cells = [cell([0], 3), cell([1], 3), cell([2], 9)];
+    expect(fillOrder(cells)).toEqual(new Map([["0", 1], ["1", 1], ["2", 2]]));
   });
 });
 

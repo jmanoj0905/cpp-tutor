@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CloseButton } from "../CloseButton";
 import { useEscape } from "../useEscape";
-import { readCounts, type DpTableView, type DpCellView } from "./dpModel";
+import { fillOrder, readCounts, type DpTableView, type DpCellView } from "./dpModel";
 import type { Coord } from "./readSet";
 import type { Provenance } from "./provenance";
 
@@ -51,6 +51,8 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   // written (the default — fill order) or how often it has been read so far
   // (which subproblems the recurrence actually reuses).
   const [heatMode, setHeatMode] = useState<"writes" | "reads">("writes");
+  // What the cell prints: its value, or its position in the fill order.
+  const [showMode, setShowMode] = useState<"value" | "order">("value");
   useEscape(detail !== null, () => setDetail(null));
   const { candidate, cells, currentWrite, reads, maxWriteStep } = view;
   const [rows, cols] = candidate.dims.length === 2 ? candidate.dims : [1, candidate.dims[0]];
@@ -74,6 +76,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   const readMode = heatMode === "reads";
   const counts = readMode && readSteps ? readCounts(readSteps, view.step) : null;
   const maxCount = counts ? Math.max(0, ...counts.values()) : 0;
+  const order = showMode === "order" ? fillOrder(cells) : null;
 
   // Crosshair: the headers of the row and column being written, so a wide
   // table still tells you where the write landed without counting cells.
@@ -94,6 +97,12 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
           onClick={() => setHeatMode((m) => (m === "writes" ? "reads" : "writes"))}
         >
           heat: {heatMode}
+        </button>
+        <button
+          className={`cell-chip dp-show-toggle${order ? " is-on" : ""}`}
+          onClick={() => setShowMode((m) => (m === "value" ? "order" : "value"))}
+        >
+          show: {showMode}
         </button>
         <button className="cell-chip dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
       </div>
@@ -141,7 +150,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                     style={ghost ? undefined : { "--dp-heat": shade } as React.CSSProperties}
                     onClick={() => setDetail(cell)}
                   >
-                    {cell.value}
+                    {order ? (order.get(k) ?? "") : cell.value}
                   </div>
                 );
               })}

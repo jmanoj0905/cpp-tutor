@@ -158,6 +158,24 @@ describe("DpTablePanel", () => {
     expect(container.querySelectorAll(".dp-head-active")).toHaveLength(0);
   });
 
+  it("show chip replaces cell values with their fill order, leaving ghosts blank", () => {
+    const { container } = render(<DpTablePanel view={view} onToggleGeneric={() => {}} />);
+    fireEvent.click(container.querySelector(".dp-show-toggle")!);
+    const at = (coord: string) => container.querySelector(`[data-coord="${coord}"]`)!;
+    expect(at("0").textContent).toBe("1");   // written first, at step 3
+    expect(at("1").textContent).toBe("2");
+    expect(at("2").textContent).toBe("3");
+    expect(at("3").textContent).toBe("");    // never written
+  });
+
+  it("show chip returns to values on a second click", () => {
+    const { container } = render(<DpTablePanel view={view} onToggleGeneric={() => {}} />);
+    const chip = container.querySelector(".dp-show-toggle")!;
+    fireEvent.click(chip);
+    fireEvent.click(chip);
+    expect(container.querySelector('[data-coord="2"]')!.textContent).toBe("2");
+  });
+
   it("escape hatch calls onToggleGeneric", () => {
     const onToggle = vi.fn();
     const { container } = render(<DpTablePanel view={view} onToggleGeneric={onToggle} />);

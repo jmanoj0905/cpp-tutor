@@ -203,6 +203,24 @@ export function buildDpView(
            keyed: candidate.keyed !== undefined };
 }
 
+/** Coord key → 1-based position in the order the table was filled. Cells
+ *  written on the same step share a rank (dense ranking), and unwritten cells
+ *  are absent. Rank rather than raw step number: the point is reading the
+ *  traversal — row-major, diagonal, or the scattered order a top-down solution
+ *  produces — and small consecutive numbers show that where step numbers in
+ *  the hundreds do not. */
+export function fillOrder(cells: readonly DpCellView[]): Map<string, number> {
+  const steps = [...new Set(cells.map((c) => c.writeStep)
+    .filter((s): s is number => s !== null))].sort((a, b) => a - b);
+  const rankOf = new Map(steps.map((s, i) => [s, i + 1]));
+  const order = new Map<string, number>();
+  for (const cell of cells) {
+    if (cell.writeStep === null) continue;
+    order.set(cell.coord.join(","), rankOf.get(cell.writeStep)!);
+  }
+  return order;
+}
+
 /** Reads per coord up to and including `step`, from a whole-trace read log
  *  (`collectReadSteps`). Coords with no read yet are absent rather than zero,
  *  so a caller can tell "never read" from "read once" without a sentinel. */
