@@ -46,8 +46,8 @@ describe("buildDpView", () => {
     expect(step).toBeGreaterThan(0);
     const v = viewAt(step);
     const i = intEnv(t.trace[step]).get("i")!;
-    expect(v.reads).toContainEqual([i - 1]);
-    expect(v.reads).toContainEqual([i - 2]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 1]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 2]);
   });
 
   it("on the recurrence line about to execute: write target coord is absent from reads", () => {
@@ -66,9 +66,9 @@ describe("buildDpView", () => {
     expect(step).toBeGreaterThan(0);
     const v = viewAt(step);
     const i = intEnv(t.trace[step]).get("i")!;
-    expect(v.reads).not.toContainEqual([i]);
-    expect(v.reads).toContainEqual([i - 1]);
-    expect(v.reads).toContainEqual([i - 2]);
+    expect(v.reads.map((r) => r.coord)).not.toContainEqual([i]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 1]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 2]);
   });
 
   it("at a write-landing step, with prevPoint supplied: reads reflect the operands that produced the write (arrows can render)", () => {
@@ -83,9 +83,9 @@ describe("buildDpView", () => {
     const prev = t.trace[w.step - 1];
     const v = buildDpView(cand, w.step, t.trace[w.step], normalizeMemory(t.trace[w.step]), codeLines, prev);
     expect(v.currentWrite).toEqual([4]);
-    expect(v.reads).toContainEqual([3]);
-    expect(v.reads).toContainEqual([2]);
-    expect(v.reads).not.toContainEqual([4]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([3]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([2]);
+    expect(v.reads.map((r) => r.coord)).not.toContainEqual([4]);
   });
 
   it("final step: all dp cells written, values present", () => {
@@ -129,7 +129,22 @@ describe("buildDpView: top-down/recursive table (climb-topdown fixture)", () => 
     expect(n).toBe(6);
     expect(tdCodeLines[td.trace[step].line - 1]).toContain("memo[n] = solve(n - 1, memo) + solve(n - 2, memo);");
     const v = tdViewAt(step);
-    expect(v.reads).not.toContainEqual([6]);
+    expect(v.reads.map((r) => r.coord)).not.toContainEqual([6]);
+  });
+
+  // `if (memo[n] != -1) return memo[n];` — the memo lookup itself. Whether it
+  // finds a value is the whole difference between a memo hit and the
+  // recursion descending again, so the read carries that as a flag.
+  it("a read of a memo slot the recurrence has not filled is a miss", () => {
+    const v = tdViewAt(7);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([6]);
+    expect(v.reads.every((r) => r.hit)).toBe(false);
+  });
+
+  it("a read of the same slot once the recurrence has filled it is a hit", () => {
+    const v = tdViewAt(63);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([2]);
+    expect(v.reads.every((r) => r.hit)).toBe(true);
   });
 });
 
@@ -167,9 +182,9 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     const env = intEnv(g.trace[step]);
     const i = env.get("i")!;
     const j = env.get("j")!;
-    expect(v.reads).not.toContainEqual([i, j]);
-    expect(v.reads).toContainEqual([i - 1, j]);
-    expect(v.reads).toContainEqual([i, j - 1]);
+    expect(v.reads.map((r) => r.coord)).not.toContainEqual([i, j]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 1, j]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i, j - 1]);
   });
 
   it("at a write-landing step, with prevPoint supplied: reads reflect up+left operands (arrows can render)", () => {
@@ -179,9 +194,9 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     const v = buildDpView(gCand, w.step, g.trace[w.step], normalizeMemory(g.trace[w.step]), gCodeLines, prev);
     const [i, j] = w.coord;
     expect(v.currentWrite).toEqual([i, j]);
-    expect(v.reads).toContainEqual([i - 1, j]);
-    expect(v.reads).toContainEqual([i, j - 1]);
-    expect(v.reads).not.toContainEqual([i, j]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i - 1, j]);
+    expect(v.reads.map((r) => r.coord)).toContainEqual([i, j - 1]);
+    expect(v.reads.map((r) => r.coord)).not.toContainEqual([i, j]);
   });
 
   it("final step: all dp cells written, corner value present", () => {
@@ -241,13 +256,13 @@ describe("buildDpView: index expressions that subscript another array (coin-chan
   it("at the a=8, k=2 write: reads resolve to dp[8 - coins[2]] = dp[4]", () => {
     const v = ccViewAt(81);
     expect(v.currentWrite).toEqual([8]);
-    expect(v.reads).toEqual([[4]]);
+    expect(v.reads.map((r) => r.coord)).toEqual([[4]]);
   });
 
   it("at the a=3, k=1 write: reads resolve to dp[3 - coins[1]] = dp[0]", () => {
     const v = ccViewAt(30);
     expect(v.currentWrite).toEqual([3]);
-    expect(v.reads).toEqual([[0]]);
+    expect(v.reads.map((r) => r.coord)).toEqual([[0]]);
   });
 
   it("collectReadSteps logs the coords reached through the inner subscript", () => {

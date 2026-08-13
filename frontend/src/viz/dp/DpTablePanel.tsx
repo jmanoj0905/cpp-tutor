@@ -55,7 +55,12 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   const { candidate, cells, currentWrite, reads, maxWriteStep } = view;
   const [rows, cols] = candidate.dims.length === 2 ? candidate.dims : [1, candidate.dims[0]];
   const key = (c: Coord) => c.join(",");
-  const readSet = new Set(reads.map(key));
+  const readSet = new Set(reads.filter((r) => r.hit).map((r) => key(r.coord)));
+  // Misses draw no arrow: an arrow points at the write a read fed, and a miss
+  // by definition fed nothing — it found no value and sent the solution off to
+  // compute one.
+  const missSet = new Set(reads.filter((r) => !r.hit).map((r) => key(r.coord)));
+  const hitReads = reads.filter((r) => r.hit).map((r) => r.coord);
   const writeKey = currentWrite ? key(currentWrite) : null;
 
   /** Heat: 0 (oldest) → 1 (this step's write). */
@@ -116,6 +121,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                   ghost && "dp-ghost",
                   k === writeKey && "dp-write",
                   readSet.has(k) && "dp-read",
+                  missSet.has(k) && "dp-read-miss",
                   changedIds?.has(cell.id) && "cell-changed",
                 ].filter(Boolean).join(" ");
                 return (
@@ -132,9 +138,9 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                 );
               })}
             </div>
-            {currentWrite && reads.length > 0 && (
+            {currentWrite && hitReads.length > 0 && (
               <svg className="dp-arrows" width={cols * CELL} height={rows * CELL}>
-                {reads.map((r) => (
+                {hitReads.map((r) => (
                   <path key={key(r)} d={arrowPath(r, currentWrite)} />
                 ))}
               </svg>

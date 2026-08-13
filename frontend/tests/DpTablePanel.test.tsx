@@ -21,7 +21,7 @@ const view: DpTableView = {
     { coord: [4], id: "c4", value: "?", writeStep: null },
   ],
   currentWrite: [2],
-  reads: [[1], [0]],
+  reads: [{ coord: [1], hit: true }, { coord: [0], hit: true }],
   maxWriteStep: 8,
   step: 8,
 };
@@ -90,6 +90,17 @@ describe("DpTablePanel", () => {
     expect(container.querySelector('.dp-write')!.getAttribute("data-coord")).toBe("2");
     const reads = [...container.querySelectorAll(".dp-read")].map((e) => e.getAttribute("data-coord"));
     expect(reads.sort()).toEqual(["0", "1"]);
+  });
+
+  it("marks a missed read differently and draws it no arrow", () => {
+    const missView: DpTableView = {
+      ...view,
+      reads: [{ coord: [1], hit: true }, { coord: [3], hit: false }],
+    };
+    const { container } = render(<DpTablePanel view={missView} onToggleGeneric={() => {}} />);
+    expect(container.querySelector('[data-coord="1"]')!.className).toContain("dp-read");
+    expect(container.querySelector('[data-coord="3"]')!.className).toContain("dp-read-miss");
+    expect(container.querySelectorAll(".dp-arrows path")).toHaveLength(1);
   });
 
   it("draws one arrow per read", () => {

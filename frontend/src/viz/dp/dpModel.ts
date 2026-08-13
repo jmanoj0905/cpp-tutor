@@ -15,11 +15,20 @@ export interface DpCellView {
   label?: string;
 }
 
+/** One resolved read of the table on the executing statement. `hit` is true
+ *  when the coord already holds a recurrence write at this step — the memo-hit
+ *  / memo-miss distinction, which is what decides whether a top-down solution
+ *  returns immediately or descends into the recursion again. */
+export interface DpReadView {
+  coord: Coord;
+  hit: boolean;
+}
+
 export interface DpTableView {
   candidate: DpCandidate;
   cells: DpCellView[];
   currentWrite: Coord | null;
-  reads: Coord[];
+  reads: DpReadView[];
   maxWriteStep: number;
   /** The step this view was built for. The whole-trace read log knows about
    *  reads that haven't happened yet, so read-count shading needs the current
@@ -182,7 +191,15 @@ export function buildDpView(
     }
   }
 
-  return { candidate, cells, currentWrite, reads, maxWriteStep, step,
+  // A read is a hit when the coord already carries a recurrence write at this
+  // step; otherwise the lookup found nothing (in a memo, the sentinel) and the
+  // solution is about to compute it.
+  const readViews = reads.map((coord) => ({
+    coord,
+    hit: writeStepAt.has(coord.join(",")),
+  }));
+
+  return { candidate, cells, currentWrite, reads: readViews, maxWriteStep, step,
            keyed: candidate.keyed !== undefined };
 }
 
