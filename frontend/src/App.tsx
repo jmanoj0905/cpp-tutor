@@ -10,6 +10,7 @@ import { CallLogPanel } from "./viz/CallLogPanel";
 import { GraphPanel } from "./viz/graph/GraphPanel";
 import { memoryAt } from "./viz/memoryModel";
 import { hasGraphContent } from "./viz/graph/graphModel";
+import { hasGraphCode } from "./viz/graph/detect";
 import { shapeInfoFor } from "./viz/shapes";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
@@ -65,12 +66,15 @@ function Workspace({
   // O(prefix) per call → O(n^2) over a trace); break on the first hit.
   // A pointer-tree program has no such container — its Graph content comes
   // from a confirmed `tree` shape, which is already a cached whole-trace pass.
+  // Matrix/edge-list shapes are ambiguous (a 2-D DP table is an int matrix),
+  // so they additionally need the source to read like a graph problem.
   const graphAvailable = useMemo(() => {
     for (const kind of shapeInfoFor(trace.trace).confirmed.values()) {
       if (kind === "tree") return true;
     }
+    const matrices = hasGraphCode(trace.code);
     for (let s = 0; s < trace.trace.length; s++) {
-      if (hasGraphContent(memoryAt(trace.trace[s]))) return true;
+      if (hasGraphContent(memoryAt(trace.trace[s]), matrices)) return true;
     }
     return false;
   }, [trace]);

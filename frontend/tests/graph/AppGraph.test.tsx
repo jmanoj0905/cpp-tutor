@@ -4,6 +4,7 @@ import App from "../../src/App";
 import dfsList from "../fixtures/graph/dfs_list.json";
 import vectorTrace from "../fixtures/vector-trace.json";
 import treeInsert from "../fixtures/shapes/tree-insert.json";
+import lcs2d from "../fixtures/dp/lcs-2d.json";
 import { fetchTrace } from "../../src/api/client";
 import type { Trace } from "../../src/types/trace";
 
@@ -83,5 +84,16 @@ describe("App graph tab", () => {
       fireEvent.change(slider, { target: { value: String(s) } });
       expect(container.querySelector(".graph-panel")).toBeNull();
     }
+  });
+
+  it("offers no Graph tab for a 2-D DP table", async () => {
+    // lcs-2d's dp is a vector<vector<int>> — structurally an adjacency matrix,
+    // so only the source vocabulary keeps the tab away (see graph/detect.ts).
+    (fetchTrace as any).mockResolvedValue(lcs2d as unknown as Trace);
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+
+    expect(screen.queryByRole("tab", { name: /^graph$/i })).toBeNull();
   });
 });

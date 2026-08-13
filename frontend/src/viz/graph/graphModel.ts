@@ -487,19 +487,26 @@ function bindFrontier(mem: NormalizedMemory, scene: GraphScene): void {
  * qualifies; a char matrix only when rectangular) without the O(prefix)
  * overlay/order recompute, so it is safe to scan across a whole trace.
  */
-export function hasGraphContent(mem: NormalizedMemory): boolean {
-  for (const c of findContainers(mem)) {
-    const m = readMatrix(c);
-    if (!m || m.length === 0) continue;
-    if (m.every((r) => r.every(isIntLabel))) return true;
-    if (isCharMatrix(c) && isRectangular(m)) return true;
-  }
-  // Pair/tuple-shaped edge lists (vector<pair<int,int>>, nested {w,{u,v}}, …)
-  // never read as a matrix (readMatrix rejects pair/tuple rows), so they need
-  // their own check here or the Graph tab never surfaces for them.
-  for (const c of findContainers(mem)) {
-    const edges = readEdgeList(c);
-    if (edges && edges.length > 0) return true;
+export function hasGraphContent(mem: NormalizedMemory, matrices = true): boolean {
+  // `matrices` off drops the shapes that a non-graph program can produce by
+  // accident -- a 2-D DP table is an int matrix, a vector<pair> of intervals
+  // is an edge list. App.tsx passes the source-vocabulary verdict here (see
+  // `hasGraphCode`); heaps below stay unconditional because a priority_queue
+  // IS a tree however the program uses it.
+  if (matrices) {
+    for (const c of findContainers(mem)) {
+      const m = readMatrix(c);
+      if (!m || m.length === 0) continue;
+      if (m.every((r) => r.every(isIntLabel))) return true;
+      if (isCharMatrix(c) && isRectangular(m)) return true;
+    }
+    // Pair/tuple-shaped edge lists (vector<pair<int,int>>, nested {w,{u,v}}, …)
+    // never read as a matrix (readMatrix rejects pair/tuple rows), so they need
+    // their own check here or the Graph tab never surfaces for them.
+    for (const c of findContainers(mem)) {
+      const edges = readEdgeList(c);
+      if (edges && edges.length > 0) return true;
+    }
   }
   // A pure-heap program has no matrix/edge-list container, so surface the Graph
   // tab on the priority_queue itself.
