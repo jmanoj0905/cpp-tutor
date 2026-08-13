@@ -75,6 +75,12 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   const counts = readMode && readSteps ? readCounts(readSteps, view.step) : null;
   const maxCount = counts ? Math.max(0, ...counts.values()) : 0;
 
+  // Crosshair: the headers of the row and column being written, so a wide
+  // table still tells you where the write landed without counting cells.
+  const [writeRow, writeCol] = currentWrite
+    ? (currentWrite.length === 2 ? currentWrite : [0, currentWrite[0]])
+    : [null, null];
+
   const twoD = candidate.dims.length === 2;
   const headers = twoD && !view.keyed;
 
@@ -95,7 +101,8 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
         {headers && (
           <div className="dp-col-head" style={{ marginLeft: CELL }}>
             {Array.from({ length: cols }, (_, c) => (
-              <span key={c} style={{ width: CELL }}>{c}</span>
+              <span key={c} className={c === writeCol ? "dp-head-active" : undefined}
+                    style={{ width: CELL }}>{c}</span>
             ))}
           </div>
         )}
@@ -103,7 +110,8 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
           {headers && (
             <div className="dp-row-head" style={{ width: CELL }}>
               {Array.from({ length: rows }, (_, r) => (
-                <span key={r} style={{ height: CELL }}>{r}</span>
+                <span key={r} className={r === writeRow ? "dp-head-active" : undefined}
+                      style={{ height: CELL }}>{r}</span>
               ))}
             </div>
           )}

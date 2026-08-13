@@ -142,6 +142,22 @@ describe("DpTablePanel", () => {
     expect(container.querySelector('[data-coord="2"]')!.getAttribute("style")).toContain("--dp-heat: 1");
   });
 
+  it("tints the row and column header of the current write, and only those", () => {
+    const writing: DpTableView = { ...view2d, currentWrite: [1, 2] };
+    const { container } = render(<DpTablePanel view={writing} onToggleGeneric={() => {}} />);
+    const cols = [...container.querySelectorAll(".dp-col-head span")];
+    const rows = [...container.querySelectorAll(".dp-row-head span")];
+    expect(cols[2].className).toContain("dp-head-active");
+    expect(cols[0].className).not.toContain("dp-head-active");
+    expect(rows[1].className).toContain("dp-head-active");
+    expect(rows[0].className).not.toContain("dp-head-active");
+  });
+
+  it("tints no header when no write lands this step", () => {
+    const { container } = render(<DpTablePanel view={view2d} onToggleGeneric={() => {}} />);
+    expect(container.querySelectorAll(".dp-head-active")).toHaveLength(0);
+  });
+
   it("escape hatch calls onToggleGeneric", () => {
     const onToggle = vi.fn();
     const { container } = render(<DpTablePanel view={view} onToggleGeneric={onToggle} />);
