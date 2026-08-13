@@ -35,6 +35,11 @@ export interface NormalizedCell {
    *  means the toggle is active. Undefined for cells with no such affordance.
    *  Purely presentational — `normalizeMemory` never sets it. */
   charViewToggle?: "on" | "off";
+  /** The cell ids this cell's toggle acts on. Set only on a homogeneous string
+   *  sequence, whose toggle is a bulk flip of its element strings (each of
+   *  which also has a toggle of its own). Absent means the toggle acts on this
+   *  cell alone. */
+  charViewGroup?: string[];
   /** True for compiler-generated top-level stack locals (name starts with `__`),
    *  e.g. range-for temporaries __for_range/__for_begin/__for_end. Hidden by
    *  default behind the per-frame internals toggle. */

@@ -24,8 +24,9 @@ export interface CellView {
   onDpToggle?: (cellId: string) => void;
   /** Flip a string / vector-of-strings cell between string and char-array view
    *  (see `charView.ts`). Rendered as a header button on cells whose
-   *  `charViewToggle` is set. */
-  onCharViewToggle?: (cellId: string) => void;
+   *  `charViewToggle` is set. Takes ids rather than one id because a string
+   *  sequence's button flips all of its elements at once (`charViewGroup`). */
+  onCharViewToggle?: (cellIds: string[]) => void;
   /** Per-candidate whole-trace read logs, keyed the same as `dpViews` (by the
    *  DP table's own cell id), each a "r,c" coord key → steps map from
    *  `collectReadSteps`. Passed straight through to the matching
@@ -88,7 +89,7 @@ export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = fal
           <button
             className={`cell-chip char-view-toggle${cell.charViewToggle === "on" ? " is-on" : ""}`}
             title={cell.charViewToggle === "on" ? "Show as string" : "Show as char array"}
-            onClick={(e) => { e.stopPropagation(); onCharViewToggle(cell.id); }}
+            onClick={(e) => { e.stopPropagation(); onCharViewToggle(cell.charViewGroup ?? [cell.id]); }}
           >
             {cell.charViewToggle === "on" ? "⇄ string" : "⇄ chars"}
           </button>
@@ -154,6 +155,31 @@ function isDpPromotable(cell: NormalizedCell): boolean {
     || cell.containerKind === "unordered_map";
 }
 
+/**
+ * A string's characters, as the glyph run they read as in source: no `[i]`
+ * index, no repeated `char` type. That's the whole point of the char-view
+ * toggle — flipped to `vector<char>`, the same characters render through the
+ * normal indexed-array path instead, so the two views are told apart by their
+ * children and not just by the header. Each glyph still carries its cell id so
+ * per-character diff and selection highlighting land exactly as before.
+ */
+function StringChars({ cell, view = {} }: { cell: NormalizedCell; view?: CellView }) {
+  const { highlightedIds, changedIds } = view;
+  return (
+    <div className="cell-children string-chars">
+      {(cell.children ?? []).map((ch) => (
+        <span
+          key={ch.id}
+          data-cell-id={ch.id}
+          className={`char-box${highlightedIds?.has(ch.id) ? " cell-highlight" : ""}${changedIds?.has(ch.id) ? " cell-changed" : ""}`}
+        >
+          {ch.displayValue}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function Children({ cell, view = {}, forceLinear, noPorts }: MemoryCellProps) {
   const { highlightedIds, changedIds } = view;
   const all = cell.children ?? [];
@@ -192,12 +218,17 @@ function Children({ cell, view = {}, forceLinear, noPorts }: MemoryCellProps) {
   const shown = expanded ? all : all.slice(0, COLLAPSE_AT);
   const hidden = all.length - shown.length;
 
-  if (isString && all.length > 0 && !expanded && !hasMarkedChild) {
-    return (
-      <div className="cell-children string-collapsed">
-        <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>show {all.length} chars</button>
-      </div>
-    );
+  if (isString && all.length > 0) {
+    // A glyph run is cheap to show, so only long strings stay behind the
+    // collapse chip; short ones read as their characters straight away.
+    if (all.length > COLLAPSE_AT && !expanded && !hasMarkedChild) {
+      return (
+        <div className="cell-children string-collapsed">
+          <button className="cell-chip more-toggle" onClick={() => setExpanded(true)}>show {all.length} chars</button>
+        </div>
+      );
+    }
+    return <StringChars cell={cell} view={view} />;
   }
 
   if (depth === 3 && !linear) {

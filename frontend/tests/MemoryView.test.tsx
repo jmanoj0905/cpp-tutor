@@ -33,7 +33,7 @@ describe("MemoryCell", () => {
     expect(screen.getByText("20")).toBeDefined();
   });
 
-  it("keeps std::string characters collapsed behind the quoted value", () => {
+  it("shows a short std::string's characters as a glyph run under the quoted value", () => {
     const chars = [
       cell({ id: "s0", name: "[0]", displayValue: "a" }),
       cell({ id: "s1", name: "[1]", displayValue: "b" }),
@@ -44,9 +44,19 @@ describe("MemoryCell", () => {
       displayValue: "\"abc\"", children: chars,
     })} />);
     expect(screen.getByText("\"abc\"")).toBeDefined();
+    expect(container.querySelector('.char-box[data-cell-id="s0"]')).not.toBeNull();
+  });
+
+  it("keeps a long std::string's characters collapsed behind the quoted value", () => {
+    const chars = [..."abcdefghijk"].map((ch, i) =>
+      cell({ id: `s${i}`, name: `[${i}]`, displayValue: ch }));
+    const { container } = render(<MemoryCell cell={cell({
+      id: "s", name: "s", kind: "container", containerKind: "string",
+      displayValue: "\"abcdefghijk\"", children: chars,
+    })} />);
     expect(container.querySelector('[data-cell-id="s0"]')).toBeNull();
-    fireEvent.click(screen.getByText("show 3 chars"));
-    expect(container.querySelector('[data-cell-id="s0"]')).not.toBeNull();
+    fireEvent.click(screen.getByText("show 11 chars"));
+    expect(container.querySelector('.char-box[data-cell-id="s0"]')).not.toBeNull();
   });
 
   it("auto-shows changed std::string characters", () => {

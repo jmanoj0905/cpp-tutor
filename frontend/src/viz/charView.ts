@@ -9,12 +9,12 @@ import type { NormalizedCell, NormalizedFrame, NormalizedMemory } from "./memory
  *  "vector" so `MemoryCell` renders the chars as an indexed grid instead of the
  *  collapsed "show N chars" affordance.
  *
- *  The toggle is per-container (see the design doc). It appears on:
- *    - a homogeneous string SEQUENCE (vector/deque/list/set/... of strings):
- *      one toggle flips every element at once; the elements get no own toggle;
- *    - every OTHER string, wherever it sits — a map key/value, a pair or tuple
- *      member, a struct field, a standalone local: its own per-string toggle,
- *      reached by the generic recursion below.
+ *  Every string carries its own toggle, wherever it sits — a map key/value, a
+ *  pair or tuple member, a struct field, a standalone local, an element of a
+ *  vector<string>. A homogeneous string SEQUENCE (vector/deque/list/set/... of
+ *  strings) additionally gets a container-level toggle, which is a bulk flip
+ *  over its elements rather than a state of its own: it carries the element
+ *  ids as `charViewGroup`, and reads "on" only once every element is flipped.
  *
  *  `charView` holds the ids of cells the user has switched on. Cells that CAN be
  *  toggled but are currently off are still annotated (`charViewToggle: "off"`)
@@ -52,27 +52,38 @@ function flipStringToChars(cell: NormalizedCell): NormalizedCell {
   };
 }
 
+/** Re-present a homogeneous string sequence's own header once all of its
+ *  elements are flipped: `vector<string>` reads as `vector<vector<char>>`. */
+function flipSequenceHeader(cell: NormalizedCell): NormalizedCell {
+  const n = cell.children?.length ?? 0;
+  return { ...cell, displayValue: `${cell.containerKind}<vector<char>> · ${n}` };
+}
+
+function flipIfOn(cell: NormalizedCell, charView: Set<string>): NormalizedCell {
+  const on = charView.has(cell.id);
+  return { ...(on ? flipStringToChars(cell) : cell), charViewToggle: on ? "on" : "off" };
+}
+
 function transformCell(cell: NormalizedCell, charView: Set<string>): NormalizedCell {
-  // A homogeneous string sequence owns its elements' view: they never get an
-  // independent toggle. Handle it before the generic recursion so the string
-  // children are not annotated as togglable on their own.
+  // Handle a homogeneous string sequence before the generic recursion: its
+  // elements are flipped here (each still owning its individual toggle) and
+  // the container's own toggle is the bulk flip over all of them.
   if (isSequenceOfStrings(cell)) {
-    const on = charView.has(cell.id);
-    const children = (cell.children ?? []).map((child) =>
-      on ? flipStringToChars(child) : child,
-    );
-    return { ...cell, children, charViewToggle: on ? "on" : "off" };
+    const kids = cell.children ?? [];
+    const children = kids.map((child) => flipIfOn(child, charView));
+    const allOn = kids.every((child) => charView.has(child.id));
+    const withKids = { ...cell, children };
+    return {
+      ...(allOn ? flipSequenceHeader(withKids) : withKids),
+      charViewToggle: allOn ? "on" : "off",
+      charViewGroup: kids.map((child) => child.id),
+    };
   }
 
   const children = cell.children?.map((c) => transformCell(c, charView));
   const c: NormalizedCell = children ? { ...cell, children } : cell;
 
-  if (isStringCell(c)) {
-    const on = charView.has(c.id);
-    const flipped = on ? flipStringToChars(c) : c;
-    return { ...flipped, charViewToggle: on ? "on" : "off" };
-  }
-  return c;
+  return isStringCell(c) ? flipIfOn(c, charView) : c;
 }
 
 const transformCells = (cells: NormalizedCell[], charView: Set<string>): NormalizedCell[] =>

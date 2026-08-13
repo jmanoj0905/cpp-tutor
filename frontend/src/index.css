@@ -392,6 +392,23 @@ p {
 .cell-children.kv { border-left: none; padding-left: 0; }
 .cell-children.kv .cell { border-bottom: var(--border-dotted); }
 
+/* String view: the characters as a contiguous glyph run of dotted boxes, no
+   index and no repeated type. The char-array view (⇄ chars) routes the same
+   children through .cell-children.grid instead, so the two read apart. */
+.cell-children.string-chars {
+  display: flex;
+  flex-wrap: wrap;
+  border-left: none;
+  padding-left: 0;
+}
+.string-chars .char-box {
+  border: var(--border-dotted);
+  margin-right: -1px;
+  padding: 2px 6px;
+  min-width: 1.6em;
+  text-align: center;
+}
+
 /* Bento: struct-like value as a horizontal row of tiles; a nested struct child
    is itself a .bento compartment. Each tile draws its own dotted box (base .cell
    has no border — every sibling layout adds one), mono/square inherited. */
@@ -449,9 +466,11 @@ p {
 .connector.inactive { opacity: .38; }
 .connector-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
 .connectors marker path { fill: var(--blue); }
-.cell.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }
+.cell.cell-highlight,
+.char-box.cell-highlight { outline: 2px solid var(--blue); outline-offset: 1px; }
 .cell.cell-changed,
 .cell-head.cell-changed,
+.char-box.cell-changed,
 .dp-cell.cell-changed { background: rgba(242, 177, 0, 0.22); box-shadow: inset 2px 0 0 var(--yellow); }
 
 /* Disclosure row rather than a chip: full-width, borderless, left-aligned.

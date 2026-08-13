@@ -32,7 +32,15 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
   // still resolve. The char-view transform runs every render to annotate
   // togglable cells (even when nothing is switched on).
   const [charView, setCharView] = useState<Set<string>>(new Set());
-  const toggleCharView = (cellId: string) => setCharView((prev) => toggleInSet(prev, cellId));
+  // A string sequence's button passes every element id at once: flip them all
+  // on unless they already all are, in which case flip them all back.
+  const toggleCharView = (cellIds: string[]) => setCharView((prev) => {
+    if (cellIds.length === 1) return toggleInSet(prev, cellIds[0]);
+    const next = new Set(prev);
+    const allOn = cellIds.every((id) => next.has(id));
+    for (const id of cellIds) if (allOn) next.delete(id); else next.add(id);
+    return next;
+  });
   const viewMemory = applyCharView(memory, charView);
   const changedIds = changedCellIds(prevPoint ? normalizeMemory(prevPoint) : null, memory);
   const containerRef = useRef<HTMLDivElement>(null);

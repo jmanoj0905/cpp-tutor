@@ -33,18 +33,22 @@ describe("applyCharView — vector<string> ⇄ vector<vector<char>>", () => {
     const out = applyCharView(memWith(words), new Set());
     const w = find(out, "words")!;
     expect(w.charViewToggle).toBe("off");
-    // Element strings stay strings and get NO independent toggle of their own.
+    // The container's toggle is a bulk action over its elements, which each
+    // stay strings and carry their own (off) toggle.
+    expect(w.charViewGroup).toEqual((words.children ?? []).map((c) => c.id));
     for (const child of w.children ?? []) {
       expect(child.containerKind).toBe("string");
-      expect(child.charViewToggle).toBeUndefined();
+      expect(child.charViewToggle).toBe("off");
     }
   });
 
-  it("flips every element string to vector<char> when the vector id is on", () => {
+  it("flips every element string to vector<char> when the whole group is on", () => {
     const words = wordsCell();
-    const out = applyCharView(memWith(words), new Set([words.id]));
+    const group = (words.children ?? []).map((c) => c.id);
+    const out = applyCharView(memWith(words), new Set(group));
     const w = find(out, "words")!;
     expect(w.charViewToggle).toBe("on");
+    expect(w.displayValue).toMatch(/^vector<vector<char>> · \d+$/);
     const children = w.children ?? [];
     expect(children).toHaveLength(3);
     for (const child of children) {
@@ -57,10 +61,26 @@ describe("applyCharView — vector<string> ⇄ vector<vector<char>>", () => {
     expect((children[0].children ?? []).map((c) => c.displayValue)).toEqual(["a", "l", "p", "h", "a"]);
   });
 
+  it("flips one element on its own without flipping its siblings", () => {
+    const words = wordsCell();
+    const first = (words.children ?? [])[0];
+    const w = find(applyCharView(memWith(words), new Set([first.id])), "words")!;
+    // Not every element is flipped, so the container reads off.
+    expect(w.charViewToggle).toBe("off");
+    expect(w.displayValue).toBe(words.displayValue);
+    expect(w.children![0].containerKind).toBe("vector");
+    expect(w.children![0].charViewToggle).toBe("on");
+    for (const child of w.children!.slice(1)) {
+      expect(child.containerKind).toBe("string");
+      expect(child.charViewToggle).toBe("off");
+    }
+  });
+
   it("preserves cell ids so diff/links resolve identically in either view", () => {
     const words = wordsCell();
+    const group = (words.children ?? []).map((c) => c.id);
     const off = find(applyCharView(memWith(words), new Set()), "words")!;
-    const on = find(applyCharView(memWith(words), new Set([words.id])), "words")!;
+    const on = find(applyCharView(memWith(words), new Set(group)), "words")!;
     expect(on.id).toBe(off.id);
     expect((on.children ?? []).map((c) => c.id)).toEqual((off.children ?? []).map((c) => c.id));
   });
@@ -135,9 +155,10 @@ describe("applyCharView — every homogeneous string sequence gets a container f
       const c = container("c", kind, [str("c.a", "ab"), str("c.b", "cd")]);
       const off = find(applyCharView(memWith(c), new Set()), "c")!;
       expect(off.charViewToggle).toBe("off");
-      for (const child of off.children ?? []) expect(child.charViewToggle).toBeUndefined();
+      expect(off.charViewGroup).toEqual(["c.a", "c.b"]);
+      for (const child of off.children ?? []) expect(child.charViewToggle).toBe("off");
 
-      const on = find(applyCharView(memWith(c), new Set(["c"])), "c")!;
+      const on = find(applyCharView(memWith(c), new Set(["c.a", "c.b"])), "c")!;
       expect(on.charViewToggle).toBe("on");
       for (const child of on.children ?? []) {
         expect(child.containerKind).toBe("vector");
@@ -204,7 +225,7 @@ describe("applyCharView — strings nested in map/set values, pairs, structs", (
     const inner1 = container("g.0", "vector", [str("g.0.a", "ab")]);
     const inner2 = container("g.1", "vector", [str("g.1.a", "cd")]);
     const outer = container("g", "vector", [inner1, inner2]);
-    const out = find(applyCharView(memWith(outer), new Set(["g.0"])), "g")!;
+    const out = find(applyCharView(memWith(outer), new Set(["g.0.a"])), "g")!;
     // outer is a vector of vectors, not of strings → no container toggle on it.
     expect(out.charViewToggle).toBeUndefined();
     const i0 = out.children!.find((c) => c.id === "g.0")!;
