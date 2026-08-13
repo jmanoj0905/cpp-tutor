@@ -4,6 +4,7 @@ import { useEscape } from "../useEscape";
 import { fillOrder, readCounts, type DpTableView, type DpCellView } from "./dpModel";
 import type { Coord } from "./readSet";
 import type { Provenance } from "./provenance";
+import type { DpCone } from "./cone";
 
 const CELL = 36; // px, uniform grid pitch for arrow geometry
 
@@ -33,10 +34,14 @@ function valuesLine(p: Provenance): string | null {
 
 const READ_STEPS_DISPLAY_CAP = 8;
 
-export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, explain }: {
+export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, explain, cone }: {
   view: DpTableView;
   changedIds?: Set<string>;
   onToggleGeneric: () => void;
+  /** The table's recurrence graph (see `buildCone`). When provided, selecting
+   *  a cell tints the cells it was computed from and the cells computed from
+   *  it, one level in each direction. */
+  cone?: DpCone;
   /** Whole-trace read log (coord key "r,c" → steps), from
    *  `collectReadSteps`. When provided, the detail box lists the steps at
    *  which the selected cell was read, capped for display. */
@@ -77,6 +82,13 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   const counts = readMode && readSteps ? readCounts(readSteps, view.step) : null;
   const maxCount = counts ? Math.max(0, ...counts.values()) : 0;
   const order = showMode === "order" ? fillOrder(cells) : null;
+
+  // One level of the recurrence graph around the selected cell: what it was
+  // computed from, and what was computed from it. Tied to the detail box, so
+  // it appears and clears with the selection.
+  const selectedEdges = detail && cone ? cone.get(key(detail.coord)) : undefined;
+  const operandSet = new Set(selectedEdges?.operands.map(key));
+  const dependentSet = new Set(selectedEdges?.dependents.map(key));
 
   // Crosshair: the headers of the row and column being written, so a wide
   // table still tells you where the write landed without counting cells.
@@ -139,6 +151,8 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                   k === writeKey && "dp-write",
                   readSet.has(k) && "dp-read",
                   missSet.has(k) && "dp-read-miss",
+                  operandSet.has(k) && "dp-cone-operand",
+                  dependentSet.has(k) && "dp-cone-dependent",
                   changedIds?.has(cell.id) && "cell-changed",
                 ].filter(Boolean).join(" ");
                 return (

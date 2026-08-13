@@ -795,6 +795,11 @@ p {
    compute this cell rather than reuse it. Unresolved reads read as --red
    everywhere else in the app (see the connector overlay). */
 .dp-read-miss { outline: 2px dashed var(--red); outline-offset: -2px; }
+/* One level of the recurrence graph around the selected cell. Both read
+   --blue, the selection accent: solid inset for what fed the selection,
+   a lighter wash for what the selection went on to feed. */
+.dp-cone-operand { box-shadow: inset 0 0 0 2px var(--blue); }
+.dp-cone-dependent { box-shadow: inset 0 0 0 2px var(--blue-pale); }
 .dp-arrows { position: absolute; inset: 0; pointer-events: none; }
 .dp-arrows path { fill: none; stroke: var(--blue); stroke-width: 1.5; marker-end: none; }
 .dp-indices { display: flex; color: var(--ink-soft); }

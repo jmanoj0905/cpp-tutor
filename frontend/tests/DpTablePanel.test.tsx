@@ -176,6 +176,32 @@ describe("DpTablePanel", () => {
     expect(container.querySelector('[data-coord="2"]')!.textContent).toBe("2");
   });
 
+  it("selecting a cell tints its operands and its dependents distinctly", () => {
+    const cone = new Map([
+      ["2", { operands: [[1], [0]], dependents: [[3], [4]] }],
+    ]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} cone={cone} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    const at = (coord: string) => container.querySelector(`[data-coord="${coord}"]`)!;
+    expect(at("1").className).toContain("dp-cone-operand");
+    expect(at("0").className).toContain("dp-cone-operand");
+    expect(at("3").className).toContain("dp-cone-dependent");
+    expect(at("4").className).toContain("dp-cone-dependent");
+    expect(at("2").className).not.toContain("dp-cone-");
+  });
+
+  it("clears the cone when the detail box closes", () => {
+    const cone = new Map([["2", { operands: [[1]], dependents: [] }]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} cone={cone} />,
+    );
+    fireEvent.click(container.querySelector('[data-coord="2"]')!);
+    fireEvent.click(container.querySelector(".dp-detail .close-btn")!);
+    expect(container.querySelectorAll(".dp-cone-operand")).toHaveLength(0);
+  });
+
   it("escape hatch calls onToggleGeneric", () => {
     const onToggle = vi.fn();
     const { container } = render(<DpTablePanel view={view} onToggleGeneric={onToggle} />);

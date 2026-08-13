@@ -13,6 +13,7 @@ import { HeapTreeOverlay } from "./stl/HeapTreeOverlay";
 import { collectTables, promoteToDp, scoreCandidate, type DpCandidate } from "./dp/detect";
 import { buildDpView, collectReadSteps, type DpTableView, type DpCellView } from "./dp/dpModel";
 import { explainWrite, type Provenance } from "./dp/provenance";
+import { buildCone, type DpCone } from "./dp/cone";
 
 export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = null, onHeapOpen, onHeapClose }: {
   point: ExecPoint;
@@ -113,6 +114,13 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     for (const c of activeCandidates) m.set(c.cellId, collectReadSteps(trace, c, codeLines));
     return m;
   }, [activeCandidates, trace, codeLines]);
+  // Whole-trace like the read log, and for the same reason: the recurrence
+  // graph doesn't change as you step, only which cell you have selected does.
+  const dpCones = useMemo(() => {
+    const m = new Map<string, DpCone>();
+    for (const c of activeCandidates) m.set(c.cellId, buildCone(c, trace, codeLines));
+    return m;
+  }, [activeCandidates, trace, codeLines]);
   // Lazy by design: this memo builds closures, not results. Provenance for a
   // cell is computed on the click that opens its detail box, so a trace with
   // several tables costs nothing for the ones nobody inspects.
@@ -135,6 +143,7 @@ export function MemoryView({ point, prevPoint, trace, code, activeHeapCell = nul
     onHeapOpen,
     dpReadSteps,
     dpExplain,
+    dpCones,
     onDpPromote: promoteDp,
     promotableDpIds: new Set(trackedTables.keys()),
   };

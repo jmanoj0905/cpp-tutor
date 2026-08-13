@@ -4,6 +4,7 @@ import { collectionDepth, gridShape, isBentoCell } from "./memoryModel";
 import type { DpTableView, DpCellView } from "./dp/dpModel";
 import { DpTablePanel } from "./dp/DpTablePanel";
 import type { Provenance } from "./dp/provenance";
+import type { DpCone } from "./dp/cone";
 
 const COLLAPSE_AT = 8;
 
@@ -47,6 +48,9 @@ export interface CellView {
    *  the DP table's own cell id). Called only when a cell's detail box is
    *  open — nothing is computed for a table the user never inspects. */
   dpExplain?: Map<string, (cell: DpCellView) => Provenance | null>;
+  /** Per-candidate recurrence graphs (see `buildCone`), keyed the same as
+   *  `dpViews`. Drives the operand/dependent tint around a selected DP cell. */
+  dpCones?: Map<string, DpCone>;
 }
 
 interface MemoryCellProps {
@@ -61,7 +65,7 @@ interface MemoryCellProps {
 }
 
 export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = false }: MemoryCellProps) {
-  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen, onDpPromote, promotableDpIds, dpExplain } = view;
+  const { highlightedIds, changedIds, dpViews, onDpToggle, onCharViewToggle, dpReadSteps, onHeapOpen, onDpPromote, promotableDpIds, dpExplain, dpCones } = view;
   const dpView = dpViews?.get(cell.id);
   if (dpView && onDpToggle) {
     return (
@@ -71,6 +75,7 @@ export function MemoryCell({ cell, view = {}, forceLinear = false, noPorts = fal
         onToggleGeneric={() => onDpToggle(cell.id)}
         readSteps={dpReadSteps?.get(cell.id)}
         explain={dpExplain?.get(cell.id)}
+        cone={dpCones?.get(cell.id)}
       />
     );
   }
