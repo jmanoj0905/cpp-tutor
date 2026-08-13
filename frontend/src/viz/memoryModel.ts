@@ -450,7 +450,14 @@ function orderNames(record: Record<string, unknown>, ordered: string[]): string[
   const seen = new Set<string>();
   const names: string[] = [];
 
+  // `ordered` can repeat a name: valgrind walks one DWARF lexical block at a
+  // time, so a name declared in both a for-loop and the enclosing function
+  // body is listed once per block. `record` is keyed by name and so holds
+  // exactly one value, meaning every repeat would render an identical extra
+  // cell -- same id, same value, same React key. Keep the first occurrence
+  // (innermost block first, which is the declaration C scoping picks).
   for (const name of ordered) {
+    if (seen.has(name)) continue;
     if (Object.prototype.hasOwnProperty.call(record, name)) {
       names.push(name);
       seen.add(name);

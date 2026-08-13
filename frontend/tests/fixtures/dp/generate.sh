@@ -8,7 +8,7 @@ for name in climb-bottomup climb-topdown grid-paths input-fill edit-distance coi
             memo-fib-vector frog-jump min-cost-stairs house-robber count-substrings \
             longest-palindrome-substr house-robber-ii longest-palindrome-expand \
             knapsack-stub map-memo map-counter compile-error \
-            unique-paths-memo tribonacci-memo; do
+            unique-paths-memo tribonacci-memo lcs-2d; do
   echo "tracing $name..."
   python3 - "$name" <<'EOF'
 import json, sys, urllib.request

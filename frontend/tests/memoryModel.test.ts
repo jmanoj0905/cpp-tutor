@@ -365,6 +365,33 @@ describe("compiler-internal stack locals", () => {
   });
 });
 
+describe("shadowed locals in ordered_varnames", () => {
+  // Valgrind reports one entry per lexical block, so a name declared in both a
+  // for-loop and the enclosing function body arrives twice. The tracer now
+  // collapses that to the innermost declaration, but traces produced before
+  // that fix (and any future block the DWARF walk double-reports) must not
+  // render one cell per occurrence -- they'd all share a cell id, which is
+  // also a React key collision.
+  it("renders one cell per name even when a name repeats", () => {
+    const point = {
+      line: 12, event: "step_line", func_name: "f", stdout: "",
+      ordered_globals: [], globals: {}, heap: {},
+      stack_to_render: [{
+        unique_hash: "f1", frame_id: "f1", func_name: "f",
+        ordered_varnames: ["j", "i", "n", "i", "j"],
+        encoded_locals: {
+          i: ["C_DATA", "0x10", "int", 1],
+          j: ["C_DATA", "0x14", "int", 1],
+          n: ["C_DATA", "0x18", "int", 4],
+        },
+      }],
+    } as unknown as ExecPoint;
+    const cells = normalizeMemory(point).frames[0].cells;
+    expect(cells.map((c) => c.name)).toEqual(["j", "i", "n"]);
+    expect(new Set(cells.map((c) => c.id)).size).toBe(3);
+  });
+});
+
 describe("empty vector decode", () => {
   it("renders an empty vector (_M_start = 0x0) as a container, not raw guts", () => {
     const point = {
