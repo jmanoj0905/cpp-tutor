@@ -6,7 +6,7 @@ import coinChange from "./fixtures/dp/coin-change.json";
 import type { Trace } from "../src/types/trace";
 import { normalizeMemory } from "../src/viz/memoryModel";
 import { detectDpTables } from "../src/viz/dp/detect";
-import { buildDpView, collectReadSteps, intEnv } from "../src/viz/dp/dpModel";
+import { buildDpView, collectReadSteps, intEnv, readCounts } from "../src/viz/dp/dpModel";
 
 const t = climbBottomup as Trace;
 const codeLines = t.code.split("\n");
@@ -16,6 +16,10 @@ const viewAt = (step: number) =>
   buildDpView(cand, step, t.trace[step], normalizeMemory(t.trace[step]), codeLines);
 
 describe("buildDpView", () => {
+  it("exposes the step it was built for, so read heat can respect execution time", () => {
+    expect(viewAt(5).step).toBe(5);
+  });
+
   it("before first write: all cells ghosts (writeStep null), no currentWrite", () => {
     const v = viewAt(0);
     expect(v.cells).toHaveLength(7);
@@ -190,6 +194,18 @@ describe("buildDpView: 2D table (grid-paths fixture)", () => {
     const v = gViewAt(last);
     expect(v.cells.filter((c) => c.writeStep !== null).length).toBeGreaterThanOrEqual(10);
     expect(v.cells[11].value).not.toBe("?");
+  });
+});
+
+describe("readCounts", () => {
+  it("counts only the reads at or before the given step", () => {
+    const log = new Map([["2", [5, 9, 14]], ["3", [20]]]);
+    expect(readCounts(log, 9)).toEqual(new Map([["2", 2]]));
+  });
+
+  it("omits coords with no reads yet rather than mapping them to zero", () => {
+    const log = new Map([["2", [5]], ["3", [20]]]);
+    expect(readCounts(log, 4).size).toBe(0);
   });
 });
 

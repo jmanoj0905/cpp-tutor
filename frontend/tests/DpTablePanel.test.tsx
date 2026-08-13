@@ -23,6 +23,7 @@ const view: DpTableView = {
   currentWrite: [2],
   reads: [[1], [0]],
   maxWriteStep: 8,
+  step: 8,
 };
 
 const keyedProjection = projectKeys(["2", "3", "6"]);
@@ -43,7 +44,7 @@ const keyedView: DpTableView = {
     writeStep: i === 2 ? 4 : i === 3 ? 7 : i === 6 ? 9 : null,
     label: keyedProjection.labelAt.get(String(i)),
   })),
-  currentWrite: null, reads: [], maxWriteStep: 9, keyed: true,
+  currentWrite: null, reads: [], maxWriteStep: 9, step: 9, keyed: true,
 };
 
 const cand2d: DpCandidate = {
@@ -61,7 +62,7 @@ const view2d: DpTableView = {
     { coord: [1, 1], id: "e", value: "2", writeStep: 5 },
     { coord: [1, 2], id: "f", value: "3", writeStep: 5 },
   ],
-  currentWrite: null, reads: [], maxWriteStep: 5,
+  currentWrite: null, reads: [], maxWriteStep: 5, step: 5,
 };
 
 const keyed2dProjection = projectKeys(["(0,0)", "(1,1)"]);
@@ -72,7 +73,7 @@ const keyed2dView: DpTableView = {
     keyed: { projection: keyed2dProjection, keyOrder: ["(0,0)", "(1,1)"] },
   },
   cells: [{ coord: [0, 0], id: "k0", value: "1", writeStep: 4, label: "(0,0)" }],
-  currentWrite: null, reads: [], maxWriteStep: 4, keyed: true,
+  currentWrite: null, reads: [], maxWriteStep: 4, step: 4, keyed: true,
 };
 
 describe("DpTablePanel", () => {
@@ -102,6 +103,32 @@ describe("DpTablePanel", () => {
     const detail = container.querySelector(".dp-detail")!;
     expect(detail.textContent).toContain("dp[2]");
     expect(detail.textContent).toContain("step 8");
+  });
+
+  it("heat chip shades cells by read count, dimming the not-yet-read ones", () => {
+    const readSteps = new Map<string, number[]>([["0", [4, 6]], ["1", [6]], ["3", [99]]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} readSteps={readSteps} />,
+    );
+    fireEvent.click(container.querySelector(".dp-heat-toggle")!);
+    const at = (coord: string) => container.querySelector(`[data-coord="${coord}"]`)!;
+    expect(at("0").getAttribute("style")).toContain("--dp-heat: 1");
+    expect(at("1").getAttribute("style")).toContain("--dp-heat: 0.5");
+    // read only at step 99, beyond this view's step: not read yet
+    expect(at("3").className).toContain("dp-ghost");
+    expect(at("2").className).toContain("dp-ghost");
+  });
+
+  it("heat chip returns to write-recency shading on a second click", () => {
+    const readSteps = new Map<string, number[]>([["0", [4]]]);
+    const { container } = render(
+      <DpTablePanel view={view} onToggleGeneric={() => {}} readSteps={readSteps} />,
+    );
+    const chip = container.querySelector(".dp-heat-toggle")!;
+    fireEvent.click(chip);
+    fireEvent.click(chip);
+    expect(container.querySelectorAll(".dp-ghost")).toHaveLength(2); // unwritten 3 and 4
+    expect(container.querySelector('[data-coord="2"]')!.getAttribute("style")).toContain("--dp-heat: 1");
   });
 
   it("escape hatch calls onToggleGeneric", () => {

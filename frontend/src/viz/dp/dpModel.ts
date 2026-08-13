@@ -21,6 +21,10 @@ export interface DpTableView {
   currentWrite: Coord | null;
   reads: Coord[];
   maxWriteStep: number;
+  /** The step this view was built for. The whole-trace read log knows about
+   *  reads that haven't happened yet, so read-count shading needs the current
+   *  step to stay honest about time (dimming expresses time everywhere else). */
+  step: number;
   keyed?: boolean;
 }
 
@@ -178,7 +182,23 @@ export function buildDpView(
     }
   }
 
-  return { candidate, cells, currentWrite, reads, maxWriteStep, keyed: candidate.keyed !== undefined };
+  return { candidate, cells, currentWrite, reads, maxWriteStep, step,
+           keyed: candidate.keyed !== undefined };
+}
+
+/** Reads per coord up to and including `step`, from a whole-trace read log
+ *  (`collectReadSteps`). Coords with no read yet are absent rather than zero,
+ *  so a caller can tell "never read" from "read once" without a sentinel. */
+export function readCounts(
+  log: ReadonlyMap<string, number[]>,
+  step: number,
+): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const [coordKey, steps] of log) {
+    const n = steps.filter((s) => s <= step).length;
+    if (n > 0) counts.set(coordKey, n);
+  }
+  return counts;
 }
 
 /** Whole-trace read log: coord key "r,c" → steps whose executing line resolved

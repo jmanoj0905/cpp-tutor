@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CloseButton } from "../CloseButton";
 import { useEscape } from "../useEscape";
-import type { DpTableView, DpCellView } from "./dpModel";
+import { readCounts, type DpTableView, type DpCellView } from "./dpModel";
 import type { Coord } from "./readSet";
 import type { Provenance } from "./provenance";
 
@@ -47,6 +47,10 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   explain?: (cell: DpCellView) => Provenance | null;
 }) {
   const [detail, setDetail] = useState<DpCellView | null>(null);
+  // Which quantity the cell background encodes: how recently a cell was
+  // written (the default — fill order) or how often it has been read so far
+  // (which subproblems the recurrence actually reuses).
+  const [heatMode, setHeatMode] = useState<"writes" | "reads">("writes");
   useEscape(detail !== null, () => setDetail(null));
   const { candidate, cells, currentWrite, reads, maxWriteStep } = view;
   const [rows, cols] = candidate.dims.length === 2 ? candidate.dims : [1, candidate.dims[0]];
@@ -58,6 +62,14 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
   const heat = (w: number | null) =>
     w === null || maxWriteStep === 0 ? 0 : Math.max(0.25, w / maxWriteStep);
 
+  // Read-count shading. Counted only up to this step, so the table never
+  // shows heat from a read that hasn't executed yet. In this mode ghosting
+  // means "not read yet" rather than "not written yet", so the whole grid
+  // reads as one quantity instead of mixing two.
+  const readMode = heatMode === "reads";
+  const counts = readMode && readSteps ? readCounts(readSteps, view.step) : null;
+  const maxCount = counts ? Math.max(0, ...counts.values()) : 0;
+
   const twoD = candidate.dims.length === 2;
   const headers = twoD && !view.keyed;
 
@@ -66,6 +78,12 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
       <div className="dp-header">
         <span className="dp-name">{candidate.name}</span>
         <span className="dp-mode">{candidate.mode}</span>
+        <button
+          className={`cell-chip dp-heat-toggle${readMode ? " is-on" : ""}`}
+          onClick={() => setHeatMode((m) => (m === "writes" ? "reads" : "writes"))}
+        >
+          heat: {heatMode}
+        </button>
         <button className="cell-chip dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
       </div>
       <div className={headers ? "dp-headed" : undefined}>
@@ -88,7 +106,11 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
             <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }}>
               {cells.map((cell) => {
                 const k = key(cell.coord);
-                const ghost = cell.writeStep === null;
+                const count = counts?.get(k) ?? 0;
+                const ghost = readMode ? count === 0 : cell.writeStep === null;
+                const shade = readMode
+                  ? (maxCount === 0 ? 0 : count / maxCount)
+                  : heat(cell.writeStep);
                 const cls = [
                   "dp-cell",
                   ghost && "dp-ghost",
@@ -102,7 +124,7 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                     className={cls}
                     data-coord={k}
                     title={view.keyed && candidate.dims.length === 2 ? cell.label : undefined}
-                    style={ghost ? undefined : { "--dp-heat": heat(cell.writeStep) } as React.CSSProperties}
+                    style={ghost ? undefined : { "--dp-heat": shade } as React.CSSProperties}
                     onClick={() => setDetail(cell)}
                   >
                     {cell.value}
