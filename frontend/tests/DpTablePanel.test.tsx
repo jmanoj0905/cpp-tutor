@@ -4,6 +4,7 @@ import { DpTablePanel } from "../src/viz/dp/DpTablePanel";
 import type { DpTableView } from "../src/viz/dp/dpModel";
 import type { DpCandidate } from "../src/viz/dp/detect";
 import { projectKeys } from "../src/viz/dp/keyedTable";
+import { CELL_MAX, CELL_MIN } from "../src/viz/dp/dpLayout";
 import type { Provenance } from "../src/viz/dp/provenance";
 
 const cand: DpCandidate = {
@@ -200,6 +201,33 @@ describe("DpTablePanel", () => {
     fireEvent.click(container.querySelector('[data-coord="2"]')!);
     fireEvent.click(container.querySelector(".dp-detail .close-btn")!);
     expect(container.querySelectorAll(".dp-cone-operand")).toHaveLength(0);
+  });
+
+  it("shrinks a large table's cells and drops their digits", () => {
+    const dims: [number, number] = [40, 40];
+    const cells = Array.from({ length: 1600 }, (_, i) => ({
+      coord: [Math.floor(i / 40), i % 40],
+      id: `big${i}`,
+      value: "7",
+      writeStep: 3,
+    }));
+    const big: DpTableView = {
+      candidate: { ...cand2d, dims },
+      cells,
+      currentWrite: null, reads: [], maxWriteStep: 3, step: 3,
+    };
+    const { container } = render(<DpTablePanel view={big} onToggleGeneric={() => {}} />);
+    const cell = container.querySelector(".dp-cell")! as HTMLElement;
+    expect(cell.style.width).toBe(`${CELL_MIN}px`);
+    expect(cell.textContent).toBe("");
+    expect(container.querySelector(".dp-headed")!.className).toContain("dp-dense");
+  });
+
+  it("keeps values and full-size cells on a table that fits", () => {
+    const { container } = render(<DpTablePanel view={view2d} onToggleGeneric={() => {}} />);
+    const cell = container.querySelector(".dp-cell")! as HTMLElement;
+    expect(cell.style.width).toBe(`${CELL_MAX}px`);
+    expect(cell.textContent).toBe("1");
   });
 
   it("escape hatch calls onToggleGeneric", () => {

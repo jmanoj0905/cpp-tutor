@@ -5,20 +5,7 @@ import { fillOrder, readCounts, type DpTableView, type DpCellView } from "./dpMo
 import type { Coord } from "./readSet";
 import type { Provenance } from "./provenance";
 import type { DpCone } from "./cone";
-
-const CELL = 36; // px, uniform grid pitch for arrow geometry
-
-/** Pure helper: arrow path between two cell centers on the uniform grid. */
-function arrowPath(from: Coord, to: Coord): string {
-  const center = (c: Coord) => {
-    const [r, col] = c.length === 2 ? c : [0, c[0]];
-    return [col * CELL + CELL / 2, r * CELL + CELL / 2];
-  };
-  const [x1, y1] = center(from);
-  const [x2, y2] = center(to);
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - CELL / 2;
-  return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`;
-}
+import { DIGIT_MIN, arrowPath, gridPitch } from "./dpLayout";
 
 const val = (o: { value: number | null }) => (o.value === null ? "?" : String(o.value));
 
@@ -96,6 +83,13 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
     ? (currentWrite.length === 2 ? currentWrite : [0, currentWrite[0]])
     : [null, null];
 
+  // Pitch shrinks with the table so a large grid still reads as one shape;
+  // past the floor `.dp-headed` scrolls instead (see index.css). Below
+  // DIGIT_MIN the digits no longer fit, so cells become heat-only swatches and
+  // the detail box carries the exact value.
+  const pitch = gridPitch(rows, cols);
+  const dense = pitch < DIGIT_MIN;
+
   const twoD = candidate.dims.length === 2;
   const headers = twoD && !view.keyed;
 
@@ -118,26 +112,26 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
         </button>
         <button className="cell-chip dp-generic-toggle" onClick={onToggleGeneric}>raw</button>
       </div>
-      <div className={headers ? "dp-headed" : undefined}>
+      <div className={`${headers ? "dp-headed" : ""}${dense ? " dp-dense" : ""}`.trim() || undefined}>
         {headers && (
-          <div className="dp-col-head" style={{ marginLeft: CELL }}>
+          <div className="dp-col-head" style={{ marginLeft: pitch }}>
             {Array.from({ length: cols }, (_, c) => (
               <span key={c} className={c === writeCol ? "dp-head-active" : undefined}
-                    style={{ width: CELL }}>{c}</span>
+                    style={{ width: pitch }}>{c}</span>
             ))}
           </div>
         )}
         <div className="dp-headed-row">
           {headers && (
-            <div className="dp-row-head" style={{ width: CELL }}>
+            <div className="dp-row-head" style={{ width: pitch }}>
               {Array.from({ length: rows }, (_, r) => (
                 <span key={r} className={r === writeRow ? "dp-head-active" : undefined}
-                      style={{ height: CELL }}>{r}</span>
+                      style={{ height: pitch }}>{r}</span>
               ))}
             </div>
           )}
-          <div className="dp-grid-wrap" style={{ width: cols * CELL, height: rows * CELL }}>
-            <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${CELL}px)` }}>
+          <div className="dp-grid-wrap" style={{ width: cols * pitch, height: rows * pitch }}>
+            <div className="dp-grid" style={{ gridTemplateColumns: `repeat(${cols}, ${pitch}px)` }}>
               {cells.map((cell) => {
                 const k = key(cell.coord);
                 const count = counts?.get(k) ?? 0;
@@ -161,18 +155,19 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
                     className={cls}
                     data-coord={k}
                     title={view.keyed && candidate.dims.length === 2 ? cell.label : undefined}
-                    style={ghost ? undefined : { "--dp-heat": shade } as React.CSSProperties}
+                    style={{ width: pitch, height: pitch,
+                             ...(ghost ? {} : { "--dp-heat": shade }) } as React.CSSProperties}
                     onClick={() => setDetail(cell)}
                   >
-                    {order ? (order.get(k) ?? "") : cell.value}
+                    {dense ? "" : order ? (order.get(k) ?? "") : cell.value}
                   </div>
                 );
               })}
             </div>
             {currentWrite && hitReads.length > 0 && (
-              <svg className="dp-arrows" width={cols * CELL} height={rows * CELL}>
+              <svg className="dp-arrows" width={cols * pitch} height={rows * pitch}>
                 {hitReads.map((r) => (
-                  <path key={key(r)} d={arrowPath(r, currentWrite)} />
+                  <path key={key(r)} d={arrowPath(r, currentWrite, pitch)} />
                 ))}
               </svg>
             )}
@@ -181,10 +176,10 @@ export function DpTablePanel({ view, changedIds, onToggleGeneric, readSteps, exp
       </div>
       <div className="dp-indices">
         {candidate.dims.length === 1 && !view.keyed &&
-          cells.map((c) => <span key={key(c.coord)} style={{ width: CELL }}>{c.coord[0]}</span>)}
+          cells.map((c) => <span key={key(c.coord)} style={{ width: pitch }}>{c.coord[0]}</span>)}
         {candidate.dims.length === 1 && view.keyed &&
           cells.map((c) => (
-            <span key={key(c.coord)} className="dp-key-label" style={{ width: CELL }}>
+            <span key={key(c.coord)} className="dp-key-label" style={{ width: pitch }}>
               {c.label ?? ""}
             </span>
           ))}

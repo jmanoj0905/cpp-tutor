@@ -806,6 +806,15 @@ p {
 .dp-indices span { display: inline-block; text-align: center; }
 .dp-key-label { font: 12px var(--mono); color: var(--ink-soft); }
 .dp-headed-row { display: flex; }
+/* Past the pitch floor the grid stops shrinking and scrolls instead. Headers
+   scroll with it but stick to the edges, so a cell deep in a large table can
+   still be read off its row and column. */
+.dp-headed { max-width: 100%; max-height: 60vh; overflow: auto; }
+.dp-headed .dp-col-head { position: sticky; top: 0; z-index: 1; background: var(--panel); }
+.dp-headed .dp-row-head { position: sticky; left: 0; z-index: 1; background: var(--panel); }
+/* Too small for digits: cells are heat swatches, and a dotted border on every
+   one of them would read as texture rather than as structure. */
+.dp-dense .dp-cell { border-style: none; }
 .dp-col-head { display: flex; color: var(--ink-soft); }
 .dp-col-head span { display: inline-block; text-align: center; }
 .dp-row-head { display: flex; flex-direction: column; color: var(--ink-soft); }
