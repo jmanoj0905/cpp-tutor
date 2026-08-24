@@ -136,7 +136,14 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
                 <text className="graph-finger" x={px(p.x)} y={py(p.y) - bh / 2 - 5}
                   textAnchor="middle">{fingers.join(" ")}</text>
               )}
-              {order != null && <text className="graph-order" x={px(p.x) + NODE_R} y={py(p.y) - NODE_R}>{order}</text>}
+              {/* On a list the finger names own the space above the box — a
+                  two-name label like "slow fast" is wider than the box itself
+                  and would sit on top of a corner order badge — so the
+                  traversal number goes underneath instead. */}
+              {order != null && (scene.kind === "list"
+                ? <text className="graph-order" x={px(p.x)} y={py(p.y) + bh / 2 + 9}
+                    textAnchor="middle">{order}</text>
+                : <text className="graph-order" x={px(p.x) + NODE_R} y={py(p.y) - NODE_R}>{order}</text>)}
               {scene.kind !== "grid" && scene.dist?.get(n.id) != null && (
                 <text className="graph-node-dist" x={px(p.x)} y={py(p.y) + NODE_R + 9} textAnchor="middle">
                   {scene.dist.get(n.id)}

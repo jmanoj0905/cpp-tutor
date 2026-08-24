@@ -198,6 +198,22 @@ describe("GraphPanel list scenes", () => {
     expect(arc.getAttribute("d")).toMatch(/^M/);
   });
 
+  it("puts the order badge below the box, clear of the finger names", () => {
+    // "slow fast" centered above a 34px box is wider than the box, so a
+    // corner order badge would sit underneath it.
+    const trace = (listCycle as any).trace;
+    const { container } = firstStep(trace, (c) =>
+      [...c.querySelectorAll(".graph-finger")].some((n) => (n.textContent ?? "").includes("slow"))
+      && c.querySelector(".graph-order") !== null);
+    const node = [...container.querySelectorAll(".graph-node")]
+      .find((g) => (g.querySelector(".graph-finger")?.textContent ?? "").includes("slow"))!;
+    const fingerY = Number(node.querySelector(".graph-finger")!.getAttribute("y"));
+    const orderY = Number(node.querySelector(".graph-order")!.getAttribute("y"));
+    const boxY = Number(node.querySelector("rect")!.getAttribute("y"));
+    expect(fingerY).toBeLessThan(boxY);
+    expect(orderY).toBeGreaterThan(boxY);
+  });
+
   it("keeps a detached node in the scene but marks it", () => {
     const scene = {
       kind: "list" as const,
