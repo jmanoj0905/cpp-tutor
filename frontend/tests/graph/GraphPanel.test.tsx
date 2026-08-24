@@ -7,7 +7,8 @@ import { normalizeMemory } from "../../src/viz/memoryModel";
 import dfsList from "../fixtures/graph/dfs_list.json";
 import dijkstra from "../fixtures/graph/dijkstra.json";
 import shortestPathDAG from "../fixtures/graph/shortestPathDAG.json";
-import trie from "../fixtures/trie.json"; // a non-graph fixture
+import trie from "../fixtures/trie.json";
+import vectorTrace from "../fixtures/vector-trace.json"; // no self-referential struct at any step
 import heapTrace from "../fixtures/graph/heap.json";
 import treeInsert from "../fixtures/shapes/tree-insert.json";
 
@@ -31,10 +32,14 @@ describe("GraphPanel", () => {
   });
 
   it("renders nothing (null) for a non-graph program", () => {
-    const t = (trie as any).trace ?? (trie as any);
-    const point = Array.isArray(t) ? t[t.length - 1] : t.trace[t.trace.length - 1];
+    // This used trie.json until B3. That fixture confirms as TrieNode -> trie
+    // and now legitimately renders — it only kept passing because the last two
+    // steps of that trace happen to carry an empty heap, which is a coincidence
+    // and not the property the test is about. vector-trace has no
+    // self-referential struct anywhere in it, at any step.
+    const t = (vectorTrace as any).trace;
     const { container } = render(
-      <GraphPanel point={point} prevPoint={null} trace={Array.isArray(t) ? t : t.trace} step={0} />);
+      <GraphPanel point={t[t.length - 1]} prevPoint={null} trace={t} step={t.length - 1} />);
     expect(container.querySelector("[data-node-id]")).toBeNull();
   });
 
@@ -222,5 +227,62 @@ describe("GraphPanel list scenes", () => {
       overlays: { ...emptyOverlays(), detached: new Set(["z"]) },
     };
     expect(scene.overlays.detached.has("z")).toBe(true);
+  });
+});
+
+describe("GraphPanel trie scenes", () => {
+  const trace = (trie as any).trace;
+
+  /** First step whose rendered panel satisfies `ok`, plus its container. */
+  const firstStep = (ok: (c: HTMLElement) => boolean) => {
+    for (let s = 0; s < trace.length; s++) {
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={s ? trace[s - 1] : null} trace={trace} step={s} />);
+      if (ok(container)) return container;
+      unmount();
+    }
+    throw new Error("no step matched");
+  };
+
+  it("renders the character each edge consumes", () => {
+    const c = firstStep((c) => c.querySelectorAll(".graph-edge-label").length >= 2);
+    const chars = [...c.querySelectorAll(".graph-edge-label")].map((n) => n.textContent);
+    expect(chars.join("")).toMatch(/^ap/);
+  });
+
+  it("draws trie nodes as circles, not boxes", () => {
+    const c = firstStep((c) => c.querySelectorAll(".graph-node").length >= 3);
+    expect(c.querySelector(".graph-node circle")).not.toBeNull();
+    expect(c.querySelector(".graph-node rect")).toBeNull();
+  });
+
+  it("gives an end-of-word node an inner ring the others do not have", () => {
+    // The only thing separating "the trie contains app" from "app is merely a
+    // prefix of apple".
+    const c = firstStep((c) => c.querySelector(".graph-node.is-terminal") !== null);
+    const term = c.querySelector(".graph-node.is-terminal")!;
+    expect(term.querySelectorAll("circle").length).toBe(2);
+    const plain = [...c.querySelectorAll(".graph-node")].find((g) => !g.classList.contains("is-terminal"))!;
+    expect(plain.querySelectorAll("circle").length).toBe(1);
+  });
+
+  it("keeps a root's finger label inside the canvas", () => {
+    // The root sits at y = PAD, so an unclamped label above it is drawn with
+    // its ascender off the top of the viewBox and clipped.
+    const c = firstStep((c) =>
+      [...c.querySelectorAll(".graph-finger")].some((n) => (n.textContent ?? "").includes("root")));
+    const y = Number([...c.querySelectorAll(".graph-finger")]
+      .find((n) => (n.textContent ?? "").includes("root"))!.getAttribute("y"));
+    expect(y).toBeGreaterThanOrEqual(9);
+  });
+
+  it("does not label an edge on a non-trie scene", () => {
+    const dfs = (dfsList as any).trace;
+    for (let s = 0; s < dfs.length; s++) {
+      const { container, unmount } = render(
+        <GraphPanel point={dfs[s]} prevPoint={null} trace={dfs} step={s} />);
+      expect(container.querySelector(".graph-edge-label")).toBeNull();
+      unmount();
+    }
   });
 });

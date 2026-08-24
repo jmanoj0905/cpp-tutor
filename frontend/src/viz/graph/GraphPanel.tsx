@@ -15,6 +15,9 @@ const BOX_W = 34, BOX_H = 22;
 // How far a cycle back-edge bows away from the chain it re-enters. Without the
 // bow it would lie exactly on top of the straight run between the same nodes.
 const ARC_BOW = 34;
+// Must match .graph-finger's font-size in index.css — it is the floor a finger
+// label's baseline can sit at without clipping off the top of the viewBox.
+const FINGER_SIZE = 9;
 const NO_DISABLED: Set<string> = new Set();
 
 export function GraphPanel({ point, prevPoint, trace, step }: {
@@ -73,6 +76,7 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
     scene.overlays.detached.has(id) && "is-detached",
     selected === id && "is-selected",
   ].filter(Boolean).join(" ");
+  const terminalCls = (n: { terminal?: boolean }) => (n.terminal ? " is-terminal" : "");
   const boxed = scene.kind === "grid" || scene.kind === "list";
   // Half-extent an arrowhead must stop short of, so it sits at the node's rim
   // instead of under it.
@@ -114,6 +118,12 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
                 <text className="graph-edge-weight" x={lp.x} y={lp.y}
                   textAnchor="middle" dominantBaseline="central">{e.weight}</text>
               )}
+              {/* A trie's character lives on the edge, because it IS the array
+                  index the pointer was stored at — not a property of the node. */}
+              {e.label != null && (
+                <text className="graph-edge-label" x={lp.x} y={lp.y}
+                  textAnchor="middle" dominantBaseline="central">{e.label}</text>
+              )}
             </g>
           );
         })}
@@ -124,16 +134,25 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
           const bw = scene.kind === "list" ? BOX_W : NODE_R * 2;
           const bh = scene.kind === "list" ? BOX_H : NODE_R * 2;
           return (
-            <g key={n.id} data-node-id={n.id} className={`graph-node ${cls(n.id)}`}
+            <g key={n.id} data-node-id={n.id} className={`graph-node ${cls(n.id)}${terminalCls(n)}`}
                onClick={() => setSelected(n.id)}>
               {boxed
                 ? <rect x={px(p.x) - bw / 2} y={py(p.y) - bh / 2} width={bw} height={bh} />
                 : <circle cx={px(p.x)} cy={py(p.y)} r={NODE_R} />}
+              {/* Accepting-state convention: an inner ring is what separates
+                  "the trie contains app" from "app is only a prefix here". */}
+              {n.terminal && (
+                <circle className="graph-terminal-ring" cx={px(p.x)} cy={py(p.y)} r={NODE_R - 4} />
+              )}
               <text x={px(p.x)} y={py(p.y)} textAnchor="middle" dominantBaseline="central">{n.label}</text>
               {/* Which pointer is where IS the algorithm in a two-pointer
                   problem, so the names sit above the node they stand on. */}
               {fingers && fingers.length > 0 && (
-                <text className="graph-finger" x={px(p.x)} y={py(p.y) - bh / 2 - 5}
+                // Clamped to the font's own height: a root sits at y = PAD, so
+                // an unclamped label would be drawn with its ascender off the
+                // top of the viewBox and get clipped.
+                <text className="graph-finger" x={px(p.x)}
+                  y={Math.max(FINGER_SIZE, py(p.y) - bh / 2 - 5)}
                   textAnchor="middle">{fingers.join(" ")}</text>
               )}
               {/* On a list the finger names own the space above the box — a

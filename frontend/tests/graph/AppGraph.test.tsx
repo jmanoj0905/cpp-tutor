@@ -6,6 +6,7 @@ import vectorTrace from "../fixtures/vector-trace.json";
 import treeInsert from "../fixtures/shapes/tree-insert.json";
 import lcs2d from "../fixtures/dp/lcs-2d.json";
 import listCycle from "../fixtures/shapes/list-cycle.json";
+import trie from "../fixtures/trie.json";
 import { fetchTrace } from "../../src/api/client";
 import type { Trace } from "../../src/types/trace";
 
@@ -105,6 +106,26 @@ describe("App graph tab", () => {
       found = container.querySelectorAll(".graph-node").length > 0;
     }
     expect(found).toBe(true);
+  });
+
+  it("offers a Graph tab for a trie program", async () => {
+    // A struct holding an array of pointers to its own type is not something a
+    // non-trie program produces by accident, so like trees and lists this skips
+    // the hasGraphCode vocabulary gate.
+    (fetchTrace as any).mockResolvedValue(trie as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+
+    fireEvent.click(screen.getByRole("tab", { name: /^graph$/i }));
+    const slider = screen.getByLabelText("Execution step");
+    const total = (trie as any).trace.length;
+    let chars = 0;
+    for (let s = 0; s < total && chars === 0; s++) {
+      fireEvent.change(slider, { target: { value: String(s) } });
+      chars = container.querySelectorAll(".graph-edge-label").length;
+    }
+    expect(chars).toBeGreaterThan(0);
   });
 
   it("offers no Graph tab for a 2-D DP table", async () => {

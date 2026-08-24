@@ -902,6 +902,16 @@ p {
    Dimming is how the app says "not live" everywhere else. */
 .graph-node.is-detached circle, .graph-node.is-detached rect { opacity: 0.25; }
 .graph-node.is-detached text { opacity: 0.4; }
+/* A trie edge's character. Same halo treatment as an edge weight so it stays
+   legible over a crossing edge, but its own class: a weight is a cost and a
+   character is a symbol. */
+.graph-edge-label {
+  font-size: 11px; font-family: var(--mono); fill: var(--ink);
+  paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round;
+}
+/* End-of-word node: the automata accepting-state double ring. */
+.graph-terminal-ring { fill: none; stroke: var(--ink); stroke-width: 1; }
+.graph-node.is-terminal .graph-terminal-ring { opacity: 1; }
 /* The source variables standing on a node (slow/fast/prev/curr). Reads as
    selection, so it takes --blue. */
 .graph-finger {
