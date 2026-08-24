@@ -181,3 +181,42 @@ describe("listLayout", () => {
     expect(l.placed.every((p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)).toBe(true);
   });
 });
+
+describe("trie layout", () => {
+  /** A root with `n` children, none carrying a slot (as shapeToScene emits). */
+  const fanOut = (n: number): GraphScene => bare({
+    kind: "trie",
+    nodes: [{ id: "root", label: "" }, ...Array.from({ length: n }, (_, i) => ({ id: `c${i}`, label: "" }))],
+    edges: Array.from({ length: n }, (_, i) => ({ from: "root", to: `c${i}`, directed: true, label: String(i) })),
+  });
+
+  it("routes a trie through the tree layout", () => {
+    expect(layoutScene(fanOut(3)).mode).toBe("tree");
+  });
+
+  it("spreads a wide fan-out evenly instead of by binary path", () => {
+    // The slot trap, at the layout level: with slot absent every child sits on
+    // one level, evenly spaced. If slot leaked through, child 25 would be flung
+    // 25 half-bands off the parent and land far outside the unit square.
+    const l = layoutScene(fanOut(26));
+    const kids = l.placed.filter((p) => p.id !== "root");
+    expect(kids.every((p) => p.x >= 0 && p.x <= 1)).toBe(true);
+    expect(kids.every((p) => p.y === 1)).toBe(true);         // all on one level
+    expect(new Set(kids.map((p) => p.x)).size).toBe(26);      // none stacked
+    expect(at(l, "root").x).toBeCloseTo(0.5);
+  });
+
+  it("puts a deeper trie path on successive rows", () => {
+    // root -a-> A -p-> P : a spelled path descends one row per character.
+    const l = layoutScene(bare({
+      kind: "trie",
+      nodes: [{ id: "r", label: "" }, { id: "a", label: "" }, { id: "p", label: "" }],
+      edges: [
+        { from: "r", to: "a", directed: true, label: "a" },
+        { from: "a", to: "p", directed: true, label: "p" },
+      ],
+    }));
+    expect(at(l, "r").y).toBeLessThan(at(l, "a").y);
+    expect(at(l, "a").y).toBeLessThan(at(l, "p").y);
+  });
+});

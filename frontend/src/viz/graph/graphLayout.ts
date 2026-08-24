@@ -5,7 +5,10 @@ export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid" 
 export const CIRCLE_MAX = 30;
 
 export function layoutScene(scene: GraphScene): Layout {
-  if (scene.kind === "tree") return treeLayout(scene);
+  // A trie is an n-ary tree. It reaches treeLayout with no `slot` on any edge
+  // (see shapeToScene), so layoutBand's even per-level spread applies rather
+  // than the binary left/right path math.
+  if (scene.kind === "tree" || scene.kind === "trie") return treeLayout(scene);
   if (scene.kind === "list") return listLayout(scene);
   if (scene.kind === "grid") {
     const rows = scene.rows ?? 1, cols = scene.cols ?? 1;

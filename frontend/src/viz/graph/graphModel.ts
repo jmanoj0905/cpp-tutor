@@ -6,7 +6,7 @@ import type {
   GraphKind, GraphNode, GraphEdge, GraphScene, ViewAs,
 } from "./scene";
 import type { ShapeModel } from "../shapes";
-import { listSceneFrom, treeSceneFrom } from "./treeScene";
+import { listSceneFrom, treeSceneFrom, trieSceneFrom } from "./treeScene";
 
 export type {
   GraphKind, ViewAs, GraphNode, GraphEdge, GraphOverlays, GraphScene,
@@ -601,7 +601,7 @@ export function buildGraphScene(
     return scene;
   };
 
-  // Pointer shapes — trees (B1) and lists (B2) — win over every array-family
+  // Pointer shapes — trees (B1), lists (B2) and tries (B3) — win over every array-family
   // detector. Such programs routinely carry a `vector<vector<int>> res`
   // accumulator or a test table that the matrix detectors would otherwise read
   // as an adjacency list — but the pointer structure is what the user came to
@@ -615,7 +615,8 @@ export function buildGraphScene(
   // into one canvas.
   if (viewAs !== "grid" && shapes) {
     const pointer = treeSceneFrom(shapes, mem, trace, index)
-      ?? listSceneFrom(shapes, mem, trace, index);
+      ?? listSceneFrom(shapes, mem, trace, index)
+      ?? trieSceneFrom(shapes, mem, trace, index);
     if (pointer) return pointer;
   }
 

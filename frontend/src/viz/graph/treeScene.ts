@@ -9,17 +9,23 @@ import type { GraphEdge, GraphKind, GraphNode, GraphScene } from "./scene";
 import type { ExecPoint } from "../../types/trace";
 import { findContainers } from "./containers";
 
-/** ShapeKinds this module can turn into a scene, and the GraphKind each becomes.
- *  `trie` is B3 and is deliberately absent for now. */
-const SCENE_KIND: Partial<Record<ShapeKind, GraphKind>> = { tree: "tree", list: "list" };
+/** ShapeKinds this module can turn into a scene, and the GraphKind each becomes. */
+const SCENE_KIND: Partial<Record<ShapeKind, GraphKind>> = {
+  tree: "tree", list: "list", trie: "trie",
+};
 
 /** Every shape of `kind` that has nodes, merged into one scene. Node ids are
  *  heap cell ids.
  *
- *  Trees carry `slot` (0 = left, 1 = right) on each edge, which drives
- *  slot-aware placement in treeLayout. Lists deliberately do NOT: a list node
- *  has exactly one self-pointer member, so every edge would carry slot 0 and a
- *  slot-aware layout would read that as "always go left". */
+ *  ONLY trees carry `slot` (0 = left, 1 = right) on each edge, which drives
+ *  slot-aware placement in treeLayout. The other two kinds must not:
+ *   - a list node has exactly one self-pointer member, so every edge would
+ *     carry slot 0 and a slot-aware layout would read that as "always left".
+ *   - a trie edge's slot is the ARRAY INDEX, 0..25. treeLayout reads slot as a
+ *     binary path, so slot 25 would fling a node 25 half-bands off its parent
+ *     and every `a` edge would read as a left child. With slot absent,
+ *     layoutBand's even per-level spread is already the right n-ary placement.
+ *  This is the one place B3 can draw a WRONG picture rather than no picture. */
 export function shapeToScene(shapes: ShapeModel[], kind: ShapeKind = "tree"): GraphScene | null {
   const graphKind = SCENE_KIND[kind];
   if (!graphKind) return null;
@@ -29,12 +35,15 @@ export function shapeToScene(shapes: ShapeModel[], kind: ShapeKind = "tree"): Gr
   const edges: GraphEdge[] = [];
   const overlays = emptyOverlays();
   for (const t of matching) {
-    for (const n of t.nodes) nodes.push({ id: n.id, label: n.label });
+    for (const n of t.nodes) {
+      nodes.push({ id: n.id, label: n.label, ...(n.terminal ? { terminal: true } : {}) });
+    }
     for (const e of t.edges) {
       edges.push({
         from: e.fromId, to: e.toId, directed: true,
-        ...(kind === "list" ? {} : { slot: e.slot }),
+        ...(kind === "tree" ? { slot: e.slot } : {}),
         ...(e.cycleBack ? { cycleBack: true } : {}),
+        ...(e.label !== undefined ? { label: e.label } : {}),
       });
     }
     for (const id of t.detached) overlays.detached.add(id);
@@ -192,6 +201,16 @@ export function listSceneFrom(
   shapes: ShapeModel[], mem: NormalizedMemory, trace: ExecPoint[], index: number,
 ): GraphScene | null {
   return pointerSceneFrom(shapes, mem, trace, index, "list");
+}
+
+/** Same entry point for `kind: "trie"` shapes (B3). Needs no trie-specific
+ *  binder either: `cur` shows up through `fingers`, the insert path numbers
+ *  itself through `order`, and `onPath` tints the edge between consecutive
+ *  fingers — the character the walk just consumed. */
+export function trieSceneFrom(
+  shapes: ShapeModel[], mem: NormalizedMemory, trace: ExecPoint[], index: number,
+): GraphScene | null {
+  return pointerSceneFrom(shapes, mem, trace, index, "trie");
 }
 
 function pointerSceneFrom(

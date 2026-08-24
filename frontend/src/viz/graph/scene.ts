@@ -4,10 +4,16 @@
 // treeScene could only take *types* from graphModel and had to keep its own
 // copy of emptyOverlays and of the memory cache.
 
-export type GraphKind = "adjlist" | "matrix" | "grid" | "tree" | "list";
+export type GraphKind = "adjlist" | "matrix" | "grid" | "tree" | "list" | "trie";
 export type ViewAs = "auto" | "graph" | "grid";
 
-export interface GraphNode { id: string; label: string; row?: number; col?: number; }
+export interface GraphNode {
+  id: string; label: string; row?: number; col?: number;
+  /** Tries only: this node completes a word (`endOfWord`). Drawn as an inner
+   *  ring — the only thing separating "the trie contains `app`" from "`app` is
+   *  merely a prefix of `apple`". */
+  terminal?: boolean;
+}
 
 export interface GraphEdge {
   from: string; to: string; directed: boolean; dangling?: boolean; weight?: number;
@@ -20,6 +26,10 @@ export interface GraphEdge {
   /** Pointer lists only: a back-edge into the walker's own chain — the closing
    *  edge of a cycle. Drawn as an arc so it doesn't lie over the straight run. */
   cycleBack?: boolean;
+  /** Tries only: the character this edge consumes. Deliberately not folded into
+   *  `weight`, which is typed `number` and means a cost — an edge weight and an
+   *  edge symbol are different ideas that happen to share a screen position. */
+  label?: string;
 }
 
 export interface GraphOverlays {
