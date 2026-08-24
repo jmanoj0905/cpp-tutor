@@ -1,11 +1,12 @@
 import type { GraphEdge, GraphScene } from "./graphModel";
 
 export interface Placed { id: string; x: number; y: number; }
-export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid" | "tree"; }
+export interface Layout { placed: Placed[]; mode: "circle" | "compact" | "grid" | "tree" | "list"; }
 export const CIRCLE_MAX = 30;
 
 export function layoutScene(scene: GraphScene): Layout {
   if (scene.kind === "tree") return treeLayout(scene);
+  if (scene.kind === "list") return listLayout(scene);
   if (scene.kind === "grid") {
     const rows = scene.rows ?? 1, cols = scene.cols ?? 1;
     const placed = scene.nodes.map((n) => ({
@@ -110,6 +111,54 @@ function treeLayout(scene: GraphScene): Layout {
   }
   const placed = scene.nodes.map((n) => ({ id: n.id, ...(pos.get(n.id) ?? { x: 0.5, y: 0.5 }) }));
   return { placed, mode: "tree" };
+}
+
+/** Lay out chains left to right, one chain per row. Chains are derived the same
+ *  way `treeLayout` derives roots — a head is a node that is never a `to` — with
+ *  the extra pass a list needs: a pure cycle has no head at all, so any node
+ *  still unclaimed after the head pass starts its own chain. The walk stops on
+ *  an already-placed node, so a back-edge closes the loop instead of spinning.
+ *
+ *  Every chain starts at the left margin rather than being centered: the point
+ *  of stacking chains is to compare them position by position (the two halves
+ *  of a merge, the reversed prefix against the untouched suffix). */
+function listLayout(scene: GraphScene): Layout {
+  const next = new Map<string, string>();
+  const hasParent = new Set<string>();
+  for (const e of scene.edges) {
+    if (!next.has(e.from)) next.set(e.from, e.to);   // first-seen successor wins
+    hasParent.add(e.to);
+  }
+
+  const seen = new Set<string>();
+  const chains: string[][] = [];
+  const walk = (startId: string) => {
+    if (seen.has(startId)) return;
+    const chain: string[] = [];
+    let id: string | undefined = startId;
+    while (id !== undefined && !seen.has(id)) {
+      seen.add(id);
+      chain.push(id);
+      id = next.get(id);
+    }
+    chains.push(chain);
+  };
+  for (const n of scene.nodes) if (!hasParent.has(n.id)) walk(n.id);
+  for (const n of scene.nodes) walk(n.id);
+
+  const rows = chains.length;
+  const maxLen = Math.max(1, ...chains.map((c) => c.length));
+  const pos = new Map<string, { x: number; y: number }>();
+  chains.forEach((chain, r) => {
+    chain.forEach((id, k) => {
+      pos.set(id, {
+        x: maxLen === 1 ? 0.5 : k / (maxLen - 1),
+        y: rows === 1 ? 0.5 : r / (rows - 1),
+      });
+    });
+  });
+  const placed = scene.nodes.map((n) => ({ id: n.id, ...(pos.get(n.id) ?? { x: 0.5, y: 0.5 }) }));
+  return { placed, mode: "list" };
 }
 
 /** Midpoint of an edge, optionally nudged `offset` px perpendicular to it so a

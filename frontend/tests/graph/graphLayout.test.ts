@@ -2,11 +2,10 @@ import { describe, it, expect } from "vitest";
 import { layoutScene, labelPoint, trimEndpoint } from "../../src/viz/graph/graphLayout";
 import { heapScene } from "../../src/viz/graph/graphModel";
 import type { GraphScene } from "../../src/viz/graph/graphModel";
+import { emptyOverlays } from "../../src/viz/graph/scene";
 
 const bare = (over: Partial<GraphScene>): GraphScene => ({
-  kind: "adjlist", nodes: [], edges: [],
-  overlays: { visited: new Set(), current: [], frontier: new Set(), order: new Map(), flashed: new Set() },
-  ...over,
+  kind: "adjlist", nodes: [], edges: [], overlays: emptyOverlays(), ...over,
 });
 
 describe("layoutScene", () => {
@@ -126,6 +125,59 @@ describe("treeLayout", () => {
 
   it("keeps every placement inside the unit square", () => {
     const l = layoutScene(treeScene(["a", "b", "c"], [["a", "b", 0], ["a", "c", 1]]));
+    expect(l.placed.every((p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)).toBe(true);
+  });
+});
+
+/** A list scene: nodes in the given order, chained by the given edges. */
+const listScene = (ids: string[], edges: Array<[string, string]>, ): GraphScene =>
+  bare({
+    kind: "list",
+    nodes: ids.map((id) => ({ id, label: id })),
+    edges: edges.map(([from, to]) => ({ from, to, directed: true })),
+  });
+
+const at = (l: { placed: { id: string; x: number; y: number }[] }, id: string) =>
+  l.placed.find((p) => p.id === id)!;
+
+describe("listLayout", () => {
+  it("lays a chain out left to right on one row", () => {
+    const l = layoutScene(listScene(["a", "b", "c"], [["a", "b"], ["b", "c"]]));
+    expect(l.mode).toBe("list");
+    expect(at(l, "a").x).toBeLessThan(at(l, "b").x);
+    expect(at(l, "b").x).toBeLessThan(at(l, "c").x);
+    expect(at(l, "a").y).toBeCloseTo(at(l, "c").y);
+  });
+
+  it("gives each chain its own row", () => {
+    const l = layoutScene(listScene(["a", "b", "p", "q"], [["a", "b"], ["p", "q"]]));
+    expect(at(l, "a").y).not.toBeCloseTo(at(l, "p").y);
+    expect(at(l, "a").x).toBeCloseTo(at(l, "p").x); // both heads at the left margin
+  });
+
+  it("walks a cycle once instead of spinning", () => {
+    // 1 -> 2 -> 3 -> 2: node 2 is a `to` twice, so the head is 1 and the walk
+    // must stop when it re-reaches an already-placed node.
+    const l = layoutScene(listScene(["1", "2", "3"], [["1", "2"], ["2", "3"], ["3", "2"]]));
+    expect(l.placed).toHaveLength(3);
+    expect(at(l, "1").x).toBeLessThan(at(l, "2").x);
+    expect(at(l, "2").x).toBeLessThan(at(l, "3").x);
+  });
+
+  it("places a pure cycle, which has no head at all", () => {
+    const l = layoutScene(listScene(["1", "2", "3"], [["1", "2"], ["2", "3"], ["3", "1"]]));
+    expect(l.placed).toHaveLength(3);
+    expect(l.placed.every((p) => Number.isFinite(p.x) && Number.isFinite(p.y))).toBe(true);
+    expect(new Set(l.placed.map((p) => p.x)).size).toBe(3); // no two nodes stacked
+  });
+
+  it("places a lone node without dividing by zero", () => {
+    const l = layoutScene(listScene(["a"], []));
+    expect(at(l, "a")).toMatchObject({ x: 0.5, y: 0.5 });
+  });
+
+  it("keeps every placement inside the unit square", () => {
+    const l = layoutScene(listScene(["a", "b", "c", "p"], [["a", "b"], ["b", "c"]]));
     expect(l.placed.every((p) => p.x >= 0 && p.x <= 1 && p.y >= 0 && p.y <= 1)).toBe(true);
   });
 });
