@@ -11,6 +11,8 @@ import { GraphPanel } from "./viz/graph/GraphPanel";
 import { memoryAt } from "./viz/memoryModel";
 import { hasGraphContent } from "./viz/graph/graphModel";
 import { hasGraphCode } from "./viz/graph/detect";
+import { diagnose } from "./viz/ub/diagnose";
+import { UbPanel } from "./viz/ub/UbPanel";
 import { shapeInfoFor } from "./viz/shapes";
 import { Vcr } from "./controls/Vcr";
 import { usePlayer } from "./player/usePlayer";
@@ -87,6 +89,12 @@ function Workspace({
   // OPT C trace: point.line is the line about to execute (next); the previously
   // displayed line is the one that just executed.
   const exec = { justExecuted: player.prevLine, next: player.point.line };
+  // Valgrind's memcheck verdict for the step being shown, if this is the step
+  // that broke. Classified rather than dumped — see viz/ub/diagnose.ts.
+  const ubDiagnosis = useMemo(
+    () => diagnose(player.point.exception_msg),
+    [player.point.exception_msg],
+  );
   const deadLines = useMemo(() => deadBreakpointLines(breakpoints, trace), [breakpoints, trace]);
   const deadLineSet = useMemo(() => new Set(deadLines), [deadLines]);
 
@@ -107,9 +115,12 @@ function Workspace({
   return (
     <>
       <section className="left-col">
+        {/* A UB fault marks its own line red rather than the usual yellow
+            "current" tint: that line did not merely execute, it broke. */}
         <CodePanel value={code} onChange={() => {}} exec={exec} readOnly
           breakpoints={breakpoints} onToggleBreakpoint={onToggleBreakpoint}
-          deadLines={deadLineSet} />
+          deadLines={deadLineSet}
+          errorLine={ubDiagnosis ? player.point.line : null} />
         <Vcr player={player} breakpoints={breakpoints} deadLines={deadLines}
           onClearBreakpoints={onClearBreakpoints} />
       </section>
@@ -134,9 +145,7 @@ function Workspace({
           onResize={setStdoutSplit}
           onReset={() => setStdoutSplit(null)}
         />
-        {player.point.exception_msg && (
-          <div className="limit-notice">{player.point.exception_msg}</div>
-        )}
+        {ubDiagnosis && <UbPanel diagnosis={ubDiagnosis} step={player.index} />}
         <div className="mem-region">
           <div className="tabs panel-tabs" role="tablist">
             <button
