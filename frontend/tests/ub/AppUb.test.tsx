@@ -34,7 +34,8 @@ describe("App undefined-behaviour lens", () => {
 
   it("keeps the raw memcheck line available alongside the explanation", async () => {
     const { container } = await runToEnd(invalidWrite);
-    expect(container.querySelector(".ub-detail")?.textContent).toBe("Invalid write of size 4");
+    expect(container.querySelector(".ub-detail")?.textContent)
+      .toContain("Invalid write of size 4");
   });
 
   it("classifies a double delete differently from a bad write", async () => {

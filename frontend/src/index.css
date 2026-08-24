@@ -138,6 +138,7 @@ p {
 }
 .ub-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
 .ub-title { font-weight: 700; color: var(--red); text-transform: uppercase; letter-spacing: 0.04em; }
+.ub-address { color: var(--ink-soft); font-size: 11px; }
 .ub-step { margin-left: auto; color: var(--ink-soft); font-size: 11px; }
 .ub-panel p { margin: 0 0 6px; line-height: 1.45; }
 .ub-why { color: var(--ink-soft); }

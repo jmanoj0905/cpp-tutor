@@ -1,0 +1,43 @@
+diff --git a/valgrind-3.11.0/memcheck/mc_errors.c b/valgrind-3.11.0/memcheck/mc_errors.c
+index 659fa1e..5b5188b 100644
+--- a/valgrind-3.11.0/memcheck/mc_errors.c
++++ b/valgrind-3.11.0/memcheck/mc_errors.c
+@@ -588,7 +588,9 @@ void MC_(pp_Error) ( const Error* err )
+                                  &extra->Err.Free.ai, False );
+          } else {
+             // pgbovine
+-            VG_(fprintf)(trace_fp, "ERROR: Invalid free() / delete / delete[] / realloc()\n");
++            // cpp-tutor: see the Err_Addr case above.
++            VG_(fprintf)(trace_fp, "ERROR: Invalid free() / delete / delete[] / realloc() @ 0x%lx\n",
++                         (unsigned long)VG_(get_error_address)(err));
+ 
+             emit( "Invalid free() / delete / delete[] / realloc()\n" );
+             VG_(pp_ExeContext)( VG_(get_error_where)(err) );
+@@ -606,7 +608,9 @@ void MC_(pp_Error) ( const Error* err )
+                                 &extra->Err.FreeMismatch.ai, False);
+          } else {
+             // pgbovine
+-            VG_(fprintf)(trace_fp, "ERROR: Mismatched free() / delete / delete []\n");
++            // cpp-tutor: see the Err_Addr case below.
++            VG_(fprintf)(trace_fp, "ERROR: Mismatched free() / delete / delete [] @ 0x%lx\n",
++                         (unsigned long)VG_(get_error_address)(err));
+ 
+             emit( "Mismatched free() / delete / delete []\n" );
+             VG_(pp_ExeContext)( VG_(get_error_where)(err) );
+@@ -628,9 +632,14 @@ void MC_(pp_Error) ( const Error* err )
+                                  extra->Err.Addr.maybe_gcc );
+          } else {
+             // pgbovine
+-            VG_(fprintf)(trace_fp, "ERROR: Invalid %s of size %lu\n",
++            // cpp-tutor: append the faulting address so the frontend can
++            // anchor this error to the exact memory cell. Stock only ever
++            // sent the address to stderr via pp_addrinfo_mc, never onto the
++            // trace line the tutor consumes.
++            VG_(fprintf)(trace_fp, "ERROR: Invalid %s of size %lu @ 0x%lx\n",
+                          extra->Err.Addr.isWrite ? "write" : "read",
+-                         extra->Err.Addr.szB);
++                         extra->Err.Addr.szB,
++                         (unsigned long)VG_(get_error_address)(err));
+ 
+             emit( "Invalid %s of size %lu\n",
+                   extra->Err.Addr.isWrite ? "write" : "read",

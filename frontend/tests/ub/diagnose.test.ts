@@ -66,8 +66,24 @@ describe("diagnose — message handling", () => {
     expect(d.detail).toBe("Invalid write of size 4");
   });
 
+  it("parses the faulting address the tracer patch appends", () => {
+    const d = diagnose("ERROR: Invalid write of size 4 @ 0x4b9205c")!;
+    expect(d.address).toBe("0x4b9205c");
+    expect(d.accessSize).toBe(4);
+    expect(d.category).toBe("invalid-write");
+  });
+
+  it("still classifies an address-less message, for an older tracer image", () => {
+    // The published ghcr.io image lags a local rebuild, so both wordings have
+    // to keep working.
+    const d = diagnose("ERROR: Invalid write of size 4")!;
+    expect(d.category).toBe("invalid-write");
+    expect(d.address).toBeUndefined();
+  });
+
   it("strips the tracer's stop-running advice, which the panel rephrases", () => {
     const d = diagnose(msgOf(invalidWrite))!;
+    expect(d.detail).toContain("Invalid write of size 4");
     expect(d.detail).not.toContain("Stopped running");
     expect(d.meaning).not.toContain("Stopped running");
   });

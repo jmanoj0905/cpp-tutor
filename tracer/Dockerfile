@@ -65,6 +65,18 @@ RUN cd /opt/tracer && patch -p1 < /tmp/cpp-byval-param-capture.patch
 #        defined), keeping "<UNINITIALIZED>" for wholly-uninitialized scalars.
 COPY cpp-vector-bool-partial-defined.patch /tmp/cpp-vector-bool-partial-defined.patch
 RUN cd /opt/tracer && patch -p1 < /tmp/cpp-vector-bool-partial-defined.patch
+# Fix 7: put the faulting ADDRESS on memcheck's trace-line error reports, so
+#        the UB lens can anchor an error to the exact memory cell rather than
+#        only to a source line. mc_errors.c already holds it — every one of
+#        these three sites passes VG_(get_error_address)(err) to
+#        pp_addrinfo_mc for the human-readable stderr report — but the
+#        "ERROR: ..." line written to trace_fp, which is the only channel the
+#        tutor reads, carried the message and nothing else. This appends
+#        " @ 0x<addr>" to the invalid-read/write, invalid-free and
+#        mismatched-free reports. The frontend tolerates its absence, so an
+#        older image keeps working.
+COPY cpp-ub-error-address.patch /tmp/cpp-ub-error-address.patch
+RUN cd /opt/tracer && patch -p1 < /tmp/cpp-ub-error-address.patch
 WORKDIR /opt/tracer/valgrind-3.11.0
 RUN ./autogen.sh && ./configure --prefix=`pwd`/inst && make && make install
 

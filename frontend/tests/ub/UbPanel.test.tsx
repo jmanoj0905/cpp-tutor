@@ -29,7 +29,8 @@ describe("UbPanel", () => {
 
   it("keeps the raw memcheck line visible", () => {
     const { container } = renderFor(invalidWrite);
-    expect(container.querySelector(".ub-detail")?.textContent).toBe("Invalid write of size 4");
+    expect(container.querySelector(".ub-detail")?.textContent)
+      .toContain("Invalid write of size 4");
   });
 
   it("says which step it happened at, per the detail-panel convention", () => {
@@ -46,6 +47,16 @@ describe("UbPanel", () => {
   it("carries the category as a class so the panel can style per kind", () => {
     const { container } = renderFor(mismatchedDelete);
     expect(container.querySelector(".ub-panel.is-mismatched-free")).not.toBeNull();
+  });
+
+  it("shows the faulting address when the tracer supplies one", () => {
+    const { container } = renderFor(invalidWrite);
+    expect(container.querySelector(".ub-address")?.textContent).toContain("0x");
+  });
+
+  it("shows no address element when the message carries none", () => {
+    render(<UbPanel diagnosis={diagnose("ERROR: Invalid write of size 4")!} step={1} />);
+    expect(document.querySelectorAll(".ub-address").length).toBe(0);
   });
 
   it("renders an unknown wording without blanking", () => {

@@ -11,6 +11,14 @@ export function UbPanel({ diagnosis, step }: { diagnosis: UbDiagnosis; step: num
     <div className={`ub-panel is-${diagnosis.category}`} role="alert">
       <div className="ub-head">
         <span className="ub-title">{diagnosis.title}</span>
+        {/* Absent on an older tracer image, and on the error kinds memcheck
+            reports without one (an uninitialised value has no address). */}
+        {diagnosis.address && (
+          <span className="ub-address">
+            at {diagnosis.address}
+            {diagnosis.accessSize != null && ` · ${diagnosis.accessSize} bytes`}
+          </span>
+        )}
         <span className="ub-step">step {step}</span>
       </div>
       <p className="ub-meaning">{diagnosis.meaning}</p>
