@@ -5,6 +5,7 @@ import dfsList from "../fixtures/graph/dfs_list.json";
 import vectorTrace from "../fixtures/vector-trace.json";
 import treeInsert from "../fixtures/shapes/tree-insert.json";
 import lcs2d from "../fixtures/dp/lcs-2d.json";
+import listCycle from "../fixtures/shapes/list-cycle.json";
 import { fetchTrace } from "../../src/api/client";
 import type { Trace } from "../../src/types/trace";
 
@@ -84,6 +85,26 @@ describe("App graph tab", () => {
       fireEvent.change(slider, { target: { value: String(s) } });
       expect(container.querySelector(".graph-panel")).toBeNull();
     }
+  });
+
+  it("offers a Graph tab for a pointer-list program", async () => {
+    // list-cycle.cpp has no container a structural detector could read and no
+    // graph vocabulary in its source — it reaches the tab purely on its
+    // confirmed `list` shape, the same way a pointer tree does.
+    (fetchTrace as any).mockResolvedValue(listCycle as unknown as Trace);
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /visualize/i }));
+    await screen.findByRole("button", { name: /^stop$/i });
+
+    fireEvent.click(screen.getByRole("tab", { name: /^graph$/i }));
+    const slider = screen.getByLabelText("Execution step");
+    const total = (listCycle as any).trace.length;
+    let found = false;
+    for (let s = 0; s < total && !found; s++) {
+      fireEvent.change(slider, { target: { value: String(s) } });
+      found = container.querySelectorAll(".graph-node").length > 0;
+    }
+    expect(found).toBe(true);
   });
 
   it("offers no Graph tab for a 2-D DP table", async () => {

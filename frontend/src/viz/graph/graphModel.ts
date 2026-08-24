@@ -6,7 +6,7 @@ import type {
   GraphKind, GraphNode, GraphEdge, GraphScene, ViewAs,
 } from "./scene";
 import type { ShapeModel } from "../shapes";
-import { treeSceneFrom } from "./treeScene";
+import { listSceneFrom, treeSceneFrom } from "./treeScene";
 
 export type {
   GraphKind, ViewAs, GraphNode, GraphEdge, GraphOverlays, GraphScene,
@@ -601,15 +601,22 @@ export function buildGraphScene(
     return scene;
   };
 
-  // Pointer trees (B1) win over every array-family detector. Tree programs
-  // routinely carry a `vector<vector<int>> res` accumulator or a test table
-  // that the matrix detectors would otherwise read as an adjacency list — but
-  // the tree is what the user came to see. `treeSceneFrom` binds its own
-  // overlays (address-keyed), so it deliberately does NOT go through `finish`,
-  // whose array-family binders are meaningless against heap-cell node ids.
+  // Pointer shapes — trees (B1) and lists (B2) — win over every array-family
+  // detector. Such programs routinely carry a `vector<vector<int>> res`
+  // accumulator or a test table that the matrix detectors would otherwise read
+  // as an adjacency list — but the pointer structure is what the user came to
+  // see. Both scene builders bind their own overlays (address-keyed), so they
+  // deliberately do NOT go through `finish`, whose array-family binders are
+  // meaningless against heap-cell node ids.
+  //
+  // Trees are tried first only for determinism; a program with both a confirmed
+  // tree type and a confirmed list type is not something the practice corpus
+  // produces, and picking one is better than merging two unrelated structures
+  // into one canvas.
   if (viewAs !== "grid" && shapes) {
-    const tree = treeSceneFrom(shapes, mem, trace, index);
-    if (tree) return tree;
+    const pointer = treeSceneFrom(shapes, mem, trace, index)
+      ?? listSceneFrom(shapes, mem, trace, index);
+    if (pointer) return pointer;
   }
 
   // Weighted adjacency list wins over an edge-list param that would otherwise

@@ -64,13 +64,16 @@ function Workspace({
   // Show the Graph tab only for graph/grid-shaped programs. Scan once per
   // trace with the cheap structural detector (not buildGraphScene, which is
   // O(prefix) per call → O(n^2) over a trace); break on the first hit.
-  // A pointer-tree program has no such container — its Graph content comes
-  // from a confirmed `tree` shape, which is already a cached whole-trace pass.
-  // Matrix/edge-list shapes are ambiguous (a 2-D DP table is an int matrix),
-  // so they additionally need the source to read like a graph problem.
+  // A pointer-tree or pointer-list program has no such container — its Graph
+  // content comes from a confirmed `tree`/`list` shape, which is already a
+  // cached whole-trace pass. Those stay outside the `hasGraphCode` vocabulary
+  // gate: a confirmed self-referential struct chain is unambiguous in a way an
+  // int matrix is not. Matrix/edge-list shapes ARE ambiguous (a 2-D DP table is
+  // an int matrix), so they additionally need the source to read like a graph
+  // problem.
   const graphAvailable = useMemo(() => {
     for (const kind of shapeInfoFor(trace.trace).confirmed.values()) {
-      if (kind === "tree") return true;
+      if (kind === "tree" || kind === "list") return true;
     }
     const matrices = hasGraphCode(trace.code);
     for (let s = 0; s < trace.trace.length; s++) {
