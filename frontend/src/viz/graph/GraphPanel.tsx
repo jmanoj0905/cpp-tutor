@@ -8,6 +8,13 @@ import { buildGraphScene, type ViewAs } from "./graphModel";
 import { layoutScene, labelPoint, trimEndpoint } from "./graphLayout";
 
 const W = 320, H = 320, PAD = 24, NODE_R = 14;
+// List nodes are boxes, not circles: every other runtime value in the app is a
+// dotted box, so a chain of boxes reads as memory rather than as an abstract
+// graph. Wider than tall to leave room for the value.
+const BOX_W = 34, BOX_H = 22;
+// How far a cycle back-edge bows away from the chain it re-enters. Without the
+// bow it would lie exactly on top of the straight run between the same nodes.
+const ARC_BOW = 34;
 const NO_DISABLED: Set<string> = new Set();
 
 export function GraphPanel({ point, prevPoint, trace, step }: {
@@ -63,8 +70,13 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
     scene.overlays.current.includes(id) && "is-current",
     scene.overlays.frontier.has(id) && "is-frontier",
     scene.overlays.flashed.has(id) && "is-flashed",
+    scene.overlays.detached.has(id) && "is-detached",
     selected === id && "is-selected",
   ].filter(Boolean).join(" ");
+  const boxed = scene.kind === "grid" || scene.kind === "list";
+  // Half-extent an arrowhead must stop short of, so it sits at the node's rim
+  // instead of under it.
+  const rim = (scene.kind === "list" ? BOX_W / 2 : NODE_R) + 2;
 
   return (
     <div className="graph-panel">
@@ -82,13 +94,22 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
           if (!a || !b) return null;
           const off = e.directed ? (e.from < e.to ? 8 : -8) : 0;
           const ax = px(a.x), ay = py(a.y), bx = px(b.x), by = py(b.y);
-          const end = e.directed ? trimEndpoint(ax, ay, bx, by, NODE_R + 2) : { x: bx, y: by };
+          const end = e.directed ? trimEndpoint(ax, ay, bx, by, rim) : { x: bx, y: by };
           const lp = labelPoint(ax, ay, bx, by, off);
+          const edgeCls = `graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}${e.onPath ? " is-on-path" : ""}${e.cycleBack ? " is-cycle-back" : ""}`;
+          // A back-edge runs right-to-left along the row it re-enters, so a
+          // straight line would be drawn over the forward chain. Bow it out via
+          // the same perpendicular offset the weight labels use.
+          const bow = labelPoint(ax, ay, bx, by, ARC_BOW);
           return (
             <g key={i}>
-              <line x1={ax} y1={ay} x2={end.x} y2={end.y}
-                markerEnd={e.directed ? "url(#graph-arrow)" : undefined}
-                className={`graph-edge${e.dangling ? " is-dangling" : ""}${e.directed ? " is-directed" : ""}${e.onPath ? " is-on-path" : ""}`} />
+              {e.cycleBack
+                ? <path d={`M${ax},${ay} Q${bow.x},${bow.y} ${end.x},${end.y}`}
+                    markerEnd={e.directed ? "url(#graph-arrow)" : undefined}
+                    className={edgeCls} />
+                : <line x1={ax} y1={ay} x2={end.x} y2={end.y}
+                    markerEnd={e.directed ? "url(#graph-arrow)" : undefined}
+                    className={edgeCls} />}
               {e.weight != null && (
                 <text className="graph-edge-weight" x={lp.x} y={lp.y}
                   textAnchor="middle" dominantBaseline="central">{e.weight}</text>
@@ -99,13 +120,22 @@ export function GraphPanel({ point, prevPoint, trace, step }: {
         {scene.nodes.map((n) => {
           const p = pos.get(n.id); if (!p) return null;
           const order = scene.overlays.order.get(n.id);
+          const fingers = scene.overlays.fingers.get(n.id);
+          const bw = scene.kind === "list" ? BOX_W : NODE_R * 2;
+          const bh = scene.kind === "list" ? BOX_H : NODE_R * 2;
           return (
             <g key={n.id} data-node-id={n.id} className={`graph-node ${cls(n.id)}`}
                onClick={() => setSelected(n.id)}>
-              {scene.kind === "grid"
-                ? <rect x={px(p.x) - NODE_R} y={py(p.y) - NODE_R} width={NODE_R * 2} height={NODE_R * 2} />
+              {boxed
+                ? <rect x={px(p.x) - bw / 2} y={py(p.y) - bh / 2} width={bw} height={bh} />
                 : <circle cx={px(p.x)} cy={py(p.y)} r={NODE_R} />}
               <text x={px(p.x)} y={py(p.y)} textAnchor="middle" dominantBaseline="central">{n.label}</text>
+              {/* Which pointer is where IS the algorithm in a two-pointer
+                  problem, so the names sit above the node they stand on. */}
+              {fingers && fingers.length > 0 && (
+                <text className="graph-finger" x={px(p.x)} y={py(p.y) - bh / 2 - 5}
+                  textAnchor="middle">{fingers.join(" ")}</text>
+              )}
               {order != null && <text className="graph-order" x={px(p.x) + NODE_R} y={py(p.y) - NODE_R}>{order}</text>}
               {scene.kind !== "grid" && scene.dist?.get(n.id) != null && (
                 <text className="graph-node-dist" x={px(p.x)} y={py(p.y) + NODE_R + 9} textAnchor="middle">

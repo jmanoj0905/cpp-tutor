@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
 import { GraphPanel } from "../../src/viz/graph/GraphPanel";
 import { buildGraphScene } from "../../src/viz/graph/graphModel";
+import { emptyOverlays } from "../../src/viz/graph/scene";
 import { normalizeMemory } from "../../src/viz/memoryModel";
 import dfsList from "../fixtures/graph/dfs_list.json";
 import dijkstra from "../fixtures/graph/dijkstra.json";
@@ -154,5 +155,56 @@ describe("GraphPanel pointer trees", () => {
       if (orderCount > 0) { found = true; break; }
     }
     expect(found).toBe(true);
+  });
+});
+
+import listCycle from "../fixtures/shapes/list-cycle.json";
+import listReverse from "../fixtures/shapes/list-reverse.json";
+
+describe("GraphPanel list scenes", () => {
+  /** First step whose rendered panel satisfies `ok`, plus its container. */
+  const firstStep = (trace: any[], ok: (c: HTMLElement) => boolean) => {
+    for (let s = 0; s < trace.length; s++) {
+      const { container, unmount } = render(
+        <GraphPanel point={trace[s]} prevPoint={s ? trace[s - 1] : null} trace={trace} step={s} />);
+      if (ok(container)) return { step: s, container };
+      unmount();
+    }
+    throw new Error("no step matched");
+  };
+
+  it("draws list nodes as boxes, not circles", () => {
+    // Every other runtime value in the app is a dotted box; a chain of them
+    // reads as memory, a chain of circles reads as an abstract graph.
+    const trace = (listCycle as any).trace;
+    const { container } = firstStep(trace, (c) => c.querySelectorAll(".graph-node").length >= 3);
+    expect(container.querySelector(".graph-node rect")).not.toBeNull();
+    expect(container.querySelector(".graph-node circle")).toBeNull();
+  });
+
+  it("labels a node with the pointers standing on it", () => {
+    const trace = (listReverse as any).trace;
+    const { container } = firstStep(trace, (c) =>
+      [...c.querySelectorAll(".graph-finger")].some((n) => (n.textContent ?? "").includes("curr")));
+    const labels = [...container.querySelectorAll(".graph-finger")].map((n) => n.textContent);
+    expect(labels.join(" ")).toContain("curr");
+  });
+
+  it("draws the cycle back-edge as an arc, not a straight line", () => {
+    const trace = (listCycle as any).trace;
+    const { container } = firstStep(trace, (c) => c.querySelector(".is-cycle-back") !== null);
+    const arc = container.querySelector(".is-cycle-back")!;
+    expect(arc.tagName.toLowerCase()).toBe("path");
+    expect(arc.getAttribute("d")).toMatch(/^M/);
+  });
+
+  it("keeps a detached node in the scene but marks it", () => {
+    const scene = {
+      kind: "list" as const,
+      nodes: [{ id: "a", label: "1" }, { id: "z", label: "9" }],
+      edges: [],
+      overlays: { ...emptyOverlays(), detached: new Set(["z"]) },
+    };
+    expect(scene.overlays.detached.has("z")).toBe(true);
   });
 });

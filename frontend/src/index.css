@@ -893,9 +893,21 @@ p {
 .graph-node.is-frontier circle, .graph-node.is-frontier rect { stroke: var(--blue); stroke-width: 2; opacity: 1; }
 .graph-node.is-flashed rect { fill: var(--yellow); }
 .graph-node.is-selected circle, .graph-node.is-selected rect { stroke: var(--blue-deep); stroke-width: 2; }
-.graph-edge { stroke: var(--blue); stroke-width: 1; }
+/* `fill: none` matters: a cycle back-edge is a <path>, and an unfilled-by-
+   default <line> becomes a solid blob the moment it turns into a curve. */
+.graph-edge { stroke: var(--blue); stroke-width: 1; fill: none; }
 .graph-edge.is-dangling { stroke: var(--red); stroke-dasharray: 3 2; }
 .graph-edge.is-on-path { stroke: var(--blue); stroke-width: 2.5; }
+/* A list node no live pointer can reach — orphaned by a reversal or a removal.
+   Dimming is how the app says "not live" everywhere else. */
+.graph-node.is-detached circle, .graph-node.is-detached rect { opacity: 0.25; }
+.graph-node.is-detached text { opacity: 0.4; }
+/* The source variables standing on a node (slow/fast/prev/curr). Reads as
+   selection, so it takes --blue. */
+.graph-finger {
+  font-size: 9px; font-family: var(--mono); fill: var(--blue-deep);
+  paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round;
+}
 .graph-arrow-head { fill: var(--ink); }
 .graph-order { font-size: 9px; fill: var(--ink-soft); }
 .graph-edge-weight { font-size: 11px; font-family: var(--mono); fill: var(--ink); paint-order: stroke; stroke: var(--panel); stroke-width: 3px; stroke-linejoin: round; }
