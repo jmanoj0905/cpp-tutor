@@ -360,9 +360,7 @@ function truthyScalar(v: string): boolean {
 function visitedIdsAt(point: ExecPoint, kindHint: GraphScene, trace: ExecPoint[]): Set<string> {
   // reuse detection on a point's memory to read its visited set
   const mem = memoryAt(point);
-  const scene = { ...kindHint, overlays: {
-    visited: new Set<string>(), current: [], frontier: new Set<string>(),
-    order: new Map<string, number>(), flashed: new Set<string>() } };
+  const scene = { ...kindHint, overlays: emptyOverlays() };
   bindVisited(mem, scene, trace);
   return scene.overlays.visited;
 }
