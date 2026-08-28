@@ -1,7 +1,15 @@
 # cpp-tutor for VSCode
 
-Runs the cpp-tutor backend in Docker and opens the memory visualizer against
-it. Requires Docker Desktop (or any Docker daemon) on the same machine.
+Paste or open C/C++ code, step through its execution, and watch the stack,
+heap, and pointer edges change one line at a time.
+
+> **Requires Docker.** All tracing happens inside a container this extension
+> runs locally — nothing is uploaded. Pressing **Start service** the first time
+> pulls `ghcr.io/jmanoj0905/cpp-tutor:latest` — roughly 1.5 GB, since it
+> carries a patched Valgrind — which can take several minutes on a slow link.
+> Later starts are immediate. Docker Desktop, Colima, or any Docker daemon on
+> the same machine works; the extension warns in its sidebar when it can't
+> reach one.
 
 The container serves the frontend as well as the API (same-origin `/api`), so
 the visualizer is just a URL — `http://127.0.0.1:<port>/`. The sidebar offers

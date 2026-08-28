@@ -3,7 +3,23 @@
   "displayName": "cpp-tutor",
   "description": "Step through C/C++ execution with a visual memory model.",
   "version": "0.1.0",
-  "private": true,
+  "publisher": "jmanoj0905",
+  "license": "GPL-3.0-only",
+  "icon": "media/icon.png",
+  "keywords": [
+    "c",
+    "c++",
+    "cpp",
+    "visualizer",
+    "debugger",
+    "memory",
+    "education",
+    "python tutor"
+  ],
+  "galleryBanner": {
+    "color": "#ffffff",
+    "theme": "light"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/jmanoj0905/cpp-tutor.git",
@@ -76,7 +92,8 @@
     "watch": "npm run build:ext -- --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "package": "npm run build && vsce package --no-dependencies --skip-license"
+    "package": "npm run build && vsce package --no-dependencies",
+    "publish": "npm run build && vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
