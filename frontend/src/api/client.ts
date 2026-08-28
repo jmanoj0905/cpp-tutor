@@ -1,6 +1,12 @@
 import type { TraceResult } from "../types/trace";
 
-const BASE = import.meta.env.VITE_API ?? "http://localhost:8000";
+// The VSCode extension serves this bundle from a webview and injects the
+// container's loopback port at load time; the web app has no such global and
+// falls through to the build-time env or the local dev backend.
+const BASE =
+  (globalThis as { __CPP_TUTOR_API?: string }).__CPP_TUTOR_API ??
+  import.meta.env.VITE_API ??
+  "http://localhost:8000";
 
 // Matches JSON string literals (left untouched, so digits inside program
 // stdout are never rewritten) OR bare integer tokens of 16+ digits.

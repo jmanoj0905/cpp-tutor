@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import { fetchTrace } from "../src/api/client";
 
 describe("fetchTrace", () => {
@@ -33,5 +33,37 @@ describe("parseTraceJson", () => {
     expect(out.c).toBe(Number("1234567890123456789.5"));
     expect(out.s).toBe("12345678901234567890");
     expect(out.line).toBe(12);
+  });
+});
+
+describe("API base resolution", () => {
+  const g = globalThis as { __CPP_TUTOR_API?: string };
+
+  afterEach(() => {
+    delete g.__CPP_TUTOR_API;
+    vi.resetModules();
+  });
+
+  it("prefers the runtime global injected by the VSCode webview", async () => {
+    vi.resetModules();
+    g.__CPP_TUTOR_API = "http://127.0.0.1:54321";
+    const { fetchTrace: fresh } = await import("../src/api/client");
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '{"code":"x","trace":[]}' }) as any;
+    await fresh("int main(){}", "cpp");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://127.0.0.1:54321/api/trace",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("falls back to localhost:8000 when no global is set", async () => {
+    vi.resetModules();
+    const { fetchTrace: fresh } = await import("../src/api/client");
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '{"code":"x","trace":[]}' }) as any;
+    await fresh("int main(){}", "cpp");
+    expect(global.fetch).toHaveBeenCalledWith(
+      "http://localhost:8000/api/trace",
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 });
