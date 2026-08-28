@@ -142,15 +142,22 @@ export class TracerService {
    * service is exactly what makes the probe fail, so a check only before the
    * probe would let a deliberate stop that races the probe get overwritten
    * with an "unexpected" error.
+   *
+   * The generation is captured once, at the top, and re-checked at both of
+   * those points too: a second start() (or a stop()-then-start()) bumps the
+   * counter, so a loop launched for an earlier "ready" (a different port,
+   * the same container name) recognizes it no longer owns the container and
+   * must not touch it or overwrite the newer state.
    */
   async watchHealth(): Promise<void> {
+    const gen = this.generation;
     while (this.current.name === "ready") {
       const { port } = this.current;
       await this.deps.sleep(WATCH_POLL_MS);
-      if (this.current.name !== "ready" || this.cancelled) return;
+      if (this.current.name !== "ready" || this.cancelled || this.stale(gen)) return;
 
       const healthy = await this.deps.probeHealth(port);
-      if (this.current.name !== "ready" || this.cancelled) return;
+      if (this.current.name !== "ready" || this.cancelled || this.stale(gen)) return;
       if (healthy) continue;
 
       const logs = await this.deps.docker.run(["logs", "--tail", "20", CONTAINER]);

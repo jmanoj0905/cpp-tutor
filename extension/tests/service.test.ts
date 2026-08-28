@@ -373,6 +373,62 @@ describe("TracerService races (I1/I2/I3 fixes)", () => {
     expect(svc.state).toEqual({ name: "ready", port: 60000 });
   });
 
+  it("a superseded watchHealth loop must not touch a newer start()'s container (two-loop race)", async () => {
+    // Mirrors the real defect: adopt() picks up a container on port A and
+    // extension.ts starts watching it (L1). L1 falls asleep inside its
+    // WATCH_POLL_MS sleep, having captured port A. While it sleeps, the
+    // user re-invokes Start; start()'s only reentrancy guard covers
+    // "pulling"/"starting", not "ready", so it proceeds, rm -f's the old
+    // container, and boots a new one on port B, reaching ready. When L1
+    // wakes, its old `this.current.name === "ready"` guard still passes
+    // (the state is ready, just for a different port) so without a
+    // generation check it probes the now-dead port A, decides the backend
+    // "stopped unexpectedly", and rm -f's the container name out from
+    // under the healthy new container — then overwrites the ready state
+    // with an error. The generation check in watchHealth must catch this.
+    const docker = new FakeDocker();
+    docker.replies.push((a) =>
+      a[0] === "inspect" ? { code: 0, stdout: "true 51111\n", stderr: "" } : undefined);
+
+    let resolveSleep!: () => void;
+    let sleepCalls = 0;
+    const svc = new TracerService({
+      docker,
+      findFreePort: async () => 52222,
+      // The old port (A) reads as dead; the new port (B) reads as healthy —
+      // exactly what a superseded loop would observe if it ignored staleness.
+      probeHealth: async (p) => p !== 51111,
+      sleep: async () => {
+        sleepCalls++;
+        if (sleepCalls === 1) {
+          // Pause L1's first WATCH_POLL_MS sleep so a second start() can
+          // land while it's asleep.
+          await new Promise<void>((res) => { resolveSleep = res; });
+        }
+      },
+      now: () => 0,
+    });
+
+    await svc.adopt();
+    expect(svc.state).toEqual({ name: "ready", port: 51111 });
+
+    const watch1 = svc.watchHealth(); // L1, watching port A
+    await flushMicrotasks();
+
+    await svc.start(); // second Start: rm -f's A, boots and reaches ready on B
+    expect(svc.state).toEqual({ name: "ready", port: 52222 });
+    const rmCallsBeforeWake = docker.calls.filter((c) => c[0] === "rm" && c[1] === "-f").length;
+
+    resolveSleep(); // wake L1
+    await watch1;
+
+    // L1 must recognize it no longer owns the container: no extra rm -f,
+    // and the healthy "ready" state for port B must survive untouched.
+    const rmCallsAfterWake = docker.calls.filter((c) => c[0] === "rm" && c[1] === "-f").length;
+    expect(rmCallsAfterWake).toBe(rmCallsBeforeWake);
+    expect(svc.state).toEqual({ name: "ready", port: 52222 });
+  });
+
   it("a second Start is a no-op while the first is still pulling or starting", async () => {
     const fakeDocker = new FakeDocker();
     fakeDocker.replies.push(imageMissing);

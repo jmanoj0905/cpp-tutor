@@ -15,6 +15,14 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.window.registerWebviewViewProvider(SidebarProvider.viewType, sidebar),
 
     vscode.commands.registerCommand("cpp-tutor.start", async () => {
+      // If the service is already up, Start should just show the
+      // visualizer for it, not tear down a healthy container and race a
+      // fresh boot against the watch loop still watching the old one.
+      const before = svc.state;
+      if (before.name === "ready") {
+        VisualizerPanel.show(context.extensionUri, before.port);
+        return;
+      }
       await svc.start();
       // Starting is only ever a means to seeing the visualizer, so open it
       // as soon as the backend is actually answering.
