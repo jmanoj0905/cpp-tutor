@@ -6,7 +6,7 @@
   "private": true,
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Visualization", "Education"],
-  "activationEvents": [],
+  "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {

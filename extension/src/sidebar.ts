@@ -1,11 +1,18 @@
 import * as vscode from "vscode";
+import type { TracerService, ServiceState } from "./service";
+import { makeNonce } from "./panel";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   static readonly viewType = "cppTutor.sidebar";
 
   private view?: vscode.WebviewView;
 
-  constructor(private readonly extensionUri: vscode.Uri) {}
+  constructor(
+    private readonly extensionUri: vscode.Uri,
+    private readonly service: TracerService,
+  ) {
+    this.service.onDidChangeState((s) => this.post(s));
+  }
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
@@ -15,22 +22,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     };
     view.webview.html = this.html(view.webview);
     view.webview.onDidReceiveMessage((msg: { type: string }) => {
-      if (msg.type === "ready") {
-        this.post({ name: "stopped" });
-        return;
+      switch (msg.type) {
+        case "ready": this.post(this.service.state); break;
+        case "start": vscode.commands.executeCommand("cpp-tutor.start"); break;
+        case "stop": vscode.commands.executeCommand("cpp-tutor.stop"); break;
+        case "open": vscode.commands.executeCommand("cpp-tutor.open"); break;
+        case "cancel": this.service.cancel(); break;
       }
-      vscode.window.showInformationMessage(`cpp-tutor: ${msg.type} (not wired yet)`);
     });
   }
 
-  post(state: unknown): void {
+  post(state: ServiceState): void {
     this.view?.webview.postMessage({ type: "state", state });
   }
 
   private html(webview: vscode.Webview): string {
     const asset = (name: string) =>
       webview.asWebviewUri(vscode.Uri.joinPath(this.extensionUri, "media", name));
-    const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const nonce = makeNonce();
     return `<!doctype html>
 <html>
 <head>
