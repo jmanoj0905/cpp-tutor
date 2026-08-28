@@ -25,9 +25,16 @@ through the URL hash (`#code=<base64url>&run=1`, decoded by
 the source never reaches the server; files whose encoded payload exceeds
 `MAX_HANDOFF_CHARS` are refused rather than truncated.
 
-If the Docker daemon isn't running, the sidebar says so up front (at
-activation, and again from the **Recheck Docker** button) instead of waiting
-for a Start to fail.
+The sidebar footer always shows Docker's status — *Checking Docker…*, *Docker
+ready*, or *Docker unavailable* with the reason spelled out above the buttons —
+so a healthy daemon is as visible as a broken one, and **Recheck** is reachable
+either way rather than only appearing alongside a failure.
+
+Before the first Start, the sidebar also says what that first Start costs: the
+image size, that it is a one-time download, and roughly how long it can take.
+While the pull runs, progress reads as a layer count (*Downloading image… (7 of
+28 layers)*), because a `docker pull` with no TTY attached reports no byte
+totals at all.
 
 ## Sideloading a build
 

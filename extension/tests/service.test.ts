@@ -88,6 +88,31 @@ describe("TracerService.start", () => {
     expect(docker.called("pull", IMAGE)).toBe(true);
   });
 
+  it("reports pull progress as a layer count, not just the raw line", async () => {
+    const docker = new FakeDocker();
+    docker.replies.push(imageMissing);
+    docker.pullLines = [
+      "latest: Pulling from jmanoj0905/cpp-tutor",
+      "aaaaaa: Pulling fs layer",
+      "bbbbbb: Pulling fs layer",
+      "aaaaaa: Pull complete",
+    ];
+    const { svc, states } = make({ docker });
+    await svc.start();
+    const pulls = states.filter((s) => s.name === "pulling") as Array<{ layers: { done: number; total: number } }>;
+    expect(pulls[0].layers).toEqual({ done: 0, total: 0 });
+    expect(pulls.at(-1)!.layers).toEqual({ done: 1, total: 2 });
+    expect(pulls.at(-1)!.layers).not.toHaveProperty("line");
+  });
+
+  it("exposes image presence so the sidebar can warn about the first-run download", async () => {
+    const docker = new FakeDocker();
+    docker.replies.push(imageMissing);
+    const { svc } = make({ docker });
+    expect(await svc.imagePresent()).toBe(false);
+    expect(await make().svc.imagePresent()).toBe(true);
+  });
+
   it("runs the container detached, on loopback, with the webview CORS regex", async () => {
     const { svc, docker } = make();
     await svc.start();

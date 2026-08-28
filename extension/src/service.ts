@@ -1,4 +1,20 @@
+import { PullTracker, type PullProgress } from "./pullProgress";
+
 export const IMAGE = "ghcr.io/jmanoj0905/cpp-tutor:latest";
+/**
+ * Rough compressed download size of IMAGE, for the first-run warning. The
+ * sidebar quotes it before anyone commits to a pull, because a several-hundred
+ * megabyte download that announces itself only as "Downloading image…" reads
+ * as a hang. Re-measure after a base-image change with:
+ *
+ *   docker manifest inspect ghcr.io/jmanoj0905/cpp-tutor:latest   # pick your arch's digest
+ *   docker manifest inspect ghcr.io/jmanoj0905/cpp-tutor@<digest> # sum .layers[].size
+ *
+ * Approximate on purpose: it is a heads-up, not a progress bar.
+ */
+export const IMAGE_DOWNLOAD_MB = 400;
+/** Unpacked size of the same image, which is what Docker actually stores. */
+export const IMAGE_DISK_GB = 1.5;
 export const CONTAINER = "cpp-tutor-vscode";
 export const HEALTH_TIMEOUT_MS = 30_000;
 const HEALTH_POLL_MS = 500;
@@ -6,7 +22,7 @@ const WATCH_POLL_MS = 3_000;
 
 export type ServiceState =
   | { name: "stopped" }
-  | { name: "pulling"; progress: string }
+  | { name: "pulling"; progress: string; layers: PullProgress }
   | { name: "starting" }
   | { name: "ready"; port: number }
   | { name: "error"; message: string };
@@ -259,19 +275,27 @@ export class TracerService {
     return "Docker is installed but not running. Start it and retry.";
   }
 
-  private async imagePresent(): Promise<boolean> {
+  /**
+   * Whether the image is already in the local cache. Public so the sidebar can
+   * say "first run downloads ~N MB" before the user clicks Start, rather than
+   * after they are already committed to the download.
+   */
+  async imagePresent(): Promise<boolean> {
     const r = await this.deps.docker.run(["image", "inspect", IMAGE]);
     return r.code === 0;
   }
 
   /** Returns false (and sets an error/stopped state) if the pull did not finish. */
   private async pull(gen: number): Promise<boolean> {
-    this.set({ name: "pulling", progress: "" });
+    const tracker = new PullTracker();
+    this.set({ name: "pulling", progress: "", layers: tracker.snapshot() });
     let last = "";
     const proc = this.deps.docker.spawn(["pull", IMAGE], (line) => {
       if (this.stale(gen)) return;
       last = line;
-      this.set({ name: "pulling", progress: line });
+      // Layer counts, not bytes: a non-TTY `docker pull` prints no byte
+      // totals, so this is the only progress docker gives us.
+      this.set({ name: "pulling", progress: line, layers: tracker.feed(line) });
     });
     this.inflight = proc;
     const code = await proc.done;

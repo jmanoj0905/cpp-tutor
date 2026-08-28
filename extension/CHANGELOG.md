@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- The first-run image download is announced before you commit to it: the
+  sidebar states the size (~400 MB over the network, ~1.5 GB on disk) and that
+  it happens once, and pull progress now reads as a layer count instead of a
+  raw docker line.
+- Docker's status is always on screen in the sidebar footer, including when it
+  is healthy, and **Recheck** no longer lives inside the failure-only banner.
+
 ## 0.1.0
 
 First release.

@@ -15,6 +15,17 @@ export function activate(context: vscode.ExtensionContext): void {
   const svc = service;
   const sidebar = new SidebarProvider(context.extensionUri, svc);
 
+  /**
+   * Tells the sidebar whether the image is cached, so the first-run download
+   * warning is shown before the user commits to a ~400 MB pull. Only meaningful
+   * when Docker answers: `docker image inspect` against a dead daemon fails the
+   * same way a missing image does, and reporting that as "not cached" would
+   * warn about a download that is not the actual problem.
+   */
+  async function refreshImage(dockerOk: boolean): Promise<void> {
+    sidebar.postImage(dockerOk ? await svc.imagePresent() : undefined);
+  }
+
   const lastTarget = (): OpenTarget =>
     context.globalState.get<OpenTarget>(TARGET_KEY) ?? "integrated";
 
@@ -65,6 +76,7 @@ export function activate(context: vscode.ExtensionContext): void {
     sidebar.postDocker("");
 
     await svc.start();
+    void refreshImage(true);
     // Read through a call, not `svc.state` directly: the `ready` check at the
     // top of this function narrows the getter for the rest of the body and TS
     // does not re-widen it across the await, even though start() is exactly
@@ -132,6 +144,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("cpp-tutor.checkDocker", async () => {
       const problem = await svc.dockerProblem();
       sidebar.postDocker(problem);
+      await refreshImage(!problem);
       if (problem) vscode.window.showWarningMessage(`cpp-tutor: ${problem}`);
     }),
   );
@@ -140,8 +153,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // leave the sidebar claiming "stopped" while the backend is up.
   void svc.adopt().then(() => svc.watchHealth());
   // Docker being down is the single most common reason nothing works, so say
-  // so in the sidebar at activation instead of waiting for a failed Start.
-  void svc.dockerProblem().then((p) => sidebar.postDocker(p));
+  // so in the sidebar at activation instead of waiting for a failed Start. The
+  // image probe rides along for the same reason: the first-run download is
+  // worth announcing before the click, not during it.
+  void svc.dockerProblem().then(async (p) => {
+    sidebar.postDocker(p);
+    await refreshImage(!p);
+  });
 }
 
 export function deactivate(): Thenable<void> | undefined {

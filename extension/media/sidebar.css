@@ -13,9 +13,22 @@ button.secondary { background: var(--vscode-button-secondaryBackground); color: 
 .row { display: flex; gap: 6px; }
 .row button { margin-bottom: 6px; }
 button.small { font-size: 11px; padding: 3px 8px; width: auto; }
+button.link { width: auto; margin: 0 0 0 auto; padding: 0; font-size: 11px;
+  background: none; color: var(--vscode-textLink-foreground); text-decoration: underline; }
+button.link:hover { background: none; color: var(--vscode-textLink-activeForeground); }
 button:disabled { opacity: 0.5; cursor: default; }
 .warn { margin-bottom: 10px; padding: 8px; font-size: 11px; line-height: 1.4;
   background: var(--vscode-inputValidation-warningBackground, rgba(255,190,0,0.12));
   border: 1px solid var(--vscode-inputValidation-warningBorder, #d9b400);
   color: var(--vscode-foreground); }
 .warn button { margin-top: 6px; margin-bottom: 0; }
+.note { margin-bottom: 10px; padding: 8px; font-size: 11px; line-height: 1.4;
+  background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.1));
+  border-left: 2px solid var(--vscode-textLink-foreground);
+  color: var(--vscode-descriptionForeground); }
+/* Docker's verdict lives here permanently, not only when it is bad: a status
+   that appears only on failure gives no way to tell "fine" from "not checked",
+   and buries the only re-probe button with it. */
+.footer { display: flex; align-items: center; gap: 6px; margin-top: 12px;
+  padding-top: 8px; font-size: 11px; color: var(--vscode-descriptionForeground);
+  border-top: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.3)); }
