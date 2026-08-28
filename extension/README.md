@@ -51,8 +51,12 @@ minutes; later starts are immediate.
 > an image with that exact tag already exists locally, so refresh it with
 > `docker pull` after CI republishes, or build it yourself from this repo's
 > root `Dockerfile` (it takes a `TRACER_IMAGE` build-arg — see
-> `.github/workflows/publish.yml` for the exact invocation) and tag the result
+> `.github/workflows/image.yml` for the exact invocation) and tag the result
 > `ghcr.io/jmanoj0905/cpp-tutor:latest`.
+
+Release steps (publisher setup, versioning) live in
+[`deploy/extension.md`](../deploy/extension.md); how this mode relates to the
+hosted site and the plain container is [`deploy/README.md`](../deploy/README.md).
 
 ## Development
 

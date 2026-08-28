@@ -1,0 +1,27 @@
+# Record of the Render service as it exists today — NOT wired to Blueprint
+# sync. The service (srv-d9j3efv1dkcs73bl4pg0) was created in the dashboard
+# before this file existed, so editing this changes nothing by itself; it is
+# here so the deploy is reproducible and reviewable, and so the env contract
+# lives in the repo rather than only in a web UI.
+#
+# To adopt it for real: Render dashboard -> Blueprints -> New Blueprint
+# Instance, pointed at this path. Adopting creates a NEW service (new URL),
+# which would break the VITE_API baked into the Pages bundle — update
+# .github/workflows/deploy-hosted.yml in the same change if you ever do it.
+services:
+  - type: web
+    name: cpp-tutor-api
+    runtime: image
+    plan: free
+    image:
+      # Deliberately :latest — CI publishes the multi-arch manifest there and
+      # then pings the deploy hook, which re-pulls. Render image services do
+      # not watch a tag on their own.
+      url: ghcr.io/jmanoj0905/cpp-tutor:latest
+    healthCheckPath: /api/health
+    envVars:
+      # The Pages origin. The backend's default (the Vite dev server) is wrong
+      # for this deploy, and the frontend here is NOT same-origin: the bundle
+      # is served by Cloudflare and calls this host cross-origin.
+      - key: CPP_TUTOR_CORS_ORIGINS
+        value: https://cpp-tutor.pages.dev

@@ -2,26 +2,22 @@
 
 A [Python Tutor](https://pythontutor.com/)-style step-through visualizer for C and C++. Paste code, press run, and step through execution while watching the stack, heap, and pointer relationships update live.
 
-## Run with Docker
+## Try it
 
-No setup beyond Docker itself:
+- **Hosted:** <https://cpp-tutor.pages.dev> — nothing to install. The backend
+  runs on a free Render instance, so the first trace after an idle period waits
+  30–60s for the service to wake.
+- **Container:** `docker run --rm -p 8000:8000 ghcr.io/jmanoj0905/cpp-tutor`,
+  then open <http://localhost:8000>. Bundles tracer + API + frontend, arm64 and
+  amd64. Traced code is only process-limited inside it, so harden the run
+  before exposing it — see [deploy/image.md](deploy/image.md).
+- **VSCode:** the `extension/` package starts that container for you and opens
+  the visualizer in the editor — see [extension/README.md](extension/README.md).
+- **From source:** the quick start below.
 
-```bash
-docker run --rm -p 8000:8000 ghcr.io/jmanoj0905/cpp-tutor
-```
-
-Then open http://localhost:8000.
-
-The image bundles the tracer (patched Valgrind), the API server, and the
-built frontend — arm64 and amd64. Note: traced code runs inside this
-container with process-level limits (no network isolation between the app
-and traced code, unlike the dev setup's per-request sandbox). Fine for
-local single-user use; add your own hardening if exposing it, e.g.:
-
-```bash
-docker run --rm -p 8000:8000 --memory 512m --pids-limit 256 --cap-drop all \
-  ghcr.io/jmanoj0905/cpp-tutor
-```
+How these four differ — what gets built, where the API lives, how each ships —
+is [deploy/README.md](deploy/README.md). Read that before changing a host name,
+an env var, or a workflow.
 
 ## Quick start
 
@@ -30,7 +26,8 @@ docker run --rm -p 8000:8000 --memory 512m --pids-limit 256 --cap-drop all \
 ./run.sh       # backend on :8000, frontend on :5173, opens browser
 ```
 
-Requires Docker, Python 3, and Node.
+Requires Docker, Python 3.11+, and Node. Details, including what to rebuild
+after a tracer change: [deploy/local.md](deploy/local.md).
 
 ## Architecture
 
@@ -103,7 +100,16 @@ sequenceDiagram
 | Backend tests, no Docker | `cd backend && .venv/bin/pytest -m "not docker"` |
 | Rebuild tracer image | `docker build -t cpp-tutor-tracer:dev tracer/` |
 
-Rebuild the tracer image after touching `tracer/Dockerfile`, `tracer/*.patch`, or the `opt-cpp-backend` submodule — the backend uses the prebuilt image and won't see source changes until you do.
+Rebuild the tracer image after touching `tracer/Dockerfile`, `tracer/*.patch`, or the `opt-cpp-backend` submodule — the backend uses the prebuilt image and won't see source changes until you do, and the warm container (`docker rm -f cpp-tutor-tracer-warm`) keeps serving the old one until removed.
+
+## Deployment
+
+| Mode | Doc |
+|---|---|
+| Local dev (`./run.sh`) | [deploy/local.md](deploy/local.md) |
+| Container image | [deploy/image.md](deploy/image.md) |
+| Hosted site (Pages + Render) | [deploy/hosted.md](deploy/hosted.md) |
+| VSCode extension | [deploy/extension.md](deploy/extension.md) |
 
 ## License
 

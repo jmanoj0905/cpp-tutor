@@ -10,3 +10,4 @@ __pycache__/
 docs/superpowers/
 extension/out/
 extension/*.vsix
+backend/uv.lock

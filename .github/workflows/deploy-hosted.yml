@@ -1,0 +1,73 @@
+# Hosted mode only: Cloudflare Pages (frontend) + Render (backend).
+# Split out of the image build so a deploy failure does not read as a broken
+# image, and so the container/extension modes are unaffected by it. See
+# deploy/hosted.md.
+name: deploy-hosted
+
+on:
+  workflow_run:
+    # Runs only after the multi-arch :latest manifest is actually live; a
+    # deploy that raced the manifest would redeploy the previous image.
+    workflows: ["image"]
+    types: [completed]
+  # Redeploying without a code change (Render's free instance, a reverted
+  # Pages deploy) shouldn't require an empty commit.
+  workflow_dispatch:
+
+jobs:
+  gate:
+    # Tag builds don't refresh :latest (the manifest is gated on
+    # is_default_branch), so only main pushes are deployable.
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "image published on main — deploying"
+
+  deploy-backend:
+    needs: gate
+    runs-on: ubuntu-24.04
+    steps:
+      # Render image services don't auto-pull a new :latest; the deploy hook
+      # tells this specific service (srv-d9j3efv1dkcs73bl4pg0) to redeploy,
+      # which re-pulls the freshly published image.
+      - name: Trigger Render deploy
+        run: curl -fsS "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+
+  deploy-frontend:
+    needs: gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # workflow_run checks out the default branch by default; pin to the
+          # commit the image was actually built from so the bundle and the
+          # backend image come from the same source.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        # Bake the Render backend URL into the bundle: unlike every other mode,
+        # the hosted frontend is NOT same-origin with its API. The matching
+        # half of this contract is CPP_TUTOR_CORS_ORIGINS on the Render
+        # service — change one and you must change the other.
+        env:
+          VITE_API: https://cpp-tutor-api.onrender.com
+        run: |
+          npm ci --no-fund --no-audit
+          npm run build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy frontend/dist --project-name=cpp-tutor --branch=main
