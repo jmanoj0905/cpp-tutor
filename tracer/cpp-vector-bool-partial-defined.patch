@@ -1,0 +1,121 @@
+diff --git a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+index 977ad3e..6d57e66 100644
+--- a/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
++++ b/valgrind-3.11.0/coregrind/m_debuginfo/tytypes.c
+@@ -445,7 +445,9 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+            VG_(fprintf)(trace_fp, "\"<UNINITIALIZED>\"}");
+            return; // early!
+          } else {
+-           tl_assert(res == 5 /* MC_Ok enum value */);
++           // cpp-tutor: 8 = partially-defined (e.g. std::vector<bool> word with
++           // undefined padding bits); print the concrete value below.
++           tl_assert(res == 5 /* MC_Ok enum value */ || res == 8);
+          }
+ 
+          if (ent->Te.TyBase.enc == 'S') {
+@@ -540,7 +542,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+            VG_(fprintf)(trace_fp, "\"<UNINITIALIZED>\"}");
+            return; // early!
+          } else {
+-           tl_assert(res == 5 /* MC_Ok enum value */);
++           tl_assert(res == 5 /* MC_Ok enum value */ || res == 8 /* cpp-tutor: partial */);
+          }
+ 
+          // ok so now we know data_addr is legit, so we can dereference
+@@ -746,7 +748,7 @@ void ML_(pg_pp_varinfo)( const XArray* /* of TyEnt */ tyents,
+            VG_(fprintf)(trace_fp, "\"<UNINITIALIZED>\"}");
+            return; // early!
+          } else {
+-           tl_assert(res == 5 /* MC_Ok enum value */);
++           tl_assert(res == 5 /* MC_Ok enum value */ || res == 8 /* cpp-tutor: partial */);
+          }
+ 
+          if (ent->Te.TyEnum.szB <= sizeof(int)) {
+diff --git a/valgrind-3.11.0/memcheck/mc_include.h b/valgrind-3.11.0/memcheck/mc_include.h
+index 98fe150..e4a0585 100644
+--- a/valgrind-3.11.0/memcheck/mc_include.h
++++ b/valgrind-3.11.0/memcheck/mc_include.h
+@@ -155,6 +155,11 @@ typedef
+ MC_ReadResult is_mem_defined (Addr a, SizeT len,
+                               /*OUT*/Addr* bad_addr, /*OUT*/UInt* otag);
+ 
++// cpp-tutor: trace-printer variant of is_mem_defined; returns 8 for a
++// partially-defined value (e.g. std::vector<bool> word padding bits).
++Int MC_(pg_is_mem_defined) (Addr a, SizeT len,
++                            /*OUT*/Addr* bad_addr, /*OUT*/UInt* otag);
++
+ 
+ void MC_(print_malloc_stats) ( void );
+ /* nr of free operations done */
+diff --git a/valgrind-3.11.0/memcheck/mc_main.c b/valgrind-3.11.0/memcheck/mc_main.c
+index fa72cb8..c6a49f1 100644
+--- a/valgrind-3.11.0/memcheck/mc_main.c
++++ b/valgrind-3.11.0/memcheck/mc_main.c
+@@ -3824,6 +3824,36 @@ MC_ReadResult is_mem_defined ( Addr a, SizeT len,
+    return MC_Ok;
+ }
+ 
++// cpp-tutor: True iff EVERY accessible bit in [a, a+len) is undefined.
++// NOACCESS bytes are ignored. Used to tell a genuinely-uninitialized scalar
++// (all bits undefined) apart from a value with some live defined bits.
++static Bool pg_is_mem_fully_undefined ( Addr a, SizeT len )
++{
++   SizeT i;
++   for (i = 0; i < len; i++) {
++      UChar vbits8;
++      Bool  ok = get_vbits8(a + i, &vbits8);
++      if (!ok) continue;                 // NOACCESS byte: skip
++      if (vbits8 != V_BITS8_UNDEFINED)   // some defined bit present
++         return False;
++   }
++   return True;
++}
++
++// cpp-tutor: is_mem_defined variant for the trace pretty-printer. When memcheck
++// reports a value error but the region is only PARTIALLY undefined -- some live
++// bits are defined, e.g. a std::vector<bool> word whose unused high (padding)
++// bits are undefined -- return 8 so the printer emits the concrete value instead
++// of "<UNINITIALIZED>". A wholly-uninitialized scalar still returns MC_ValueErr.
++Int MC_(pg_is_mem_defined) ( Addr a, SizeT len,
++                             /*OUT*/Addr* bad_addr, /*OUT*/UInt* otag )
++{
++   MC_ReadResult res = is_mem_defined(a, len, bad_addr, otag);
++   if (res == MC_ValueErr && !pg_is_mem_fully_undefined(a, len))
++      return 8; // PG partial-defined
++   return res;
++}
++
+ 
+ /* Like is_mem_defined but doesn't give up at the first uninitialised
+    byte -- the entire range is always checked.  This is important for
+diff --git a/valgrind-3.11.0/memcheck/mc_translate.c b/valgrind-3.11.0/memcheck/mc_translate.c
+index b69bdcf..df986c6 100644
+--- a/valgrind-3.11.0/memcheck/mc_translate.c
++++ b/valgrind-3.11.0/memcheck/mc_translate.c
+@@ -6387,7 +6387,7 @@ void pg_trace_inst(Addr a, ULong ret_reg)
+         GlobalBlock* gb = VG_(indexXA)( gbs, i );
+         tl_assert(gb->szB > 0);
+ 
+-        Bool res = VG_(pg_traverse_global_var)(gb->fullname, gb->addr, is_mem_defined, pg_encoded_addrs, !first_elt, trace_fp);
++        Bool res = VG_(pg_traverse_global_var)(gb->fullname, gb->addr, MC_(pg_is_mem_defined), pg_encoded_addrs, !first_elt, trace_fp);
+         if (!res) {
+           // pgbovine: res != True for static vars defined inside of functions
+           //
+@@ -6478,7 +6478,7 @@ void pg_trace_inst(Addr a, ULong ret_reg)
+           //            (void*)var_addr);
+           bool res = VG_(pg_traverse_local_var)(sb->fullname, var_addr, cur_ip, cur_sp, cur_fp,
+                                                 False, /* is_static=False; it's a regular local var, not a static one */
+-                                                is_mem_defined, pg_encoded_addrs, !first_elt, trace_fp);
++                                                MC_(pg_is_mem_defined), pg_encoded_addrs, !first_elt, trace_fp);
+           tl_assert(res);
+ 
+           if (first_elt) {
+@@ -6500,7 +6500,7 @@ void pg_trace_inst(Addr a, ULong ret_reg)
+             if (gb) {
+               bool res = VG_(pg_traverse_local_var)(gb->fullname, gb->addr, cur_ip, cur_sp, cur_fp,
+                                                     True, // is_static=True; YES this is a static var declared within a function
+-                                                    is_mem_defined, pg_encoded_addrs, !first_elt, trace_fp);
++                                                    MC_(pg_is_mem_defined), pg_encoded_addrs, !first_elt, trace_fp);
+               if (res) {
+                 static_var_in_frame[j] = True;
+                 if (first_elt) {
