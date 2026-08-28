@@ -333,6 +333,71 @@ describe("TracerService.owned (Fix 3)", () => {
   });
 });
 
+describe("TracerService.owned regression: stale flag on self-torn-down containers", () => {
+  // The invariant `_owned` must uphold: true exactly while this window
+  // believes a container it created is still alive. Any path that removes
+  // the container this window started must clear it back to false —
+  // otherwise a later deactivate() sees a stale `owned === true` and rm -f's
+  // whatever container currently holds the shared name, even if a different
+  // window booted it in the meantime.
+
+  it("leaves owned false when start() is cancelled during the health wait", async () => {
+    // Cancel from inside probeHealth itself so this genuinely lands inside
+    // waitForHealth's loop, after the container is created (owned already
+    // true) — not before it, which is what a plain synchronous cancel()
+    // right after calling start() would hit instead.
+    const docker = new FakeDocker();
+    let svc!: TracerService;
+    let sawOwnedTrue = false;
+    const probeHealth = async () => {
+      sawOwnedTrue = svc.owned;
+      svc.cancel();
+      return false;
+    };
+    svc = new TracerService({
+      docker,
+      findFreePort: async () => 51234,
+      probeHealth,
+      sleep: async () => {},
+      now: () => 0,
+    });
+    await svc.start();
+    expect(sawOwnedTrue).toBe(true);
+    expect(svc.state).toEqual({ name: "stopped" });
+    expect(docker.calls).toContainEqual(["rm", "-f", CONTAINER]);
+    expect(svc.owned).toBe(false);
+  });
+
+  it("leaves owned false when the health check times out", async () => {
+    const docker = new FakeDocker();
+    docker.replies.push((a) =>
+      a[0] === "logs" ? { code: 0, stdout: "", stderr: "Traceback: boom" } : undefined);
+    const { svc } = make({ docker, healthy: false });
+    await svc.start();
+    expect(svc.state.name).toBe("error");
+    expect(svc.owned).toBe(false);
+  });
+
+  it("leaves owned false when watchHealth tears down a container that died underneath us", async () => {
+    const docker = new FakeDocker();
+    docker.replies.push((a) =>
+      a[0] === "logs" ? { code: 0, stdout: "MemoryError\n", stderr: "" } : undefined);
+    let healthy = true;
+    const svc = new TracerService({
+      docker,
+      findFreePort: async () => 51234,
+      probeHealth: async () => healthy,
+      sleep: async () => { healthy = false; },
+      now: () => 0,
+    });
+    await svc.start();
+    expect(svc.owned).toBe(true);
+    await svc.watchHealth();
+    expect(svc.state.name).toBe("error");
+    expect(svc.owned).toBe(false);
+  });
+});
+
 describe("TracerService races (I1/I2/I3 fixes)", () => {
   it("does not report ready when cancelled while the health probe was already in flight (I1)", async () => {
     const docker = new FakeDocker();

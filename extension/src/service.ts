@@ -45,6 +45,14 @@ export class TracerService {
    * is actively using — only the window that created it cleans it up on
    * exit. An explicit user Stop bypasses this entirely (stop() always
    * removes, regardless of ownership) because that is a deliberate action.
+   *
+   * Invariant: this is true exactly while this window believes a container
+   * it created is still alive. Every code path that removes the container —
+   * stop(), removeAndStop(), waitForHealth()'s timeout branch, and
+   * watchHealth()'s died-underneath-us branch — must clear it back to
+   * false. Otherwise a stale true survives past the container's real death,
+   * and deactivate() (or a later Stop) can act on the lie and rm -f a
+   * container another window has since booted under the same shared name.
    */
   private _owned = false;
 
@@ -195,6 +203,9 @@ export class TracerService {
 
       const logs = await this.deps.docker.run(["logs", "--tail", "20", CONTAINER]);
       await this.deps.docker.run(["rm", "-f", CONTAINER]);
+      // This window's container is gone: it can no longer be the thing
+      // deactivate() is allowed to tear down on exit.
+      this._owned = false;
       this.set({
         name: "error",
         message: `Backend stopped unexpectedly.\n${logs.stdout}${logs.stderr}`.trim(),
@@ -296,6 +307,9 @@ export class TracerService {
     if (this.stale(gen)) return;
     await this.deps.docker.run(["rm", "-f", CONTAINER]);
     if (this.stale(gen)) return;
+    // The container this window just booted is gone again: it no longer
+    // owns anything deactivate() should be tearing down.
+    this._owned = false;
     this.set({
       name: "error",
       message: `Backend did not start within ${HEALTH_TIMEOUT_MS / 1000}s.\n${logs.stdout}${logs.stderr}`.trim(),
@@ -308,9 +322,16 @@ export class TracerService {
    * so cancel never leaves a container running even though `rm -f` on a
    * container that may not exist yet (the post-image checkpoint fires before
    * any `docker run`) is a harmless no-op.
+   *
+   * Invariant: `_owned` is true exactly while this window believes a
+   * container it created is still alive. Every path that removes the
+   * container — this one included — must clear it, or a later deactivate()
+   * can act on a stale "I own this" and rm -f whatever container currently
+   * holds the shared name, even one a different window booted since.
    */
   private async removeAndStop(): Promise<void> {
     await this.deps.docker.run(["rm", "-f", CONTAINER]);
+    this._owned = false;
     this.set({ name: "stopped" });
   }
 }
