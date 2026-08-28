@@ -1,0 +1,53 @@
+{
+  "name": "cpp-tutor-vscode",
+  "displayName": "cpp-tutor",
+  "description": "Step through C/C++ execution with a visual memory model.",
+  "version": "0.1.0",
+  "private": true,
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Visualization", "Education"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "cpp-tutor",
+          "title": "cpp-tutor",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "cpp-tutor": [
+        {
+          "id": "cppTutor.sidebar",
+          "name": "Service",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "cpp-tutor.start", "title": "cpp-tutor: Start Service" },
+      { "command": "cpp-tutor.stop", "title": "cpp-tutor: Stop Service" },
+      { "command": "cpp-tutor.open", "title": "cpp-tutor: Open Visualizer" }
+    ]
+  },
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "build:ext": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node20",
+    "build": "npm run build:web && npm run build:ext",
+    "watch": "npm run build:ext -- --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "package": "npm run build && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.2",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "~6.0.2",
+    "vitest": "^4.1.9"
+  }
+}

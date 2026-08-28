@@ -8,3 +8,6 @@ __pycache__/
 *.db
 .gstack/
 docs/superpowers/
+extension/out/
+extension/web/
+extension/*.vsix

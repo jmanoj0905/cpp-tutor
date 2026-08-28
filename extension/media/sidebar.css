@@ -1,0 +1,12 @@
+body { font-family: var(--vscode-font-family); padding: 12px 10px; }
+.status { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--vscode-descriptionForeground); flex: none; }
+.dot.ready { background: var(--vscode-testing-iconPassed, #3fb950); }
+.dot.busy { background: var(--vscode-testing-iconQueued, #d9b400); }
+.dot.error { background: var(--vscode-testing-iconFailed, #f14c4c); }
+button { width: 100%; padding: 6px 10px; margin-bottom: 6px; border: none; cursor: pointer;
+  font-family: inherit; font-size: 13px;
+  background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
+button:hover { background: var(--vscode-button-hoverBackground); }
+button.secondary { background: var(--vscode-button-secondaryBackground); color: var(--vscode-button-secondaryForeground); }
+.detail { font-size: 11px; color: var(--vscode-descriptionForeground); white-space: pre-wrap; word-break: break-word; }
