@@ -3,10 +3,12 @@ import { TracerService, CONTAINER, IMAGE } from "../src/service";
 import type { DockerRunner, RunResult, ServiceState } from "../src/service";
 
 /**
- * Flushes pending microtasks without depending on any global timer (the
- * project's tsconfig has no "dom"/"node" lib, so `setTimeout` isn't typed).
- * Enough ticks to drain the handful of chained awaits (docker.run calls,
- * etc.) a start() takes before reaching its next observable checkpoint.
+ * Flushes pending microtasks without depending on any global timer. `sleep`
+ * here is the injected fake (an instant no-op or a manually-resolved
+ * promise), not the real `setTimeout` — using it would tie this helper to
+ * whatever a given test's fake clock happens to do. Enough ticks to drain
+ * the handful of chained awaits (docker.run calls, etc.) a start() takes
+ * before reaching its next observable checkpoint.
  */
 async function flushMicrotasks(times = 20): Promise<void> {
   for (let i = 0; i < times; i++) await Promise.resolve();
@@ -304,6 +306,33 @@ describe("TracerService.start additional failure and cancellation paths", () => 
   });
 });
 
+describe("TracerService.owned (Fix 3)", () => {
+  it("marks the container as owned once this window's start() runs it", async () => {
+    const { svc } = make();
+    expect(svc.owned).toBe(false);
+    await svc.start();
+    expect(svc.owned).toBe(true);
+  });
+
+  it("does not mark an adopted container as owned", async () => {
+    const docker = new FakeDocker();
+    docker.replies.push((a) =>
+      a[0] === "inspect" ? { code: 0, stdout: "true 51999\n", stderr: "" } : undefined);
+    const { svc } = make({ docker });
+    await svc.adopt();
+    expect(svc.state).toEqual({ name: "ready", port: 51999 });
+    expect(svc.owned).toBe(false);
+  });
+
+  it("clears ownership once the container is stopped", async () => {
+    const { svc } = make();
+    await svc.start();
+    expect(svc.owned).toBe(true);
+    await svc.stop();
+    expect(svc.owned).toBe(false);
+  });
+});
+
 describe("TracerService races (I1/I2/I3 fixes)", () => {
   it("does not report ready when cancelled while the health probe was already in flight (I1)", async () => {
     const docker = new FakeDocker();
@@ -427,6 +456,60 @@ describe("TracerService races (I1/I2/I3 fixes)", () => {
     const rmCallsAfterWake = docker.calls.filter((c) => c[0] === "rm" && c[1] === "-f").length;
     expect(rmCallsAfterWake).toBe(rmCallsBeforeWake);
     expect(svc.state).toEqual({ name: "ready", port: 52222 });
+  });
+
+  it("falls into 'error' (not stuck 'starting') when findFreePort rejects, and a later start() can proceed (Fix 1)", async () => {
+    const docker = new FakeDocker();
+    let shouldReject = true;
+    const svc = new TracerService({
+      docker,
+      findFreePort: async () => {
+        if (shouldReject) throw new Error("EADDRNOTAVAIL: no free port");
+        return 51234;
+      },
+      probeHealth: async () => true,
+      sleep: async () => {},
+      now: () => 0,
+    });
+
+    await svc.start();
+    expect(svc.state.name).toBe("error");
+    expect((svc.state as { message: string }).message).toContain("EADDRNOTAVAIL");
+
+    // The re-entry guard only blocks "pulling"/"starting"; from "error" a
+    // fresh start() must actually run, not be swallowed as a no-op.
+    shouldReject = false;
+    await svc.start();
+    expect(svc.state).toEqual({ name: "ready", port: 51234 });
+  });
+
+  it("does not let a late-resolving adopt() overwrite a newer start()'s ready state (Fix 2)", async () => {
+    const docker = new FakeDocker();
+    let resolveInspect!: (r: RunResult) => void;
+    const baseRun = docker.run.bind(docker);
+    docker.run = (args: string[]): Promise<RunResult> => {
+      if (args[0] === "inspect") {
+        docker.calls.push(args);
+        return new Promise<RunResult>((res) => { resolveInspect = res; });
+      }
+      return baseRun(args);
+    };
+    const { svc } = make({ docker });
+
+    const adopted = svc.adopt(); // inspect in flight, captured gen === 0
+    await flushMicrotasks();
+
+    // A concurrent start() completes fully, bumping the generation and
+    // reaching "ready" on its own port.
+    await svc.start();
+    expect(svc.state).toEqual({ name: "ready", port: 51234 });
+
+    // adopt()'s inspect now resolves, reporting a stale container. Without
+    // the generation check this would clobber the healthy newer state.
+    resolveInspect({ code: 0, stdout: "true 51999\n", stderr: "" });
+    await adopted;
+
+    expect(svc.state).toEqual({ name: "ready", port: 51234 });
   });
 
   it("a second Start is a no-op while the first is still pulling or starting", async () => {

@@ -28,11 +28,10 @@ minutes; later starts are immediate.
 > locally. So, until the real image is republished, a sideloader has to build
 > it themselves from this repo's root `Dockerfile` (it takes a
 > `TRACER_IMAGE` build-arg — see `.github/workflows/publish.yml` for the
-> exact invocation, or build `tracer/` first via `install.sh` and pass that
-> tag) and tag the result `ghcr.io/jmanoj0905/cpp-tutor:latest` so the
-> extension picks it up in place of the stale one. Rebuilding or publishing
-> the registry image itself is out of scope here — that's a call for
-> whoever owns the registry.
+> exact invocation) and tag the result `ghcr.io/jmanoj0905/cpp-tutor:latest`
+> so the extension picks it up in place of the stale one. Rebuilding or
+> publishing the registry image itself is out of scope here — that's a call
+> for whoever owns the registry.
 
 ## Development
 

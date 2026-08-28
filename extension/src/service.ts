@@ -38,6 +38,17 @@ export class TracerService {
   private inflight?: { kill(): void };
 
   /**
+   * True only while the container running right now is one THIS window's
+   * start() booted. Adopting a container found already running, or never
+   * having started one, leaves this false. deactivate() consults it so
+   * closing one VSCode window never tears down a container another window
+   * is actively using — only the window that created it cleans it up on
+   * exit. An explicit user Stop bypasses this entirely (stop() always
+   * removes, regardless of ownership) because that is a deliberate action.
+   */
+  private _owned = false;
+
+  /**
    * Bumped on every start() entry. A start() run captures its generation
    * locally and re-checks it after every await; once a concurrent event (a
    * deliberate stop() that unblocks a fresh start(), or another start() call
@@ -51,6 +62,11 @@ export class TracerService {
 
   get state(): ServiceState {
     return this.current;
+  }
+
+  /** Whether the container currently running was started by this window. */
+  get owned(): boolean {
+    return this._owned;
   }
 
   onDidChangeState(cb: (s: ServiceState) => void): () => void {
@@ -78,45 +94,61 @@ export class TracerService {
     const gen = ++this.generation;
     this.cancelled = false;
 
-    const preflight = await this.checkDocker();
-    if (this.stale(gen)) return;
-    if (preflight) return this.set({ name: "error", message: preflight });
-
-    const present = await this.imagePresent();
-    if (this.stale(gen)) return;
-    if (!present) {
-      if (!(await this.pull(gen))) return;
+    // Every dep call below is real I/O (spawns, sockets) and can reject —
+    // findFreePort in particular (EADDRNOTAVAIL, EACCES binding the probe
+    // socket) — after the state has already moved to "starting". Without
+    // this catch a rejection here would leave the state wedged at
+    // "starting" forever: the re-entry guard at the top of start() turns
+    // every later start() into a silent no-op, and Cancel only sets a flag
+    // no live loop is around to observe. Fail into "error" instead so
+    // Retry actually retries.
+    try {
+      const preflight = await this.checkDocker();
       if (this.stale(gen)) return;
+      if (preflight) return this.set({ name: "error", message: preflight });
+
+      const present = await this.imagePresent();
+      if (this.stale(gen)) return;
+      if (!present) {
+        if (!(await this.pull(gen))) return;
+        if (this.stale(gen)) return;
+      }
+      if (this.cancelled) return this.removeAndStop();
+
+      this.set({ name: "starting" });
+      const port = await this.deps.findFreePort();
+      if (this.stale(gen)) return;
+
+      // A container from a crashed window would take the name and the old port.
+      await this.deps.docker.run(["rm", "-f", CONTAINER]);
+      if (this.stale(gen)) return;
+
+      const run = await this.deps.docker.run([
+        "run", "-d", "--name", CONTAINER,
+        "-p", `127.0.0.1:${port}:8000`,
+        "-e", "CPP_TUTOR_CORS_ORIGIN_REGEX=^vscode-webview://.*",
+        "--pull", "never",
+        IMAGE,
+      ]);
+      if (this.stale(gen)) return;
+      if (run.code !== 0) {
+        const portClash = /port is already allocated|address already in use/i.test(run.stderr);
+        return this.set({
+          name: "error",
+          message: portClash
+            ? `Port ${port} is already in use.`
+            : `Could not start the container: ${lastLine(run.stderr)}`,
+        });
+      }
+      this._owned = true;
+
+      await this.waitForHealth(port, gen);
+    } catch (err) {
+      // A stale attempt's rejection must not clobber whatever a newer
+      // start()/stop() already put in place.
+      if (this.stale(gen)) return;
+      this.set({ name: "error", message: `Could not start the container: ${errorMessage(err)}` });
     }
-    if (this.cancelled) return this.removeAndStop();
-
-    this.set({ name: "starting" });
-    const port = await this.deps.findFreePort();
-    if (this.stale(gen)) return;
-
-    // A container from a crashed window would take the name and the old port.
-    await this.deps.docker.run(["rm", "-f", CONTAINER]);
-    if (this.stale(gen)) return;
-
-    const run = await this.deps.docker.run([
-      "run", "-d", "--name", CONTAINER,
-      "-p", `127.0.0.1:${port}:8000`,
-      "-e", "CPP_TUTOR_CORS_ORIGIN_REGEX=^vscode-webview://.*",
-      "--pull", "never",
-      IMAGE,
-    ]);
-    if (this.stale(gen)) return;
-    if (run.code !== 0) {
-      const portClash = /port is already allocated|address already in use/i.test(run.stderr);
-      return this.set({
-        name: "error",
-        message: portClash
-          ? `Port ${port} is already in use.`
-          : `Could not start the container: ${lastLine(run.stderr)}`,
-      });
-    }
-
-    await this.waitForHealth(port, gen);
   }
 
   async stop(): Promise<void> {
@@ -124,6 +156,7 @@ export class TracerService {
     this.inflight?.kill();
     this.inflight = undefined;
     await this.deps.docker.run(["rm", "-f", CONTAINER]);
+    this._owned = false;
     this.set({ name: "stopped" });
   }
 
@@ -170,13 +203,29 @@ export class TracerService {
     }
   }
 
-  /** Reclaims a container left behind by a previous window or a crash. */
+  /**
+   * Reclaims a container left behind by a previous window or a crash.
+   * extension.ts fires this at activation, after commands are already
+   * registered, so its single await (the `docker inspect`) can race a
+   * concurrent start(): capture the generation up front and bail out with
+   * `stale(gen)` before every set()/removeAndStop() below, exactly like
+   * start() and watchHealth() already do — otherwise a late-resolving
+   * adopt() can overwrite a newer, healthier state (or worse, kick off a
+   * watchHealth() loop that probes a dead port and rm -f's the container a
+   * concurrent start() just booted).
+   */
   async adopt(): Promise<void> {
+    const gen = this.generation;
+    // An adopted container belongs to whoever started it, not to this
+    // window, regardless of how the race below resolves.
+    this._owned = false;
+
     const out = await this.deps.docker.run([
       "inspect", "-f",
       '{{.State.Running}} {{(index (index .NetworkSettings.Ports "8000/tcp") 0).HostPort}}',
       CONTAINER,
     ]);
+    if (this.stale(gen)) return;
     if (out.code !== 0) return this.set({ name: "stopped" });
 
     const [running, portStr] = out.stdout.trim().split(/\s+/);
@@ -269,4 +318,8 @@ export class TracerService {
 function lastLine(s: string): string {
   const lines = s.trim().split("\n");
   return lines[lines.length - 1] ?? "";
+}
+
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }

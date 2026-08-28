@@ -4,6 +4,11 @@
   "description": "Step through C/C++ execution with a visual memory model.",
   "version": "0.1.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmanoj0905/cpp-tutor.git",
+    "directory": "extension"
+  },
   "engines": { "vscode": "^1.90.0" },
   "categories": ["Visualization", "Education"],
   "activationEvents": ["onStartupFinished"],
@@ -40,7 +45,7 @@
     "watch": "npm run build:ext -- --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "package": "npm run build && vsce package --no-dependencies"
+    "package": "npm run build && vsce package --no-dependencies --skip-license"
   },
   "devDependencies": {
     "@types/node": "^24.13.2",

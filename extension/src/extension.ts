@@ -54,5 +54,12 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): Thenable<void> | undefined {
-  return service?.stop();
+  // The backend container is shared by every VSCode window (one container
+  // name, `docker rm -f` on stop). Every window activates on
+  // onStartupFinished and adopts it, so unconditionally stopping here would
+  // let closing any one window destroy the backend the others are actively
+  // using. Only tear it down if this window's own start() is the one that
+  // created it; an adopted container is left for its owner.
+  if (!service?.owned) return undefined;
+  return service.stop();
 }
