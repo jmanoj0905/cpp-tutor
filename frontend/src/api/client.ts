@@ -1,12 +1,17 @@
 import type { TraceResult } from "../types/trace";
 
+// Resolved at build time, so vite can fold the whole expression down to the
+// deploy's VITE_API and drop the dev fallback. Keep it a separate const:
+// folding only happens while every operand is statically known, so putting
+// the runtime override below into this chain would strip nothing and leave a
+// literal "localhost:8000" in every production bundle.
+const BUILD_BASE = import.meta.env.VITE_API ?? "http://localhost:8000";
+
 // The VSCode extension serves this bundle from a webview and injects the
 // container's loopback port at load time; the web app has no such global and
-// falls through to the build-time env or the local dev backend.
+// falls through to the build-time base above.
 const BASE =
-  (globalThis as { __CPP_TUTOR_API?: string }).__CPP_TUTOR_API ??
-  import.meta.env.VITE_API ??
-  "http://localhost:8000";
+  (globalThis as { __CPP_TUTOR_API?: string }).__CPP_TUTOR_API ?? BUILD_BASE;
 
 // Matches JSON string literals (left untouched, so digits inside program
 // stdout are never rewritten) OR bare integer tokens of 16+ digits.
