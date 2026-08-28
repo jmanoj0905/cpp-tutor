@@ -9,9 +9,16 @@
     "url": "https://github.com/jmanoj0905/cpp-tutor.git",
     "directory": "extension"
   },
-  "engines": { "vscode": "^1.90.0" },
-  "categories": ["Visualization", "Education"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Visualization",
+    "Education"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -33,15 +40,39 @@
       ]
     },
     "commands": [
-      { "command": "cpp-tutor.start", "title": "cpp-tutor: Start Service" },
-      { "command": "cpp-tutor.stop", "title": "cpp-tutor: Stop Service" },
-      { "command": "cpp-tutor.open", "title": "cpp-tutor: Open Visualizer" }
+      {
+        "command": "cpp-tutor.start",
+        "title": "cpp-tutor: Start Service"
+      },
+      {
+        "command": "cpp-tutor.stop",
+        "title": "cpp-tutor: Stop Service"
+      },
+      {
+        "command": "cpp-tutor.open",
+        "title": "cpp-tutor: Open Visualizer in VSCode"
+      },
+      {
+        "command": "cpp-tutor.openExternal",
+        "title": "cpp-tutor: Open Visualizer in Browser"
+      },
+      {
+        "command": "cpp-tutor.visualizeCurrentFile",
+        "title": "cpp-tutor: Visualize Current File"
+      },
+      {
+        "command": "cpp-tutor.loadCurrentFile",
+        "title": "cpp-tutor: Load Current File into Visualizer"
+      },
+      {
+        "command": "cpp-tutor.checkDocker",
+        "title": "cpp-tutor: Check Docker"
+      }
     ]
   },
   "scripts": {
-    "build:web": "node scripts/build-web.mjs",
     "build:ext": "esbuild src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node --target=node20",
-    "build": "npm run build:web && npm run build:ext",
+    "build": "npm run build:ext",
     "watch": "npm run build:ext -- --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

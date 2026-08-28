@@ -1,11 +1,18 @@
 import * as vscode from "vscode";
 import type { TracerService, ServiceState } from "./service";
-import { makeNonce } from "./panel";
+import { makeNonce } from "./nonce";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   static readonly viewType = "cppTutor.sidebar";
 
   private view?: vscode.WebviewView;
+  /**
+   * Last Docker verdict ("" = healthy). Kept here because activation probes
+   * Docker before the user has ever opened the view: without a cached value
+   * the warning would be posted into the void and the freshly-resolved
+   * webview would show nothing.
+   */
+  private dockerProblem = "";
 
   constructor(
     private readonly extensionUri: vscode.Uri,
@@ -23,10 +30,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     view.webview.html = this.html(view.webview);
     view.webview.onDidReceiveMessage((msg: { type: string }) => {
       switch (msg.type) {
-        case "ready": this.post(this.service.state); break;
+        case "ready":
+          this.post(this.service.state);
+          this.postDocker(this.dockerProblem);
+          break;
         case "start": vscode.commands.executeCommand("cpp-tutor.start"); break;
         case "stop": vscode.commands.executeCommand("cpp-tutor.stop"); break;
         case "open": vscode.commands.executeCommand("cpp-tutor.open"); break;
+        case "openExternal": vscode.commands.executeCommand("cpp-tutor.openExternal"); break;
+        case "visualizeFile": vscode.commands.executeCommand("cpp-tutor.visualizeCurrentFile"); break;
+        case "checkDocker": vscode.commands.executeCommand("cpp-tutor.checkDocker"); break;
         case "cancel": this.service.cancel(); break;
       }
     });
@@ -34,6 +47,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 
   post(state: ServiceState): void {
     this.view?.webview.postMessage({ type: "state", state });
+  }
+
+  /** `problem` is "" when Docker is usable; anything else is shown as a warning. */
+  postDocker(problem: string): void {
+    this.dockerProblem = problem;
+    this.view?.webview.postMessage({ type: "docker", problem });
   }
 
   private html(webview: vscode.Webview): string {
@@ -49,8 +68,16 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 </head>
 <body>
 <div class="status"><span id="dot" class="dot"></span><span id="label">Service stopped</span></div>
+<div id="docker" class="warn" hidden>
+  <div id="docker-msg"></div>
+  <button id="recheck" class="secondary small">Recheck Docker</button>
+</div>
 <button id="primary" data-action="start">Start service</button>
-<button id="open" class="secondary" hidden>Open visualizer</button>
+<div class="row">
+  <button id="open" class="secondary" title="Open the visualizer in VSCode's Simple Browser">In VSCode</button>
+  <button id="open-external" class="secondary" title="Open the visualizer in your default browser">In browser</button>
+</div>
+<button id="visualize" class="secondary">Visualize current file</button>
 <div id="detail" class="detail"></div>
 <script nonce="${nonce}" src="${asset("sidebar.js")}"></script>
 </body>

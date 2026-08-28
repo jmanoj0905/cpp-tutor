@@ -111,7 +111,7 @@ export class TracerService {
     // no live loop is around to observe. Fail into "error" instead so
     // Retry actually retries.
     try {
-      const preflight = await this.checkDocker();
+      const preflight = await this.dockerProblem();
       if (this.stale(gen)) return;
       if (preflight) return this.set({ name: "error", message: preflight });
 
@@ -247,8 +247,12 @@ export class TracerService {
     this.set({ name: "ready", port });
   }
 
-  /** Returns an error message, or "" when Docker is usable. */
-  private async checkDocker(): Promise<string> {
+  /**
+   * Returns a human-readable problem, or "" when Docker is usable. Public so
+   * the sidebar can warn about a stopped daemon before the user clicks Start
+   * and waits for a failure to tell them the same thing.
+   */
+  async dockerProblem(): Promise<string> {
     const v = await this.deps.docker.run(["version"]);
     if (v.code === 0) return "";
     if (/ENOENT|not found/i.test(v.stderr)) return "Docker not found. Install Docker Desktop.";

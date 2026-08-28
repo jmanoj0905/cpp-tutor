@@ -9,5 +9,4 @@ __pycache__/
 .gstack/
 docs/superpowers/
 extension/out/
-extension/web/
 extension/*.vsix

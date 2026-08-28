@@ -20,6 +20,7 @@ import { useElapsed } from "./player/useElapsed";
 import { deadBreakpointLines } from "./player/breakpoints";
 import { toggleInSet } from "./util";
 import { fetchTrace } from "./api/client";
+import { readHandoff } from "./handoff";
 import { isCompileError, type Trace } from "./types/trace";
 
 const SAMPLE = `#include <iostream>
@@ -200,7 +201,10 @@ function Workspace({
 }
 
 export default function App() {
-  const [code, setCode] = useState(SAMPLE);
+  // The VSCode extension opens this app with the active editor's source in the
+  // URL hash; a plain web visit has no hash and starts from the sample.
+  const handoff = useMemo(() => readHandoff(window.location.hash), []);
+  const [code, setCode] = useState(handoff?.code ?? SAMPLE);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [errLine, setErrLine] = useState<number | null>(null);
@@ -221,13 +225,16 @@ export default function App() {
     setBreakpoints((prev) => toggleInSet(prev, line));
   }
 
-  async function visualize() {
+  // Takes the source explicitly so a hand-off arriving in the same page load
+  // (see the hashchange effect) traces the code it just delivered rather than
+  // whatever `code` held when this closure was created.
+  async function visualize(src: string = code) {
     setErr(null);
     setErrLine(null);
     setActiveHeapCell(null);
     setLoading(true);
     try {
-      const res = await fetchTrace(code, "cpp");
+      const res = await fetchTrace(src, "cpp");
       if (isCompileError(res)) { setErr(res.message); setErrLine(res.line); setTrace(null); return; }
       setTrace(res);
     } catch (e) {
@@ -246,6 +253,31 @@ export default function App() {
   }
 
   const viewing = trace !== null;
+
+  // `#...&run=1` means the extension's "Visualize current file" button, not a
+  // plain open: trace without waiting for a click. Runs once per hand-off.
+  const pendingRun = useRef(handoff?.run ?? false);
+  useEffect(() => {
+    if (!pendingRun.current) return;
+    pendingRun.current = false;
+    void visualize(handoff?.code ?? code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-opening the visualizer for a different file only changes the hash, so
+  // an already-loaded page gets a hashchange rather than a reload.
+  useEffect(() => {
+    function onHash() {
+      const next = readHandoff(window.location.hash);
+      if (!next) return;
+      setCode(next.code);
+      stop();
+      if (next.run) void visualize(next.code);
+    }
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useShortcuts(
     { mode: viewing ? "trace" : "edit", helpOpen, heapOpen: activeHeapCell !== null, paletteOpen: false, loading },
@@ -273,7 +305,7 @@ export default function App() {
           )}
           {viewing
             ? <button className="run stop" onClick={stop}>Stop</button>
-            : <button className="run" onClick={visualize} disabled={loading}>
+            : <button className="run" onClick={() => visualize()} disabled={loading}>
                 {loading ? `Visualizing… ${elapsed}s` : "Visualize Execution"}
               </button>}
         </div>
